@@ -42,12 +42,6 @@ class VABeam:
         update_orbit()
         self.magnet_changed = False
 
-    def read_pv(process_variable):
-        pass
-
-    def write_pv(process_variable):
-        pass
-
     def read_bpmx(bpm):
         if self.orbit_state_depricated:
             update_beam_orbit()
@@ -66,3 +60,9 @@ class VABeam:
     def set_quadrupole(magnet, hardware_value):
         self.orbit_state_depricated = True
         self.beamsizes_state_depricated = True
+
+    def read_pv(pv):
+        pass
+
+    def write_pv(pv, value):
+        pass
