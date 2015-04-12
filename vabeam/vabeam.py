@@ -5,8 +5,6 @@ import xmlrpclib
 import vabeam_si as _si
 import vabeam_bo as _bo
 
-clock = None   # Global clock for the system
-
 
 class VABeam:
 
