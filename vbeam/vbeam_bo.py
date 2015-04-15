@@ -5,7 +5,7 @@ import si_accelerator_object as _ao
 # need of semaphores since many clients may be connected simultaneously
 # maybe the VABeam for SI,BO,LI,... should be derived from a general VABeam...
 
-class VABeam:
+class VAccelerator:
 
     def __init__(self, clock):
 
