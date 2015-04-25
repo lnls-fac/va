@@ -53,11 +53,17 @@ beginfig(1)
     hw1.s = ioc1.n;
     hw2.s = ioc2.n;
     hw3.s = ioc3.n;
-
     drawboxed(hw1);
     drawoptions(dashed evenly);
     drawboxed(hw2, hw3);
     drawoptions();
+
+    boxit.bg();
+    bg.c = ioc3.c + (1.5hdist, -h/2);
+    bg.e = bg.w + (w, 0);
+    bg.s = bg.n + (0, 2h);
+    drawboxed(bg);
+    fill bpath.bg withcolor (0.9, 0.9, 0.9);
 
     boxit.model("Model");
     boxit.va("VA");
@@ -76,7 +82,59 @@ beginfig(1)
     draw o3--(xpart o3, ypart o3-h)-deltay;
     draw (xpart o2, ypart o2-h)-deltay--va.n-deltay;
     draw va.n-deltay--va.n;
+    label.lft("?", o2+(0, -h)-deltay);
 endfig;
 
+beginfig(2)
+    pickup pencircle scaled 1pt;
+
+    boxit.hla("HLA");
+    boxit.opi("OPI");
+    defaultboxsize(hla);
+    defaultboxsize(opi);
+    hla.c = (-hdist/2, 0);
+    opi.c = (hdist/2, 0);
+    drawboxed(hla, opi);
+
+    boxit.ioc1("IOC");
+    boxit.ioc2("IOC");
+    defaultboxsize(ioc1);
+    defaultboxsize(ioc2);
+    ioc1.c = (-hdist, -vdist);
+    ioc2.c = (0, -vdist);
+    drawboxed(ioc1, ioc2);
+
+    boxit.hw1("HW");
+    boxit.hw2("HW");
+    defaultboxsize(hw1);
+    defaultboxsize(hw2);
+    hw1.s = ioc1.n;
+    hw2.s = ioc2.n;
+    drawboxed(hw1, hw2);
+
+    boxit.bg();
+    bg.c = (hdist, -(vdist+h/2));
+    bg.e = bg.w + (w, 0);
+    bg.s = bg.n + (0, 2h);
+    drawboxed(bg);
+    fill bpath.bg withcolor (0.9, 0.9, 0.9);
+
+    boxit.va("VA");
+    boxit.model("Model");
+    defaultboxsize(model);
+    defaultboxsize(va);
+    va.c = (hdist, -vdist);
+    model.s = va.n;
+    drawboxed(va, model);
+
+    draw hla.n--(xpart hla.n, -vdist/2);
+    draw opi.n--(xpart opi.n, -vdist/2);
+    draw (-hdist, -vdist/2)--(hdist, -vdist/2);
+    draw (xpart ioc1.s, -vdist/2)--ioc1.s;
+    draw (xpart ioc2.s, -vdist/2)--ioc2.s;
+    draw (xpart va.s, -vdist/2)--va.s;
+    label.lft("Channel Access", (-1*hdist, -vdist/2));
+
+    endfig;
 end
 
