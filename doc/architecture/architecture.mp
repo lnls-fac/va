@@ -1,7 +1,7 @@
 input boxes
 prologues := 3;
-outputformat := "svg";
-outputtemplate := "%j-%c.svg";
+%outputformat := "svg";
+outputtemplate := "%j-%c.eps";
 
 defaultscale := 2.0;
 
@@ -73,8 +73,8 @@ beginfig(1)
     boxit.va("VA");
     defaultboxsize(model);
     defaultboxsize(va);
-    model.c = ioc3.c + (1.5hdist, 0);
-    va.s = model.n;
+    va.c = ioc3.c + (1.5hdist, 0);
+    model.s = va.n;
     drawboxed(model, va);
 
     pair deltax, deltay, o[];
@@ -84,8 +84,8 @@ beginfig(1)
     o3 := ioc3.n + 3deltax/4;
     draw o2--(xpart o2, ypart o2-h)-deltay;
     draw o3--(xpart o3, ypart o3-h)-deltay;
-    draw (xpart o2, ypart o2-h)-deltay--va.n-deltay;
-    draw va.n-deltay--va.n;
+    o4 := model.nw-deltay-deltax/4;
+    draw (xpart o2, ypart o2-h)-deltay--o4--(xpart o4, ypart va.c)--va.w;
     label.lft("?", o2+(0, -h)-deltay);
 
     path bounds;
@@ -146,7 +146,6 @@ beginfig(2)
     path bounds;
     bounds := ulcorner currentpicture+(-bound*u,bound*u)--urcorner currentpicture+(bound*u,bound*u)--lrcorner currentpicture+(bound*u,-bound*u)--cycle;
     setbounds currentpicture to bounds;
+endfig;
 
-    endfig;
 end
-
