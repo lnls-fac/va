@@ -1,9 +1,13 @@
 input boxes
 prologues := 3;
-outputtemplate := "%j-%c.eps";
+outputformat := "svg";
+outputtemplate := "%j-%c.svg";
+
+defaultscale := 2.0;
 
 numeric u, w, h;
-u := 0.1cm;
+bound := 5;
+u := 0.2cm;
 w := 16u;
 h := 9u;
 hdist := 25u;
@@ -15,7 +19,7 @@ vardef defaultboxsize(text bx) =
 enddef;
 
 beginfig(1)
-    pickup pencircle scaled 1pt;
+    pickup pencircle scaled 2pt;
 
     boxit.hla("HLA");
     boxit.opi("OPI");
@@ -83,10 +87,14 @@ beginfig(1)
     draw (xpart o2, ypart o2-h)-deltay--va.n-deltay;
     draw va.n-deltay--va.n;
     label.lft("?", o2+(0, -h)-deltay);
+
+    path bounds;
+    bounds := ulcorner currentpicture+(-bound*u,bound*u)--urcorner currentpicture+(bound*u,bound*u)--lrcorner currentpicture+(bound*u,-bound*u)--cycle;
+    setbounds currentpicture to bounds;
 endfig;
 
 beginfig(2)
-    pickup pencircle scaled 1pt;
+    pickup pencircle scaled 2pt;
 
     boxit.hla("HLA");
     boxit.opi("OPI");
@@ -134,6 +142,10 @@ beginfig(2)
     draw (xpart ioc2.s, -vdist/2)--ioc2.s;
     draw (xpart va.s, -vdist/2)--va.s;
     label.lft("Channel Access", (-1*hdist, -vdist/2));
+
+    path bounds;
+    bounds := ulcorner currentpicture+(-bound*u,bound*u)--urcorner currentpicture+(bound*u,bound*u)--lrcorner currentpicture+(bound*u,-bound*u)--cycle;
+    setbounds currentpicture to bounds;
 
     endfig;
 end
