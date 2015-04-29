@@ -19,34 +19,39 @@ PROCESSING_INTERVAL = 0.05
 class Model(object):
 
     def __init__(self, machine):
-        self._processing = False
+        self._is_processing = False
         self._accelerator = machine.create_accelerator()
         self._queue = queue.Queue()
-        # self._ao = machine.get_ao()
 
-    # begin public API
     def get_pv(self, pv):
         # Identify PV
         # Return PV value
-        pass
+        return 0.0
 
     def set_pv(self, pv, value):
+        # Validate input
         # Identify PV
         # Set PV value
         # Trigger dependent recalculation
-        pass
+        # pass
+        self._queue.put((pv, value))
+        return True
 
     def process(self):
-        self._processing = True
-        while(self._processing):
+        if self._is_processing:
+            return
+
+        print('starting processing loop')
+        self._is_processing = True
+        while(self._is_processing):
             while not self._queue.empty():
                 value = self._queue.get()
-                if value == 'STOP':
-                    self._processing = False
-                pass # set PV
+                print(value)
             time.sleep(PROCESSING_INTERVAL)
-            print('hi')
-    # end public API
+        print('stopping processing loop')
+
+    def stop(self):
+        self._is_processing = False
 
 
 class SiModel(Model):
