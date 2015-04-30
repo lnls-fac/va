@@ -14,7 +14,6 @@ class PCASDriver(Driver):
         self.si_model = si_model
 
     def read(self, reason):
-        print(reason)
         if reason.startswith('SI'):
             value = self.si_model.get_pv(reason)
         else:

@@ -27,29 +27,18 @@ class Model(object):
         self._accelerator[10].hkick_polynom = 1.0e-4
         self._queue = queue.Queue()
 
+        self._accelerator[10].hkick_polynom = 1.0e-4
+        self._calc_orbit()
+
     def get_pv(self, reason):
         if 'BPM' in reason:
-            self._calc_orbit()
             orbit = self._orbit[:, pv_names.bpm[reason[2:]]]
             return (orbit[0], orbit[2])
         elif 'CURRENT' in reason:
             current = self._current.value
             return current
 
-        # if pv == 'PS':
-        #     return self.pvs[pv]
-        # elif pv == 'BPM':
-        #     return 10*self.pvs['PS'] + 0.1
-        # Identify PV
-        # Return PV value
-        # return (0.0, 1.0)
-
     def set_pv(self, pv, value):
-        # Validate input
-        # Identify PV
-        # Set PV value
-        # Trigger dependent recalculation
-        # pass
         self._queue.put((pv, value))
         return True
 
@@ -62,11 +51,6 @@ class Model(object):
         while(self._is_processing):
             while not self._queue.empty():
                 value = self._queue.get()
-
-                # name, value = value
-                # self.pvs[name] = value
-
-                print(value)
             time.sleep(PROCESSING_INTERVAL)
         print('stopping processing loop')
 
