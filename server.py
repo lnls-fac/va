@@ -84,14 +84,6 @@ if __name__ == '__main__':
     si_thread = ModelThread(si)
     si_thread.start()
 
-    pvdb = {}
-    for key in pv_names.bpm.keys():
-        pvdb['SI'+key] = {
-            'type': 'float',
-            'count': 2,
-            'scan': 0.1,
-        }
-
     server = SimpleServer()
     server.createPV('', si_pvs.database)
     driver = PCASDriver(si)
