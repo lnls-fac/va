@@ -46,16 +46,19 @@ class Model(object):
             current = self._beam_current.value
             return current
         elif 'PA-TUNE' in pv_name:
-            if self._linear_optics_deprecated:
-                self._calc_linear_optics()
-                self._linear_optics_deprecated = False
-            if 'TUNEX' in reason:
-                pass
-
-
+            pass
 
     def set_pv(self, pv_name, value):
+        if 'PS-' in pv_name:
+            self._orbit_deprecated = True
+            self._linear_optics_deprecated = True
         return True
+
+    def update_state(self):
+        if self._orbit_deprecated:
+            self._calc_orbit()
+        if self._linear_optics_deprecated:
+            self._calc_linear_optics()
 
     def _calc_orbit(self):
         self._orbit = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
