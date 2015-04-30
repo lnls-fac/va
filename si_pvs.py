@@ -2,6 +2,10 @@
 
 import sirius as _sirius
 
+
+pvs = _sirius.si.process_variables.get_pv_names()
+
+
 kingdom = 'SI'
 subsystem = ['DI','PS','PA']
 element = ['-BPM-','-CHS-','-CVS-']

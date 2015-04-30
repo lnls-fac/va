@@ -8,7 +8,7 @@ import va.model as models
 import va.si_pvs as si_pvs
 
 
-WAIT_TIMEOUT = 0.5
+WAIT_TIMEOUT = 0.05
 
 
 class PCASDriver(Driver):
