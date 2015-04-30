@@ -7,11 +7,8 @@ import queue
 import threading
 from pcaspy import Driver, SimpleServer
 import va.model as models
-import va.si_pvs as si_pvs
-
 
 WAIT_TIMEOUT = 0.05
-
 
 class PCASDriver(Driver):
 
