@@ -7,8 +7,11 @@ import queue
 import threading
 from pcaspy import Driver, SimpleServer
 import va.model as models
+import va.si_pvs as si_pvs
 
-WAIT_TIMEOUT = 0.05
+
+WAIT_TIMEOUT = 0.1
+
 
 class PCASDriver(Driver):
 
@@ -22,25 +25,27 @@ class PCASDriver(Driver):
         self.setParam(reason, value)
 
     def update_pvs(self):
-        print('Now we update the PVs.')
-        print('Starting update...')
+        # print('Now we update the PVs.')
+        # print('Starting update...')
         for i in range(self.queue.qsize()):
             pv_name, value = self.queue.get()
             self.set_model_parameters(pv_name, value)
         self.update_model_state()
         self.update_pv_values()
         self.updatePVs()
-        print('PVs have been successfully updated!')
+        # print('PVs have been successfully updated!')
 
     def set_model_parameters(self, pv_name, value):
+        value = self.conv_phys2hw(pv_name, value)
+
         if name.startswith('SI'):
-            value = self.conv_phys2hw(pv_name, value)
             self.si_model.set_pv(pv_name, value)
         elif name.startswith('BO'):
             pass
         else:
             raise Exception('subsystem not found')
-        print(pv_name, value)
+
+        # print(pv_name, value)
 
     def conv_phys2hw(self, pv_name, value):
         return value
@@ -50,6 +55,12 @@ class PCASDriver(Driver):
         pass
 
     def update_pv_values(self):
+        # for pv_name in (parameters calculated by SI model):
+        #     self.setParam(p, self.si_model.get_pv(pv_name))
+        # print('setting!')
+        for pv in si_pvs.read_only_pvs:
+            self.setParam(pv, self.si_model.get_pv(pv))
+        #self.setParam('SIPA-CURRENT', self.si_model.get_pv('SIPA-CURRENT'))
         pass
 
 
@@ -68,26 +79,14 @@ class DriverThread(threading.Thread):
             if self._stop_event.wait(WAIT_TIMEOUT - delta):
                 break
 
-        print('exiting')
-
-
-class ModelThread(threading.Thread):
-
-    def __init__(self, model, stop_event):
-        self._model = model
-        self._stop_event = stop_event
-        super().__init__(target=self._main)
-
-    def _main(self):
-        self._model.process(self._stop_event)
+        # print('exiting')
 
 
 def handle_signal(signum, frame):
-    global stop_event, si_thread, driver_thread
+    global stop_event, driver_thread
     print('Received signal', signum)
     print('Active thread count:', threading.active_count())
     stop_event.set()
-    si_thread.join()
     driver_thread.join()
 
 
@@ -102,9 +101,6 @@ if __name__ == '__main__':
 
     si = models.SiModel()
     stop_event = threading.Event()
-
-    si_thread = ModelThread(si, stop_event)
-    si_thread.start()
 
     server = SimpleServer()
     server.createPV(prefix, si_pvs.database)
