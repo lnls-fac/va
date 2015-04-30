@@ -25,10 +25,13 @@ class Model(object):
         self._queue = queue.Queue()
 
         self._accelerator[10].hkick_polynom = 1.0e-4
-        self._calc_orbit()
+        self._orbit_depricated = True
 
     def get_pv(self, reason):
         if 'BPM' in reason:
+            if self._orbit_depricated:
+                self._calc_orbit()
+                self._orbit_depricated = False
             orbit = self._orbit[:, pv_names.bpm[reason[2:]]]
             return (orbit[0], orbit[2])
 
