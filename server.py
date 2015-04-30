@@ -8,7 +8,11 @@ import va.model as models
 import va.si_pvs as si_pvs
 
 
+WAIT_TIMEOUT = 0.2
+
+
 class PCASDriver(Driver):
+
     def  __init__(self, si_model):
         super().__init__()
         self.si_model = si_model
@@ -30,10 +34,25 @@ class PCASDriver(Driver):
         model.set_pv(reason, value)
 
 
+class DriverThread(threading.Thread):
+
+    def __init__(self, driver, stop_event):
+        self._driver = driver
+        self._stop_event = stop_event
+        super().__init__(target=self._main)
+
+    def _main(self):
+        while not self._stop_event.wait(WAIT_TIMEOUT):
+            print('waiting...')
+        else:
+            print('exiting')
+
+
 class ModelThread(threading.Thread):
 
-    def __init__(self, model):
+    def __init__(self, model, stop_event=None):
         self._model = model
+        self._stop_event = stop_event
         super().__init__(target=self._main)
 
     def stop(self):
@@ -47,15 +66,17 @@ class ModelThread(threading.Thread):
 
 def handler(signum, frame):
     global si_thread
-    global is_running
     print('Received signal', signum)
     print('Active thread count:', threading.active_count())
     print('Is alive?', si_thread.stop())
-    is_running = False
+
+    global stop_event
+    stop_event.set()
 
 
 if __name__ == '__main__':
 
+    stop_event = threading.Event()
     signal.signal(signal.SIGINT, handler)
 
     si = models.SiModel()
@@ -63,10 +84,21 @@ if __name__ == '__main__':
     si_thread = ModelThread(si)
     si_thread.start()
 
+    pvdb = {}
+    for key in pv_names.bpm.keys():
+        pvdb['SI'+key] = {
+            'type': 'float',
+            'count': 2,
+            'scan': 0.1,
+        }
+
     server = SimpleServer()
     server.createPV('', si_pvs.database)
     driver = PCASDriver(si)
 
+    # driver_thread = DriverThread(driver, stop_event)
+    # driver_thread.start()
+
     is_running = True
-    while is_running:
+    while True:
         server.process(0.1)
