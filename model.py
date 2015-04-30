@@ -11,6 +11,7 @@ import time
 import queue
 import pyaccel
 import sirius
+import utils
 import va.pv_names as pv_names
 
 
@@ -22,6 +23,7 @@ class Model(object):
     def __init__(self, machine):
         self._is_processing = False
         self._accelerator = machine.create_accelerator()
+        self._beam_current = utils.BeamCurrent(current=300, lifetime=10)
         self._accelerator[10].hkick_polynom = 1.0e-4
         self._queue = queue.Queue()
 
@@ -30,6 +32,9 @@ class Model(object):
             self._calc_orbit()
             orbit = self._orbit[:, pv_names.bpm[reason[2:]]]
             return (orbit[0], orbit[2])
+        elif 'CURRENT' in reason:
+            current = self._current.value
+            return current
 
         # if pv == 'PS':
         #     return self.pvs[pv]
