@@ -25,43 +25,37 @@ class PCASDriver(Driver):
         self.setParam(reason, value)
 
     def update_pvs(self):
-        # print('Now we update the PVs.')
-        # print('Starting update...')
         for i in range(self.queue.qsize()):
             pv_name, value = self.queue.get()
             self.set_model_parameters(pv_name, value)
         self.update_model_state()
         self.update_pv_values()
         self.updatePVs()
-        # print('PVs have been successfully updated!')
 
     def set_model_parameters(self, pv_name, value):
-        value = self.conv_phys2hw(pv_name, value)
+        name, value = self.conv_hw2phys(pv_name, value)
 
-        if name.startswith('SI'):
-            self.si_model.set_pv(pv_name, value)
-        elif name.startswith('BO'):
+        if pv_name.startswith('SI'):
+            self.si_model.set_pv(name, value)
+        elif pv_name.startswith('BO'):
             pass
         else:
             raise Exception('subsystem not found')
 
-        # print(pv_name, value)
+    def conv_hw2phys(self, pv_name, value):
+        if pv_name.endswith('-SP'):
+            name = pv_name[:-2]
+        else:
+            name = pv_name
 
-    def conv_phys2hw(self, pv_name, value):
-        return value
+        return name, value
 
     def update_model_state(self):
-        #self.si_model.update_state()
-        pass
+        self.si_model.update_state()
 
     def update_pv_values(self):
-        # for pv_name in (parameters calculated by SI model):
-        #     self.setParam(p, self.si_model.get_pv(pv_name))
-        # print('setting!')
         for pv in si_pvs.read_only_pvs:
             self.setParam(pv, self.si_model.get_pv(pv))
-        #self.setParam('SIPA-CURRENT', self.si_model.get_pv('SIPA-CURRENT'))
-        pass
 
 
 class DriverThread(threading.Thread):

@@ -42,11 +42,13 @@ class Model(object):
             return self._beam_lifetime
         elif 'TVMIN' in pv_name:
             return 60.0 * self._beam_lifetime
-        elif 'PA-CURRENT' in reason:
+        elif 'PA-CURRENT' in pv_name:
             current = self._beam_current.value
             return current
         elif 'PA-TUNE' in pv_name:
-            pass
+            return 0.0
+        else:
+            return 0.0
 
     def set_pv(self, pv_name, value):
         if 'PS-' in pv_name:
@@ -67,7 +69,7 @@ class Model(object):
     def _calc_linear_optics(self):
         if self._orbit_deprecated:
             self._calc_orbit()
-        pyaccel.optics.calctwiss(self._accelerator, closed_orbit=self._closed_orbit)
+        #pyaccel.optics.calctwiss(self._accelerator, closed_orbit=self._closed_orbit)
 
 
 class SiModel(Model):
