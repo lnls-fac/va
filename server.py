@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import time
 import signal
 import queue
@@ -48,7 +49,8 @@ class PCASDriver(Driver):
         return value
 
     def update_model_state(self):
-        self.si_model.update_state()
+        #self.si_model.update_state()
+        pass
 
     def update_pv_values(self):
         pass
@@ -94,6 +96,13 @@ def handle_signal(signum, frame):
 
 if __name__ == '__main__':
 
+    if len(sys.argv) > 1:
+        prefix = sys.argv[1]
+    else:
+        prefix = ''
+
+    print('Using prefix "' + prefix + '".')
+
     si = models.SiModel()
     stop_event = threading.Event()
 
@@ -101,7 +110,7 @@ if __name__ == '__main__':
     si_thread.start()
 
     server = SimpleServer()
-    server.createPV('', si_pvs.database)
+    server.createPV(prefix, si_pvs.database)
 
     driver = PCASDriver(si)
     driver_thread = DriverThread(driver, stop_event)
