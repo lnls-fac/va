@@ -30,7 +30,7 @@ class BeamCurrent:
         return self._current
 
     def inject(self, delta_current):
-        self._value = self.value + delta_current
+        self._current = self.value + delta_current
 
     def dump(self):
         self._timestamp = time.time()

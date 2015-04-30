@@ -5,7 +5,7 @@ import signal
 import threading
 from pcaspy import Driver, SimpleServer
 import va.model as models
-import va.pv_names as pv_names
+import va.si_pvs as si_pvs
 
 
 class PCASDriver(Driver):
@@ -63,13 +63,8 @@ if __name__ == '__main__':
     si_thread = ModelThread(si)
     si_thread.start()
 
-
-    pvdb = {}
-    for key in pv_names.bpm.keys():
-        pvdb['SI'+key] = {'type' : 'float', 'count': 2}
-
     server = SimpleServer()
-    server.createPV('', pvdb)
+    server.createPV('', si_pvs.database)
     driver = PCASDriver(si)
 
     is_running = True
