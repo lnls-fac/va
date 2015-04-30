@@ -2,6 +2,7 @@
 
 import time
 import signal
+import queue
 import threading
 from pcaspy import Driver, SimpleServer
 import va.model as models
@@ -16,28 +17,41 @@ class PCASDriver(Driver):
     def  __init__(self, si_model):
         super().__init__()
         self.si_model = si_model
-
-    def read(self, reason):
-        if reason.startswith('SI'):
-            value = self.si_model.get_pv(reason)
-        else:
-            raise Exception('model not implemented')
-
-        return value
+        self.queue = queue.Queue()
 
     def write(self, reason, value):
-        if reason.startswith('SI'):
-            model = self.si_model
-        else:
-            raise Exception('model not implemented')
-
-        model.set_pv(reason, value)
+        self.queue.put((reason, value))
+        self.setParam(reason, value)
 
     def update_pvs(self):
+        print('Now we update the PVs.')
+        print('Starting update...')
+        for i in range(self.queue.qsize()):
+            pv_name, value = self.queue.get()
+            self.set_model_parameters(pv_name, value)
+        self.update_model_state()
+        self.update_pv_values()
+        self.updatePVs()
+        print('PVs have been successfully updated!')
+
+    def set_model_parameters(self, pv_name, value):
+        if name.startswith('SI'):
+            value = self.conv_phys2hw(pv_name, value)
+            self.si_model.set_pv(pv_name, value)
+        elif name.startswith('BO'):
+            pass
+        else:
+            raise Exception('subsystem not found')
+        print(pv_name, value)
+
+    def conv_phys2hw(self, pv_name, value):
+        return value
+
+    def update_model_state(self):
+        self.si_model.update_state()
+
+    def update_pv_values(self):
         pass
-        # self.setParam('SIPA-CURRENT', self.si_model.get_pv('PA-CURRENT'))
-        # self.updatePVs()
-        # print('updating PVs...')
 
 
 class DriverThread(threading.Thread):
@@ -70,10 +84,12 @@ class ModelThread(threading.Thread):
 
 
 def handle_signal(signum, frame):
-    global stop_event
+    global stop_event, si_thread, driver_thread
     print('Received signal', signum)
     print('Active thread count:', threading.active_count())
     stop_event.set()
+    si_thread.join()
+    driver_thread.join()
 
 
 if __name__ == '__main__':
