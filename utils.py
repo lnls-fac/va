@@ -8,10 +8,9 @@ class BeamCurrent:
         self._current   = current      # [a.u.]
         self._timestamp = time.time()
 
-
     @property
     def lifetime(self):
-        return lifetime
+        return self._lifetime
 
     @lifetime.setter
     def lifetime(self, value):
