@@ -3,6 +3,7 @@ prologues := 3;
 %outputformat := "svg";
 outputtemplate := "%j-%c.eps";
 
+defaultfont := "ptmr8r";
 defaultscale := 2.0;
 
 numeric u, w, h;
