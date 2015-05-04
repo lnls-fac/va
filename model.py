@@ -28,6 +28,8 @@ class Model(object):
         self._beam_current  = None
         self._orbit = None
         self._tunes = [0.0, 0.0, 0.0]
+        self._quad_families_str = {}
+        self._sext_families_str = {}
 
         # state flags for various calculated parameters
         self._orbit_deprecated = True
@@ -37,6 +39,13 @@ class Model(object):
         self._beam_current.dump()
         self._cloed_orbit = numpy.zeros((6,len(self._accelerator)))
         self._tunes = [0.0, 0.0, 0.0]
+
+    def _get_element_index(self, pv_name):
+        """Get index of model element which corresponds to single-element PV"""
+        data = self._record_names[pv_name]
+        keys = list(data.keys())
+        idx = data[keys[0]][0]
+        return idx
 
     def get_pv(self, pv_name):
 
@@ -49,86 +58,154 @@ class Model(object):
             current = self._beam_current.value
             return current
         elif '-BPM-' in pv_name:
-            bpm_idx = self._record_names[pv_name]['bpm'][0]
-            orbit = 1000 * self._closed_orbit[[0,2],bpm_idx]   # [mm]
+            idx = self._get_element_index(pv_name)
+            orbit = 1000 * self._closed_orbit[[0,2], idx]   # [mm]
             return orbit
         elif 'PA-TUNEH' in pv_name:
             return self._tunes[0]
         elif 'PA-TUNEV' in pv_name:
             return self._tunes[1]
+        elif 'PS-CHS-' in pv_name:
+            pv_name = pv_name.replace('-RB','')
+            pv_name = pv_name.replace('-SP','')
+            idx = self._get_element_index(pv_name)
+            value = self._accelerator[idx].hkick_polynom
+            return value
+        elif 'PS-CVS-' in pv_name:
+            pv_name = pv_name.replace('-RB','')
+            pv_name = pv_name.replace('-SP','')
+            idx = self._get_element_index(pv_name)
+            value = self._accelerator[idx].vkick_polynom
+            return value
         elif 'PS-Q' in pv_name:
             pv_name = pv_name.replace('-RB','')
             pv_name = pv_name.replace('-SP','')
-            data = self._record_names[pv_name]
-            values = []
-            for fam_name in data.keys():
-                indices = data[fam_name]
-                for idx in indices:
-                    values.append(self._accelerator[idx].polynom_b[1])
-            #print(values)
-            return min(values)
+            if '-FAM' in pv_name:
+                value = self._quad_families_str[pv_name]
+                return value
+            else:
+                idx = self._get_element_index(pv_name)
+                value = self._accelerator[idx].polynom_b[1]
+                return value
+        elif 'PS-S' in pv_name:
+            pv_name = pv_name.replace('-RB','')
+            pv_name = pv_name.replace('-SP','')
+            if '-FAM' in pv_name:
+                value = self._sext_families_str[pv_name]
+                return value
+            else:
+                idx = self._get_element_index(pv_name)
+                value = self._accelerator[idx].polynom_b[2]
+                return value
         else:
             return float("nan")
 
     def set_pv(self, pv_name, value):
         if self.set_pv_correctors(pv_name, value): return
         if self.set_pv_quadrupoles(pv_name, value): return
+        if self.set_pv_sextupoles(pv_name, value): return
 
+    def set_pv_sextupoles(self, pv_name, value):
+
+        if 'PS-S' in pv_name:
+            pv_name = pv_name.replace('-SP','')
+            if '-FAM' in pv_name:
+                # family PV
+                prev_family_value = self._sext_families_str[pv_name]
+                if value != prev_family_value:
+                    data = self._record_names[pv_name]
+                    for fam_name in data.keys():
+                        indices = data[fam_name]
+                        for idx in indices:
+                            prev_total_value = self._accelerator[idx].polynom_b[2]
+                            prev_quad_value = prev_total_value - prev_family_value
+                            new_total_value = value + prev_quad_value
+                            self._accelerator[idx].polynom_b[2] = new_total_value
+                    self._orbit_deprecated = True
+                    self._linear_optics_deprecated = True
+            else:
+                # individual sext PV
+                idx = self._get_element_index(pv_name)
+                prev_value = self._accelerator[idx].polynom_b[2]
+                if value != prev_value:
+                    self._accelerator[idx].polynom_b[2] = value
+                    self._orbit_deprecated = True
+                    self._linear_optics_deprecated = True
+
+            return True
+
+        return False # [pv is not a sextupole]
 
     def set_pv_quadrupoles(self, pv_name, value):
+
         if 'PS-Q' in pv_name:
-            data = self._record_names[pv_name]
-            indices = []
-            for fam_name in data.keys():
-                indices.extend(data[fam_name])
-            new_value_flag = False
-            for idx in indices:
+            pv_name = pv_name.replace('-SP','')
+            if '-FAM' in pv_name:
+                # family PV
+                prev_family_value = self._quad_families_str[pv_name]
+                if value != prev_family_value:
+                    data = self._record_names[pv_name]
+                    for fam_name in data.keys():
+                        indices = data[fam_name]
+                        for idx in indices:
+                            prev_total_value = self._accelerator[idx].polynom_b[1]
+                            prev_quad_value = prev_total_value - prev_family_value
+                            new_total_value = value + prev_quad_value
+                            self._accelerator[idx].polynom_b[1] = new_total_value
+                    self._orbit_deprecated = True
+                    self._linear_optics_deprecated = True
+            else:
+                # individual quad PV
+                idx = self._get_element_index(pv_name)
                 prev_value = self._accelerator[idx].polynom_b[1]
-                if prev_value != value:
-                    new_value_flag = True
+                if value != prev_value:
                     self._accelerator[idx].polynom_b[1] = value
-            if new_value_flag:
+                    self._orbit_deprecated = True
+                    self._linear_optics_deprecated = True
+
+            return True
+
+        return False # [pv is not a quadrupole]
+
+    def set_pv_correctors(self, pv_name, value):
+
+        if 'PS-CHS-' in pv_name:
+            pv_name = pv_name.replace('-SP','')
+            idx = self._get_element_index(pv_name)
+            prev_value = self._accelerator[idx].hkick_polynom
+            if value != prev_value:
+                self._accelerator[idx].hkick_polynom = value
                 self._orbit_deprecated = True
                 self._linear_optics_deprecated = True
             return True
-        return False
 
-    def set_pv_correctors(self, pv_name, value):
-        if 'PS-CHS-' in pv_name:
-            chs_idx = self._record_names[pv_name]['chs'][0]
-            prev_value = self._accelerator[chs_idx].hkick_polynom
-            if prev_value == value:
-                return True
-            self._accelerator[chs_idx].hkick_polynom = value
-            self._orbit_deprecated = True
-            self._linear_optics_deprecated = True
-            return True
         if 'PS-CVS-' in pv_name:
-            cvs_idx = self._record_names[pv_name]['cvs'][0]
-            prev_value = self._accelerator[cvs_idx].vkick_polynom
-            if prev_value == value:
-                return True
-            self._accelerator[cvs_idx].vkick_polynom = value
-            self._orbit_deprecated = True
-            self._linear_optics_deprecated = True
+            pv_name = pv_name.replace('-SP','')
+            idx = self._get_element_index(pv_name)
+            prev_value = self._accelerator[idx].vkick_polynom
+            if value != prev_value:
+                self._accelerator[idx].vkick_polynom = value
+                self._orbit_deprecated = True
+                self._linear_optics_deprecated = True
             return True
+
         if 'PS-CHF-' in pv_name:
-            chf_idx = self._record_names[pv_name]['chf'][0]
-            prev_value = self._accelerator[chf_idx].hkick_polynom
-            if prev_value == value:
-                return True
-            self._accelerator[chf_idx].hkick_polynom = value
-            self._orbit_deprecated = True
-            self._linear_optics_deprecated = True
+            pv_name = pv_name.replace('-SP','')
+            idx = self._get_element_index(pv_name)
+            prev_value = self._accelerator[idx].hkick_polynom
+            if value != prev_value:
+                self._accelerator[idx].hkick_polynom = value
+                self._orbit_deprecated = True
+                self._linear_optics_deprecated = True
             return True
+
         if 'PS-CVF-' in pv_name:
             cvf_idx = self._record_names[pv_name]['cvf'][0]
             prev_value = self._accelerator[cvf_idx].vkick_polynom
-            if prev_value == value:
-                return
-            self._accelerator[cvf_idx].vkick_polynom = value
-            self._orbit_deprecated = True
-            self._linear_optics_deprecated = True
+            if prev_value != value:
+                self._accelerator[cvf_idx].vkick_polynom = value
+                self._orbit_deprecated = True
+                self._linear_optics_deprecated = True
             return True
 
         return False  # [pv is not a corrector]
@@ -160,6 +237,21 @@ class Model(object):
         self._tunes[1] = muy[-1]/2/math.pi
         self._linear_optics_deprecated = False
 
+    def _init_families_str(self):
+        rnames = sirius.si.record_names.get_record_names()
+        for pv_name in rnames.keys():
+            if '-FAM' in pv_name:
+                if 'PS-Q' in pv_name:
+                    idx = self._get_element_index(pv_name)
+                    value = self._accelerator[idx].polynom_b[1]
+                    self._quad_families_str[pv_name] = value
+                if 'PS-S' in pv_name:
+                    idx = self._get_element_index(pv_name)
+                    value = self._accelerator[idx].polynom_b[2]
+                    self._sext_families_str[pv_name] = value
+
+
+
 
 class SiModel(Model):
 
@@ -174,5 +266,8 @@ class SiModel(Model):
         self._beam_lifetime = 10.0 # [h]
         self._beam_current = utils.BeamCurrent(lifetime=self._beam_lifetime)
         self._beam_current.inject(300)   # [mA]
+
+        self._quad_families_str = {}
+        self._init_families_str()
 
         #self._accelerator[10].hkick_polynom = 1.0e-4

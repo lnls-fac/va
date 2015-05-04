@@ -23,12 +23,12 @@ class PCASDriver(Driver):
 
     def read(self, reason):
         # IOC logic here (?)
-        print('read:' + reason)
+        #print('read:' + reason)
         return super().read(reason)
 
     def write(self, reason, value):
         # IOC logic here (?)
-        print('write: ' + reason)
+        #print('write: ' + reason)
         self.queue.put((reason, value))
         self.setParam(reason, value)
 

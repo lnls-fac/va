@@ -8,6 +8,7 @@ from pcaspy import SimpleServer
 import va.driver as pcasdriver
 import va.model as models
 import va.si_pvs as si_pvs
+import va
 #import va.bo_pvs as bo_pvs
 #import va.ts_pvs as ts_pvs
 #import va.tb_pvs as tb_pvs
@@ -49,8 +50,16 @@ if __name__ == '__main__':
     else:
         prefix = ''
 
-    print('Using prefix "' + prefix + '".')
+    si_pv_names = list(si_pvs.database.keys())
 
+    print()
+    print('VirtualAccelerator')
+    print('==================')
+    print('{0:<15s}: {1}'.format('version:', va.__version__))
+    print('{0:<15s}: "{1}"'.format('pv prefix', prefix))
+    print('{0:<15s}: {1}'.format('# pvs in si', len(si_pv_names)))
+    print()
+    
     si = models.SiModel()
     stop_event = threading.Event()
 

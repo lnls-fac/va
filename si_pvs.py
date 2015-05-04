@@ -18,8 +18,8 @@ for record_name in record_names.keys():
     elif 'PS-' in record_name:
         power_supplies_sp.append(record_name + '-SP')
         power_supplies_rb.append(record_name + '-RB')
-        power_supplies_current_sp.append(record_name + '-CURRENT-SP')
-        power_supplies_current_rb.append(record_name + '-CURRENT-RB')
+        #power_supplies_current_sp.append(record_name + '-CURRENT-SP')
+        #power_supplies_current_rb.append(record_name + '-CURRENT-RB')
     elif 'PA-' in record_name:
         parameters.append(record_name)
     else:
