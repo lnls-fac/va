@@ -176,3 +176,17 @@ class SiModel(Model):
         self._beam_current.inject(300)   # [mA]
 
         #self._accelerator[10].hkick_polynom = 1.0e-4
+
+class BoModel(Model):
+
+    def __init__(self):
+        super().__init__(sirius.bo)
+        self._record_names = sirius.bo._record_names.get_record_names()
+        self._accelerator = self._model_module.create_accelerator()
+        self._accelerator.energy = 0.15e9 # [eV]
+        self._accelerator.cavity_on = TRACK6D
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = False
+        self._beam_lifetime = 1.0 # [h]
+        self._beam_current = utils.BeamCurrent(lifetime=self._beam_lifetime)
+        self._beam_current.inject(2)   # [mA]
