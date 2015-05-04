@@ -37,7 +37,7 @@ class Model(object):
 
     def beam_lost(self):
         self._beam_current.dump()
-        self._cloed_orbit = numpy.zeros((6,len(self._accelerator)))
+        self._closed_orbit = numpy.zeros((6,len(self._accelerator)))
         self._tunes = [0.0, 0.0, 0.0]
 
     def _get_element_index(self, pv_name):
@@ -59,7 +59,7 @@ class Model(object):
             return current
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
-            orbit = 1000 * self._closed_orbit[[0,2], idx]   # [mm]
+            orbit = self._closed_orbit[[0,2], idx]  
             return orbit
         elif 'PA-TUNEH' in pv_name:
             return self._tunes[0]
