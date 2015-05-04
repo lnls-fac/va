@@ -50,10 +50,10 @@ class PCASDriver(Driver):
         self.updatePVs()
 
     def set_model_parameters(self, pv_name, value):
-        name, value = self.conv_hw2phys(pv_name, value)
+        value = self.conv_hw2phys(pv_name, value)
 
         if pv_name.startswith('SI'):
-            self.si_model.set_pv(name, value)
+            self.si_model.set_pv(pv_name, value)
         elif pv_name.startswith('BO'):
             raise Exception('BO model not implemented yet')
         elif pv_name.startswith('TS'):
@@ -66,14 +66,13 @@ class PCASDriver(Driver):
             raise Exception('subsystem not found')
 
     def conv_hw2phys(self, pv_name, value):
-        if pv_name.endswith('-SP'):
-            name = pv_name[:-3]
-        elif pv_name.endswith('-RB'):
-            name = pv_name[:-3]
+        if '-CHS-' in pv_name:
+            return self.conv_current2kick(value)
         else:
-            name = pv_name
+            return value
 
-        return name, value
+    def conv_current2kick(self, value):
+        return value
 
     def update_model_state(self):
         self.si_model.update_state()
@@ -88,7 +87,9 @@ class PCASDriver(Driver):
 
     def update_pv_values(self):
         for pv in si_pvs.read_only_pvs:
-            self.setParam(pv, self.si_model.get_pv(pv))
+            phys_value = self.si_model.get_pv(pv)
+            hw_value = self.conv_phys2hw(pv, phys_value)
+            self.setParam(pv, phys_value)
         # for pv in bo_pvs.read_only_pvs:
         #     self.setParam(pv, self.bo_model.get_pv(pv))
         # for pv in ts_pvs.read_only_pvs:
@@ -97,6 +98,15 @@ class PCASDriver(Driver):
         #     self.setParam(pv, self.tb_model.get_pv(pv))
         # for pv in li_pvs.read_only_pvs:
         #     self.setParam(pv, self.li_model.get_pv(pv))
+
+    def conv_phys2hw(self, pv_name, value):
+        if '-CHS-' in pv_name:
+            return self.conv_kick2current(value)
+        else:
+            return value
+
+    def conv_kick2current(self, value):
+        return value
 
 
 class DriverThread(threading.Thread):
@@ -114,8 +124,6 @@ class DriverThread(threading.Thread):
             delta = time.time() - t0
             if self._stop_event.wait(WAIT_TIMEOUT - delta):
                 break
-
-        # print('exiting')
 
 
 def handle_signal(signum, frame):
