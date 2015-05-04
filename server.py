@@ -8,19 +8,36 @@ import threading
 from pcaspy import Driver, SimpleServer
 import va.model as models
 import va.si_pvs as si_pvs
+#import va.bo_pvs as bo_pvs
+#import va.ts_pvs as ts_pvs
+#import va.tb_pvs as tb_pvs
+#import va.li_pvs as li_pvs
 
 
-WAIT_TIMEOUT = 0.1
+WAIT_TIMEOUT = 0.01
 
 
 class PCASDriver(Driver):
 
-    def  __init__(self, si_model):
+    def  __init__(self, si_model = None,
+                        bo_model = None,
+                        ts_model = None,
+                        tb_model = None,
+                        li_model = None):
         super().__init__()
         self.si_model = si_model
+        self.bo_model = bo_model
+        self.ts_model = ts_model
+        self.tb_model = tb_model
+        self.li_model = li_model
         self.queue = queue.Queue()
 
+    def read(self, reason):
+        print('read:' + reason)
+        return super().read(reason)
+
     def write(self, reason, value):
+        print('write: ' + reason)
         self.queue.put((reason, value))
         self.setParam(reason, value)
 
@@ -38,13 +55,19 @@ class PCASDriver(Driver):
         if pv_name.startswith('SI'):
             self.si_model.set_pv(name, value)
         elif pv_name.startswith('BO'):
-            pass
+            raise Exception('BO model not implemented yet')
+        elif pv_name.startswith('TS'):
+            raise Exception('TS model not implemented yet')
+        elif pv_name.startswith('TB'):
+            raise Exception('TB model not implemented yet')
+        elif pv_name.startswith('LI'):
+            raise Exception('LI model not implemented yet')
         else:
             raise Exception('subsystem not found')
 
     def conv_hw2phys(self, pv_name, value):
         if pv_name.endswith('-SP'):
-            name = pv_name[:-2]
+            name = pv_name[:-3]
         else:
             name = pv_name
 
@@ -52,10 +75,22 @@ class PCASDriver(Driver):
 
     def update_model_state(self):
         self.si_model.update_state()
+        #self.bo_model.update_state()
+        #self.ts_model.update_state()
+        #self.tb_model.update_state()
+        #self.li_model.update_state()
 
     def update_pv_values(self):
         for pv in si_pvs.read_only_pvs:
             self.setParam(pv, self.si_model.get_pv(pv))
+        # for pv in bo_pvs.read_only_pvs:
+        #     self.setParam(pv, self.bo_model.get_pv(pv))
+        # for pv in ts_pvs.read_only_pvs:
+        #     self.setParam(pv, self.ts_model.get_pv(pv))
+        # for pv in tb_pvs.read_only_pvs:
+        #     self.setParam(pv, self.tb_model.get_pv(pv))
+        # for pv in li_pvs.read_only_pvs:
+        #     self.setParam(pv, self.li_model.get_pv(pv))
 
 
 class DriverThread(threading.Thread):
@@ -106,4 +141,4 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, handle_signal)
 
     while not stop_event.is_set():
-        server.process(0.1)
+        server.process(WAIT_TIMEOUT)
