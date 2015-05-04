@@ -14,7 +14,7 @@ import va.si_pvs as si_pvs
 #import va.li_pvs as li_pvs
 
 
-WAIT_TIMEOUT = 0.01
+WAIT_TIMEOUT = 0.1
 
 
 class PCASDriver(Driver):
@@ -68,6 +68,8 @@ class PCASDriver(Driver):
     def conv_hw2phys(self, pv_name, value):
         if pv_name.endswith('-SP'):
             name = pv_name[:-3]
+        elif pv_name.endswith('-RB'):
+            name = pv_name[:-3]
         else:
             name = pv_name
 
@@ -79,6 +81,10 @@ class PCASDriver(Driver):
         #self.ts_model.update_state()
         #self.tb_model.update_state()
         #self.li_model.update_state()
+
+    def update_sp_pv_values(self):
+        for pv in si_pvs.read_write_pvs:
+            self.setParam(pv, self.si_model.get_pv(pv))
 
     def update_pv_values(self):
         for pv in si_pvs.read_only_pvs:
@@ -99,6 +105,7 @@ class DriverThread(threading.Thread):
         self._driver = driver
         self._stop_event = stop_event
         super().__init__(target=self._main)
+        self._driver.update_sp_pv_values()   # inits SP fields from model
 
     def _main(self):
         while True:
