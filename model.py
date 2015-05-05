@@ -59,7 +59,7 @@ class Model(object):
             return current
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
-            orbit = self._closed_orbit[[0,2], idx]  
+            orbit = self._closed_orbit[[0,2], idx]
             return orbit
         elif 'PA-TUNEH' in pv_name:
             return self._tunes[0]
@@ -67,19 +67,16 @@ class Model(object):
             return self._tunes[1]
         elif 'PS-CHS-' in pv_name:
             pv_name = pv_name.replace('-RB','')
-            pv_name = pv_name.replace('-SP','')
             idx = self._get_element_index(pv_name)
             value = self._accelerator[idx].hkick_polynom
             return value
         elif 'PS-CVS-' in pv_name:
             pv_name = pv_name.replace('-RB','')
-            pv_name = pv_name.replace('-SP','')
             idx = self._get_element_index(pv_name)
             value = self._accelerator[idx].vkick_polynom
             return value
         elif 'PS-Q' in pv_name:
             pv_name = pv_name.replace('-RB','')
-            pv_name = pv_name.replace('-SP','')
             if '-FAM' in pv_name:
                 value = self._quad_families_str[pv_name]
                 return value
@@ -89,7 +86,6 @@ class Model(object):
                 return value
         elif 'PS-S' in pv_name:
             pv_name = pv_name.replace('-RB','')
-            pv_name = pv_name.replace('-SP','')
             if '-FAM' in pv_name:
                 value = self._sext_families_str[pv_name]
                 return value
