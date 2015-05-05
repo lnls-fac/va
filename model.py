@@ -54,16 +54,16 @@ class Model(object):
             return self._beam_lifetime
         elif 'TVMIN' in pv_name:
             return 60.0 * self._beam_lifetime
-        elif 'PA-CURRENT' in pv_name:
+        elif 'DI-CURRENT' in pv_name:
             current = self._beam_current.value
             return current
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
             orbit = self._closed_orbit[[0,2], idx]
             return orbit
-        elif 'PA-TUNEH' in pv_name:
+        elif 'DI-TUNEH' in pv_name:
             return self._tunes[0]
-        elif 'PA-TUNEV' in pv_name:
+        elif 'DI-TUNEV' in pv_name:
             return self._tunes[1]
         elif 'PS-CHS-' in pv_name:
             pv_name = pv_name.replace('-RB','')
