@@ -68,8 +68,8 @@ if __name__ == '__main__':
     stop_event = threading.Event()
 
     pvs_database = {}
-    pvs_database.extend(si_pvs.database)
-    pvs_database.extend(bo_pvs.database)
+    pvs_database.update(si_pvs.database)
+    pvs_database.update(bo_pvs.database)
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)

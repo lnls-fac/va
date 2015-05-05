@@ -276,7 +276,7 @@ class BoModel(Model):
 
     def __init__(self):
         super().__init__(sirius.bo)
-        self._record_names = sirius.bo._record_names.get_record_names()
+        self._record_names = sirius.bo.record_names.get_record_names()
         self._accelerator = self._model_module.create_accelerator()
         self._accelerator.energy = 0.15e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
