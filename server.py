@@ -8,6 +8,7 @@ from pcaspy import SimpleServer
 import va.driver as pcasdriver
 import va.model as models
 import va.si_pvs as si_pvs
+import va.bo_pvs as bo_pvs
 import va
 #import va.bo_pvs as bo_pvs
 #import va.ts_pvs as ts_pvs
@@ -51,6 +52,7 @@ if __name__ == '__main__':
         prefix = ''
 
     si_pv_names = list(si_pvs.database.keys())
+    bo_pv_names = list(bo_pvs.database.keys())
 
     print()
     print('VirtualAccelerator')
@@ -58,13 +60,19 @@ if __name__ == '__main__':
     print('{0:<15s}: {1}'.format('version:', va.__version__))
     print('{0:<15s}: "{1}"'.format('pv prefix', prefix))
     print('{0:<15s}: {1}'.format('# pvs in si', len(si_pv_names)))
+    print('{0:<15s}: {1}'.format('# pvs in bo', len(bo_pv_names)))
     print()
-    
+
     si = models.SiModel()
+    bo = models.BoModel()
     stop_event = threading.Event()
 
+    pvs_database = {}
+    pvs_database.extend(si_pvs.database)
+    pvs_database.extend(bo_pvs.database)
+
     server = SimpleServer()
-    server.createPV(prefix, si_pvs.database)
+    server.createPV(prefix, pvs_database)
 
     driver = pcasdriver.PCASDriver(si)
     driver_thread = DriverThread(driver, stop_event)
