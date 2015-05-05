@@ -1,4 +1,6 @@
 
+"""Sample quadrupole excitation curve."""
+
 import numpy as _np
 
 

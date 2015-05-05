@@ -59,7 +59,7 @@ class Model(object):
             return current
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
-            orbit = self._closed_orbit[[0,2], idx]  
+            orbit = self._closed_orbit[[0,2], idx]
             return orbit
         elif 'PA-TUNEH' in pv_name:
             return self._tunes[0]
