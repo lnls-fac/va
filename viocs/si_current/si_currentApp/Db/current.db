@@ -1,0 +1,13 @@
+record(calc, "SIDI-CURRENT")
+{
+    field(DESC, "SI current")
+    field(SCAN, ".1 second")
+    field(CALC, "A")
+    field(INPA, "VA-SIDI-CURRENT  NPP NMS")
+    field(EGU, "mA")
+    field(HOPR, "500")
+    field(HIHI, "600")
+    field(HIGH, "500")
+    field(HHSV, "MAJOR")
+    field(HSV, "MINOR")
+}
