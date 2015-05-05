@@ -3,6 +3,7 @@ import queue
 import numpy
 from pcaspy import Driver
 import va.si_pvs as si_pvs
+import va.bo_pvs as bo_pvs
 import exccurve
 
 
@@ -21,8 +22,8 @@ class PCASDriver(Driver):
         self.li_model = li_model
         self.queue = queue.Queue()
 
-        self.read_only_pvs = si_pvs.read_only_pvs
-        self.read_write_pvs = si_pvs.read_write_pvs
+        self.read_only_pvs = si_pvs.read_only_pvs + bo_pvs.read_only_pvs
+        self.read_write_pvs = si_pvs.read_write_pvs + bo_pvs.read_write_pvs
 
     def read(self, reason):
         print('read:' + reason)
@@ -54,7 +55,7 @@ class PCASDriver(Driver):
         if pv_name.startswith('SI'):
             self.si_model.set_pv(pv_name, value)
         elif pv_name.startswith('BO'):
-            raise Exception('BO model not implemented yet')
+            self.bo_model.set_pv(pv_name, value)
         elif pv_name.startswith('TS'):
             raise Exception('TS model not implemented yet')
         elif pv_name.startswith('TB'):
@@ -66,7 +67,7 @@ class PCASDriver(Driver):
 
     def update_model_state(self):
         self.si_model.update_state()
-        #self.bo_model.update_state()
+        self.bo_model.update_state()
         #self.ts_model.update_state()
         #self.tb_model.update_state()
         #self.li_model.update_state()
@@ -75,8 +76,9 @@ class PCASDriver(Driver):
         for pv in si_pvs.read_only_pvs:
             value = self.si_model.get_pv(pv)
             self.setParam(pv, value)
-        # for pv in bo_pvs.read_only_pvs:
-        #     self.setParam(pv, self.bo_model.get_pv(pv))
+        for pv in bo_pvs.read_only_pvs:
+            value = self.bo_model.get_pv(pv)
+            self.setParam(pv, value)
         # for pv in ts_pvs.read_only_pvs:
         #     self.setParam(pv, self.ts_model.get_pv(pv))
         # for pv in tb_pvs.read_only_pvs:
@@ -85,8 +87,11 @@ class PCASDriver(Driver):
         #     self.setParam(pv, self.li_model.get_pv(pv))
 
     def update_sp_pv_values(self):
-        for pv in self.read_write_pvs:
+        for pv in si_pvs.read_write_pvs:
             value = self.si_model.get_pv(pv)
+            self.setParam(pv, value)
+        for pv in bo_pvs.read_write_pvs:
+            value = self.bo_model.get_pv(pv)
             self.setParam(pv, value)
 
     def conv_hw2phys(self, pv_name, value):
@@ -111,10 +116,12 @@ class PCASDriver(Driver):
         return value
 
     def conv_quad_str2current(self, value):
-        return numpy.interp(value, exccurve.k, exccurve.i)
+        # return numpy.interp(value, exccurve.k, exccurve.i)
+        return value
 
     def conv_kick2current(self, value):
         return value
 
     def conv_current2quad_str(self, value):
-        return numpy.interp(value, exccurve.i, exccurve.k)
+        # return numpy.interp(value, exccurve.i, exccurve.k)
+        return value

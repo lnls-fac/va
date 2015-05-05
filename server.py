@@ -10,7 +10,6 @@ import va.model as models
 import va.si_pvs as si_pvs
 import va.bo_pvs as bo_pvs
 import va
-#import va.bo_pvs as bo_pvs
 #import va.ts_pvs as ts_pvs
 #import va.tb_pvs as tb_pvs
 #import va.li_pvs as li_pvs
@@ -74,7 +73,7 @@ if __name__ == '__main__':
     server = SimpleServer()
     server.createPV(prefix, pvs_database)
 
-    driver = pcasdriver.PCASDriver(si)
+    driver = pcasdriver.PCASDriver(si, bo)
     driver_thread = DriverThread(driver, stop_event)
     driver_thread.start()
 
