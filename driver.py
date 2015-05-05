@@ -21,29 +21,35 @@ class PCASDriver(Driver):
         self.li_model = li_model
         self.queue = queue.Queue()
 
+        self.read_only_pvs = si_pvs.read_only_pvs
+        self.read_write_pvs = si_pvs.read_write_pvs
+
     def read(self, reason):
-        # IOC logic here (?)
-        #print('read:' + reason)
+        print('read:' + reason)
         return super().read(reason)
 
     def write(self, reason, value):
-        # IOC logic here (?)
-        #print('write: ' + reason)
+        print('write: ' + reason)
         self.queue.put((reason, value))
         self.setParam(reason, value)
 
     def update_pvs(self):
+        """Update model PVs, recalculate changed parameters and read them back.
+        """
         for i in range(self.queue.qsize()):
             pv_name, value = self.queue.get()
+            if pv_name in self.read_only_pvs:
+                continue
+            value = self.conv_hw2phys(pv_name, value)
             self.set_model_parameter(pv_name, value)
+
         self.update_model_state()
         self.update_pv_values()
+
         self.updatePVs()
 
     def set_model_parameter(self, pv_name, value):
         """Set model parameter in physical units."""
-
-        value = self.conv_hw2phys(pv_name, value)
 
         if pv_name.startswith('SI'):
             self.si_model.set_pv(pv_name, value)
@@ -58,21 +64,6 @@ class PCASDriver(Driver):
         else:
             raise Exception('subsystem not found')
 
-    def conv_hw2phys(self, pv_name, value):
-        """Convert PV value from hardware to physical units."""
-        if 'PS-CHS' in pv_name:
-            return self.conv_current2kick(value)
-        elif 'PS-Q' in pv_name:
-            return self.conv_current2k(value)
-        else:
-            return value
-
-    def conv_current2kick(self, value):
-        return value
-
-    def conv_k2current(self, value):
-        return numpy.interp(value, exccurve.k, exccurve.i)
-
     def update_model_state(self):
         self.si_model.update_state()
         #self.bo_model.update_state()
@@ -80,17 +71,10 @@ class PCASDriver(Driver):
         #self.tb_model.update_state()
         #self.li_model.update_state()
 
-    def update_sp_pv_values(self):
-        for pv in si_pvs.read_write_pvs:
-            phys_value = self.si_model.get_pv(pv)
-            hw_value = self.conv_phys2hw(pv, phys_value)
-            self.setParam(pv, phys_value)
-
     def update_pv_values(self):
         for pv in si_pvs.read_only_pvs:
-            phys_value = self.si_model.get_pv(pv)
-            hw_value = self.conv_phys2hw(pv, phys_value)
-            self.setParam(pv, phys_value)
+            value = self.si_model.get_pv(pv)
+            self.setParam(pv, value)
         # for pv in bo_pvs.read_only_pvs:
         #     self.setParam(pv, self.bo_model.get_pv(pv))
         # for pv in ts_pvs.read_only_pvs:
@@ -100,17 +84,37 @@ class PCASDriver(Driver):
         # for pv in li_pvs.read_only_pvs:
         #     self.setParam(pv, self.li_model.get_pv(pv))
 
+    def update_sp_pv_values(self):
+        for pv in self.read_write_pvs:
+            value = self.si_model.get_pv(pv)
+            self.setParam(pv, value)
+
+    def conv_hw2phys(self, pv_name, value):
+        """Convert PV value from hardware to physical units."""
+        if 'PS-CHS' in pv_name:
+            return self.conv_current2kick(value)
+        elif 'PS-Q' in pv_name:
+            return self.conv_current2quad_str(value)
+        else:
+            return value
+
     def conv_phys2hw(self, pv_name, value):
         """Convert PV value from physical to hardware units."""
         if 'PS-CHS' in pv_name:
             return self.conv_kick2current(value)
         elif 'PS-Q' in pv_name:
-            return self.conv_k2current(value)
+            return self.conv_quad_str2current(value)
         else:
             return value
+
+    def conv_current2kick(self, value):
+        return value
+
+    def conv_quad_str2current(self, value):
+        return numpy.interp(value, exccurve.k, exccurve.i)
 
     def conv_kick2current(self, value):
         return value
 
-    def conv_current2k(self, value):
+    def conv_current2quad_str(self, value):
         return numpy.interp(value, exccurve.i, exccurve.k)
