@@ -3,6 +3,7 @@ import queue
 import numpy
 from pcaspy import Driver
 import va.si_pvs as si_pvs
+import va.bo_pvs as bo_pvs
 import exccurve
 
 
@@ -21,8 +22,8 @@ class PCASDriver(Driver):
         self.li_model = li_model
         self.queue = queue.Queue()
 
-        self.read_only_pvs = si_pvs.read_only_pvs
-        self.read_write_pvs = si_pvs.read_write_pvs
+        self.read_only_pvs  = si_pvs.read_only_pvs #+ bo_pvs.read_only_pvs
+        self.read_write_pvs = si_pvs.read_write_pvs #+ bo_pvs.read_write_pvs
 
     def read(self, reason):
         print('read:' + reason)
@@ -65,24 +66,20 @@ class PCASDriver(Driver):
             raise Exception('subsystem not found')
 
     def update_model_state(self):
-        self.si_model.update_state()
-        #self.bo_model.update_state()
-        #self.ts_model.update_state()
-        #self.tb_model.update_state()
-        #self.li_model.update_state()
+        if self.si_model:
+            self.si_model.update_state()
+        if self.bo_model:
+            self.bo_model.update_state()
 
     def update_pv_values(self):
         for pv in si_pvs.read_only_pvs:
-            value = self.si_model.get_pv(pv)
-            self.setParam(pv, value)
-        # for pv in bo_pvs.read_only_pvs:
-        #     self.setParam(pv, self.bo_model.get_pv(pv))
-        # for pv in ts_pvs.read_only_pvs:
-        #     self.setParam(pv, self.ts_model.get_pv(pv))
-        # for pv in tb_pvs.read_only_pvs:
-        #     self.setParam(pv, self.tb_model.get_pv(pv))
-        # for pv in li_pvs.read_only_pvs:
-        #     self.setParam(pv, self.li_model.get_pv(pv))
+            if self.si_model:
+                value = self.si_model.get_pv(pv)
+                self.setParam(pv, value)
+        for pv in bo_pvs.read_only_pvs:
+            if self.bo_model:
+                value = self.bo_model.get_pv(pv)
+                self.setParam(pv, self.bo_model.get_pv(pv))
 
     def update_sp_pv_values(self):
         for pv in self.read_write_pvs:

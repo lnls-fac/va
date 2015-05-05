@@ -5,31 +5,32 @@ import model
 
 record_names = model.sirius.si.record_names.get_record_names()
 
-bpms = []
-power_supplies_sp = []
-power_supplies_rb = []
-parameters = []
+sidi_bpms = []
+sips = []
+sipa = []
+sidi = []
 
 for record_name in record_names.keys():
     if 'BPM-' in record_name:
-        bpms.append(record_name)
+        sidi_bpms.append(record_name)
+    elif 'DI-' in record_name:
+        sidi.append(record_name)
     elif 'PS-' in record_name:
-        power_supplies_sp.append(record_name + '-SP')
-        power_supplies_rb.append(record_name + '-RB')
+        sips.append(record_name)
     elif 'PA-' in record_name:
-        parameters.append(record_name)
+        sipa.append(record_name)
     else:
         print('Parameter', record_name, 'not found!')
 
-read_only_pvs = bpms + parameters + power_supplies_rb
-read_write_pvs = power_supplies_sp
+read_only_pvs = sidi_bpms + sipa + sidi
+read_write_pvs = sips
 
 database = {}
-for bpm in bpms:
-    database[bpm] = {'type' : 'float', 'count': 2}
-for parameter in parameters:
-    database[parameter] = {'type' : 'float', 'count': 1, 'value': 0.0}
-for ps in power_supplies_sp:
-    database[ps] = {'type' : 'float', 'count': 1, 'value': 0.0}
-for ps in power_supplies_rb:
-    database[ps] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in sidi_bpms:
+    database[p] = {'type' : 'float', 'count': 2}
+for p in sidi:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in sips:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in sipa:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
