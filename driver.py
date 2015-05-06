@@ -23,17 +23,20 @@ class PCASDriver(Driver):
         self.li_model = li_model
         self.queue = queue.Queue()
 
-        self.read_only_pvs  = si_pvs.read_only_pvs #+ bo_pvs.read_only_pvs
-        self.read_write_pvs = si_pvs.read_write_pvs #+ bo_pvs.read_write_pvs
+        self.read_only_pvs  = si_pvs.read_only_pvs + bo_pvs.read_only_pvs
+        self.read_write_pvs = si_pvs.read_write_pvs + bo_pvs.read_write_pvs
 
     def read(self, reason):
         print(utils.timestamp_message('read ' + reason))
         return super().read(reason)
 
     def write(self, reason, value):
-        print(utils.timestamp_message('write ' + reason, a2=['bold']))
-        self.queue.put((reason, value))
-        self.setParam(reason, value)
+        if reason in self.read_only_pvs:
+            print(utils.timestamp_message('!!! write ' + reason + ' ' + str(value), a2=['bold']))
+        else:
+            print(utils.timestamp_message('write ' + reason + ' ' + str(value), a2=['bold']))
+            self.queue.put((reason, value))
+            self.setParam(reason, value)
 
     def update_pvs(self):
         """Update model PVs, recalculate changed parameters and read them back.

@@ -50,7 +50,7 @@ if __name__ == '__main__':
         prefix = ''
 
     si_pv_names = list(si_pvs.database.keys())
-    #bo_pv_names = list(bo_pvs.database.keys())
+    bo_pv_names = list(bo_pvs.database.keys())
 
     color1 = 'white'
     color2 = 'red'
@@ -61,20 +61,21 @@ if __name__ == '__main__':
     print('                    ' + colored('| Version {0}'.format(va.__version__), color1, attrs=['bold']))
     print('                    ' + colored('| Prefix: {0}'.format(prefix), color1, attrs=['bold']))
     print('                    ' + colored('| Number of SI pvs: {0}'.format(len(si_pv_names)), color1, attrs=['bold']))
+    print('                    ' + colored('| Number of BO pvs: {0}'.format(len(bo_pv_names)), color1, attrs=['bold']))
     print()
 
     si = models.SiModel()
-    #bo = models.BoModel()
+    bo = models.BoModel()
     stop_event = threading.Event()
 
     pvs_database = {}
     pvs_database.update(si_pvs.database)
-    #pvs_database.update(bo_pvs.database)
+    pvs_database.update(bo_pvs.database)
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)
 
-    driver = pcasdriver.PCASDriver(si)
+    driver = pcasdriver.PCASDriver(si_model = si, bo_model = bo)
     driver_thread = DriverThread(driver, stop_event)
     driver_thread.start()
 

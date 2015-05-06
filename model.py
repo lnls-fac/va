@@ -18,7 +18,7 @@ import datetime
 
 
 TRACK6D = False
-UNDEF_VALUE = float('nan')
+UNDEF_VALUE = 0.0 #float('nan')
 
 class Model(object):
 
@@ -31,15 +31,13 @@ class Model(object):
         self._beam_current  = utils.BeamCurrent()
         self._quad_families_str = {}
         self._sext_families_str = {}
-
         self.beam_init() # inits beam data structure
 
+    def beam_init(self):
+        self.beam_lost('init beam in ' + self._model_module.lattice_version)
         # state flags for various calculated parameters
         self._orbit_deprecated = True
         self._linear_optics_deprecated = True
-
-    def beam_init(self):
-        self.beam_lost('init beam')
 
     def beam_lost(self, message='', c1='yellow', a1=None, c2='white', a2=None):
         self._beam_current.dump()
@@ -60,10 +58,8 @@ class Model(object):
     def get_pv(self, pv_name):
 
         # process global parameters
-        if 'TVHOUR' in pv_name:
-            return self._beam_lifetime
-        elif 'TVMIN' in pv_name:
-            return 60.0 * self._beam_lifetime
+        if 'LIFETIME' in pv_name:
+            return self._beam_current.lifetime
         elif 'DI-CURRENT' in pv_name:
             current = self._beam_current.value
             return current
@@ -78,7 +74,6 @@ class Model(object):
             try:
                 tune_value = self._twiss[-1].mux / 2.0 / math.pi
             except TypeError:
-                print(self._linear_optics_deprecated)
                 tune_value = UNDEF_VALUE
             return tune_value
         elif 'DI-TUNEV' in pv_name:
@@ -126,7 +121,7 @@ class Model(object):
                 value = self._accelerator[idx].polynom_b[2] - family_value
                 return value
         else:
-            return float("nan")
+            return float("inf")
 
     def set_pv(self, pv_name, value):
         if self.set_pv_correctors(pv_name, value): return
@@ -279,6 +274,9 @@ class Model(object):
             # beam is lost
             self.beam_lost('beam lost: unstable linear optics', c2='red')
         except pyaccel.optics.OpticsException:
+            # beam is lost
+            self.beam_lost('beam lost: unstable linear optics', c2='red')
+        except pyaccel.tracking.TrackingException:
             # beam is lost
             self.beam_lost('beam lost: unstable linear optics', c2='red')
 
