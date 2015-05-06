@@ -1,0 +1,7 @@
+
+record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+{
+    field(DESC, "SI C$(plane)S setpoint sector $(sector) pos $(pos)")
+    field(OUT, "VA-SIPS-C$(plane)S-$(sector)$(pos)-SP NPP NMS")
+    field(EGU, "rad")
+}
