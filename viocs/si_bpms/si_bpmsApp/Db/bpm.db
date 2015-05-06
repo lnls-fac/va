@@ -1,0 +1,9 @@
+
+record(waveform, "SIDI-BPM-$(sector)$(pos)")
+{
+    field(DESC, "SI BPM sector $(sector) pos $(pos)")
+    field(SCAN, ".1 second")
+    field(NELM, 2)
+    field(INP, "VA-SIDI-BPM-$(sector)$(pos)  NPP NMS")
+    field(EGU, "m")
+}
