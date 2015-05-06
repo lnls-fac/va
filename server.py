@@ -10,11 +10,7 @@ import va.model as models
 import va.si_pvs as si_pvs
 import va.bo_pvs as bo_pvs
 import va
-
-#import va.bo_pvs as bo_pvs
-#import va.ts_pvs as ts_pvs
-#import va.tb_pvs as tb_pvs
-#import va.li_pvs as li_pvs
+from termcolor import colored
 
 
 WAIT_TIMEOUT = 0.1
@@ -55,13 +51,15 @@ if __name__ == '__main__':
     si_pv_names = list(si_pvs.database.keys())
     #bo_pv_names = list(bo_pvs.database.keys())
 
+    color1 = 'white'
+    color2 = 'red'
     print()
-    print('VirtualAccelerator')
-    print('==================')
-    print('{0:<15s}: {1}'.format('version:', va.__version__))
-    print('{0:<15s}: "{1}"'.format('pv prefix', prefix))
-    print('{0:<15s}: {1}'.format('# pvs in si', len(si_pv_names)))
-    #print('{0:<15s}: {1}'.format('# pvs in bo', len(bo_pv_names)))
+    print(colored('                    | A virtual accelerator for the SIRIUS project', color1, attrs=['bold']))
+    print(' ' + colored('VirtualAccelerator', color2, attrs=['bold', 'underline']) + colored(' | Documentation: http://10.0.21.132', color1, attrs=['bold']))
+    print('                    ' + colored('| Accelerator Physics Group', color1, attrs=['bold']))
+    print('                    ' + colored('| Version {0}'.format(va.__version__), color1, attrs=['bold']))
+    print('                    ' + colored('| Prefix: {0}'.format(prefix), color1, attrs=['bold']))
+    print('                    ' + colored('| Number of SI pvs: {0}'.format(len(si_pv_names)), color1, attrs=['bold']))
     print()
 
     si = models.SiModel()
