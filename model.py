@@ -41,14 +41,14 @@ class Model(object):
     def beam_init(self):
         self.beam_lost('init beam')
 
-    def beam_lost(self, message=''):
+    def beam_lost(self, message='', c1='yellow', a1=None, c2='white', a2=None):
         self._beam_current.dump()
         self._closed_orbit = None
         self._twiss = None
         self._m66 = None
         self._transfer_matrices = None
         if message:
-            print(utils.timestamp_message(message), c2='red')
+            print(utils.timestamp_message(message, c1=c1, a1=a1, c2=c2, a2=a2))
 
     def _get_element_index(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
@@ -234,7 +234,7 @@ class Model(object):
                 self._closed_orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         except pyaccel.tracking.TrackingException:
             # beam is lost
-            self.beam_lost('beam lost: no closed orbit found')
+            self.beam_lost('beam lost: no closed orbit found', c2='red')
         self._orbit_deprecated = False
 
     def _calc_linear_optics(self):
@@ -251,10 +251,10 @@ class Model(object):
 
         except numpy.linalg.linalg.LinAlgError:
             # beam is lost
-            self.beam_lost('beam lost: unstable linear optics')
+            self.beam_lost('beam lost: unstable linear optics', c2='red')
         except pyaccel.optics.OpticsException:
             # beam is lost
-            self.beam_lost('beam lost: unstable linear optics')
+            self.beam_lost('beam lost: unstable linear optics', c2='red')
 
         self._linear_optics_deprecated = False
 
