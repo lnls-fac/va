@@ -20,6 +20,7 @@ import mathphys
 
 TRACK6D = False
 UNDEF_VALUE = 0.0 #float('nan')
+_u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
 class Model(object):
 
@@ -52,12 +53,12 @@ class Model(object):
         self._m66 = None
         self._transfer_matrices = None
 
-    def beam_inject(self, current, message='', c1='yellow', a1=None, c2='white', a2=None):
+    def beam_inject(self, charge, message='', c1='yellow', a1=None, c2='white', a2=None):
         if message:
             print(utils.timestamp_message(message, c1=c1, a1=a1, c2=c2, a2=a2))
-        if not self._beam_current.value:
+        if not self._beam_charge.value:
             self.reset_state_flags()
-        self._beam_current.inject(current)
+        self._beam_charge.inject(charge)
 
 
 
@@ -145,7 +146,8 @@ class Model(object):
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
         if 'FK-INJECT' in pv_name:
-            self.beam_inject(value, message='inj   '+str(value)+' mA', c2='green')
+            charge = value * _u.mA * _Tp(self._accelerator)
+            self.beam_inject(charge, message='inj   '+str(value)+' mA', c2='green')
 
     def set_pv_sextupoles(self, pv_name, value):
 
@@ -321,7 +323,7 @@ class Model(object):
                     value = self._accelerator[idx].polynom_b[2]
                     self._sext_families_str[pv_name] = value
 
-_u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
+
 
 class SiModel(Model):
 
