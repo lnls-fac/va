@@ -43,8 +43,6 @@ class PCASDriver(Driver):
         """
         for i in range(self.queue.qsize()):
             pv_name, value = self.queue.get()
-            if pv_name in self.read_only_pvs:
-                continue
             self.set_model_parameter(pv_name, value)
 
         self.update_model_state()
