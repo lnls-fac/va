@@ -14,8 +14,11 @@ import utils
 import numpy
 import math
 import lnls.utils
+import datetime
+
 
 TRACK6D = False
+UNDEF_VALUE = float('nan')
 
 class Model(object):
 
@@ -25,21 +28,27 @@ class Model(object):
         self._model_module  = model_module
         self._record_names  = self._model_module.record_names.get_record_names()
         self._accelerator   = None
-        self._beam_lifetime = 0.0 # [h]
-        self._beam_current  = None
-        self._orbit = None
-        self._tunes = [0.0, 0.0, 0.0]
+        self._beam_current  = utils.BeamCurrent()
         self._quad_families_str = {}
         self._sext_families_str = {}
+
+        self.beam_init() # inits beam data structure
 
         # state flags for various calculated parameters
         self._orbit_deprecated = True
         self._linear_optics_deprecated = True
 
-    def beam_lost(self):
+    def beam_init(self):
+        self.beam_lost('init beam')
+
+    def beam_lost(self, message='', c1='yellow', a1=None, c2='white', a2=None):
         self._beam_current.dump()
-        self._closed_orbit = numpy.zeros((6,len(self._accelerator)))
-        self._tunes = [0.0, 0.0, 0.0]
+        self._closed_orbit = None
+        self._twiss = None
+        self._m66 = None
+        self._transfer_matrices = None
+        if message:
+            print(utils.timestamp_message(message, c1=c1, a1=a1, c2=c2, a2=a2))
 
     def _get_element_index(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
@@ -55,24 +64,38 @@ class Model(object):
             return self._beam_lifetime
         elif 'TVMIN' in pv_name:
             return 60.0 * self._beam_lifetime
-        elif 'PA-CURRENT' in pv_name:
+        elif 'DI-CURRENT' in pv_name:
             current = self._beam_current.value
             return current
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
-            orbit = self._closed_orbit[[0,2], idx]
-            return orbit
-        elif 'PA-TUNEH' in pv_name:
-            return self._tunes[0]
-        elif 'PA-TUNEV' in pv_name:
-            return self._tunes[1]
-        elif 'PS-CHS-' in pv_name:
-            idx = lnls.utils.flatten(self._get_element_index(pv_name))
-            value = self._accelerator[idx[0]].hkick_polynom
+            try:
+                pos = self._closed_orbit[[0,2],idx[0]]
+            except TypeError:
+                pos = UNDEF_VALUE, UNDEF_VALUE
+            return pos
+        elif 'DI-TUNEH' in pv_name:
+            try:
+                tune_value = self._twiss[-1].mux / 2.0 / math.pi
+            except TypeError:
+                print(self._linear_optics_deprecated)
+                tune_value = UNDEF_VALUE
+            return tune_value
+        elif 'DI-TUNEV' in pv_name:
+            try:
+                tune_value = self._twiss[-1].muy / 2.0 / math.pi
+            except TypeError:
+                tune_value = UNDEF_VALUE
+            return tune_value
+        elif 'PS-CH' in pv_name:
+            idx = self._get_element_index(pv_name)
+            kicks = pyaccel.lattice.getattributelat(self._accelerator, 'hkick_polynom', idx)
+            value = sum(kicks)
             return value
-        elif 'PS-CVS-' in pv_name:
-            idx = lnls.utils.flatten(self._get_element_index(pv_name))
-            value = self._accelerator[idx[0]].vkick_polynom
+        elif 'PS-CV' in pv_name:
+            idx = self._get_element_index(pv_name)
+            kicks = pyaccel.lattice.getattributelat(self._accelerator, 'vkick_polynom', idx)
+            value = sum(kicks)
             return value
         elif 'PS-Q' in pv_name:
             if '-FAM' in pv_name:
@@ -117,6 +140,7 @@ class Model(object):
                 # family PV
                 prev_family_value = self._sext_families_str[pv_name]
                 if value != prev_family_value:
+                    self._sext_families_str[pv_name] = value
                     data = self._record_names[pv_name]
                     for fam_name in data.keys():
                         indices = data[fam_name]
@@ -147,6 +171,7 @@ class Model(object):
                 # family PV
                 prev_family_value = self._quad_families_str[pv_name]
                 if value != prev_family_value:
+                    self._quad_families_str[pv_name] = value
                     data = self._record_names[pv_name]
                     for fam_name in data.keys():
                         indices = data[fam_name]
@@ -172,38 +197,22 @@ class Model(object):
 
     def set_pv_correctors(self, pv_name, value):
 
-        if 'PS-CHS-' in pv_name:
+        if 'PS-CH' in pv_name:
             idx = self._get_element_index(pv_name)
-            prev_value = self._accelerator[idx].hkick_polynom
+            nr_segs = len(idx)
+            prev_value = nr_segs * self._accelerator[idx[0]].hkick_polynom
             if value != prev_value:
-                self._accelerator[idx].hkick_polynom = value
+                pyaccel.lattice.setattributelat(self._accelerator, 'hkick_polynom', idx, value/nr_segs)
                 self._orbit_deprecated = True
                 self._linear_optics_deprecated = True
             return True
 
-        if 'PS-CVS-' in pv_name:
+        if 'PS-CV' in pv_name:
             idx = self._get_element_index(pv_name)
-            prev_value = self._accelerator[idx].vkick_polynom
+            nr_segs = len(idx)
+            prev_value = nr_segs * self._accelerator[idx[0]].vkick_polynom
             if value != prev_value:
-                self._accelerator[idx].vkick_polynom = value
-                self._orbit_deprecated = True
-                self._linear_optics_deprecated = True
-            return True
-
-        if 'PS-CHF-' in pv_name:
-            idx = self._get_element_index(pv_name)
-            prev_value = self._accelerator[idx].hkick_polynom
-            if value != prev_value:
-                self._accelerator[idx].hkick_polynom = value
-                self._orbit_deprecated = True
-                self._linear_optics_deprecated = True
-            return True
-
-        if 'PS-CVF-' in pv_name:
-            cvf_idx = self._record_names[pv_name]['cvf'][0]
-            prev_value = self._accelerator[cvf_idx].vkick_polynom
-            if prev_value != value:
-                self._accelerator[cvf_idx].vkick_polynom = value
+                pyaccel.lattice.setattributelat(self._accelerator, 'vkick_polynom', idx, value/nr_segs)
                 self._orbit_deprecated = True
                 self._linear_optics_deprecated = True
             return True
@@ -225,16 +234,28 @@ class Model(object):
                 self._closed_orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         except pyaccel.tracking.TrackingException:
             # beam is lost
-            self.beam_lost()
+            self.beam_lost('beam lost: no closed orbit found', c2='red')
         self._orbit_deprecated = False
 
     def _calc_linear_optics(self):
+
         if self._orbit_deprecated:
             self._calc_closed_orbit()
-        tw, *_ = pyaccel.optics.calctwiss(self._accelerator, closed_orbit=self._closed_orbit)
-        mux, muy = pyaccel.optics.gettwiss(tw,('mux','muy'))
-        self._tunes[0] = mux[-1]/2/math.pi
-        self._tunes[1] = muy[-1]/2/math.pi
+        try:
+
+            # optics
+            self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
+              pyaccel.optics.calctwiss(accelerator=self._accelerator,
+                                       closed_orbit=self._closed_orbit)
+
+
+        except numpy.linalg.linalg.LinAlgError:
+            # beam is lost
+            self.beam_lost('beam lost: unstable linear optics', c2='red')
+        except pyaccel.optics.OpticsException:
+            # beam is lost
+            self.beam_lost('beam lost: unstable linear optics', c2='red')
+
         self._linear_optics_deprecated = False
 
     def _init_families_str(self):

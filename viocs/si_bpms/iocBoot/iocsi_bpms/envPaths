@@ -1,0 +1,4 @@
+epicsEnvSet("ARCH","linux-x86_64")
+epicsEnvSet("IOC","iocsi_bpms")
+epicsEnvSet("TOP","/home/fac_files/code/va/viocs/si_bpms")
+epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14.12.4/base")

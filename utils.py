@@ -1,5 +1,13 @@
 import time
 import math
+import datetime
+from termcolor import colored
+
+def timestamp_message(message, c1='yellow', a1=None, c2='white', a2=None):
+    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    if a1 is None: a1 = []
+    if a2 is None: a2 = []
+    return colored(st, c1, attrs=a1) + ': ' + colored(message, c2, attrs=a2)
 
 class BeamCurrent:
 
