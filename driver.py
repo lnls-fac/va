@@ -27,7 +27,7 @@ class PCASDriver(Driver):
         self.read_write_pvs = si_pvs.read_write_pvs + bo_pvs.read_write_pvs
 
     def read(self, reason):
-        print(utils.timestamp_message('read ' + reason))
+        print(utils.timestamp_message('read  ' + reason))
         return super().read(reason)
 
     def write(self, reason, value):

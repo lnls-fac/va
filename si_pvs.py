@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import model
 
 
@@ -22,8 +20,12 @@ for record_name in record_names.keys():
     else:
         print('Parameter', record_name, 'not found!')
 
-read_only_pvs = sidi_bpms + sipa + sidi
-read_write_pvs = sips
+# temporary utility PVs
+fake_rw = []
+fake_rw.append('SIFK-INJECT')
+
+read_only_pvs  = sidi_bpms + sipa + sidi
+read_write_pvs = sips + fake_rw
 
 database = {}
 for p in sidi_bpms:
@@ -33,4 +35,6 @@ for p in sidi:
 for p in sips:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in sipa:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in fake_rw:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}

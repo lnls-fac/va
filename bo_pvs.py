@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import model
 
 
@@ -22,8 +20,12 @@ for record_name in record_names.keys():
     else:
         print('Parameter', record_name, 'not found!')
 
-read_only_pvs = bodi_bpms + bopa + bodi
-read_write_pvs = bops
+# temporary utility PVs
+fake_rw = []
+fake_rw.append('BOFK-INJECT')
+
+read_only_pvs  = bodi_bpms + bopa + bodi
+read_write_pvs = bops + fake_rw
 
 database = {}
 for p in bodi_bpms:
@@ -33,4 +35,6 @@ for p in bodi:
 for p in bops:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in bopa:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in fake_rw:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
