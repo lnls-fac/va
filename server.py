@@ -10,7 +10,6 @@ import va.model as models
 import va.si_pvs as si_pvs
 import va.bo_pvs as bo_pvs
 import va
-from termcolor import colored
 import utils
 
 
@@ -41,7 +40,6 @@ def handle_signal(signum, frame):
     stop_event.set()
     driver_thread.join()
 
-
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
@@ -52,17 +50,7 @@ if __name__ == '__main__':
     si_pv_names = list(si_pvs.database.keys())
     bo_pv_names = list(bo_pvs.database.keys())
 
-    color1 = 'white'
-    color2 = 'red'
-    print()
-    print(colored('                    | A virtual accelerator for the SIRIUS project', color1, attrs=['bold']))
-    print(' ' + colored('VirtualAccelerator', color2, attrs=['bold', 'underline']) + colored(' | Documentation: http://10.0.21.132', color1, attrs=['bold']))
-    print('                    ' + colored('| Accelerator Physics Group', color1, attrs=['bold']))
-    print('                    ' + colored('| Version {0}'.format(va.__version__), color1, attrs=['bold']))
-    print('                    ' + colored('| Prefix: {0}'.format(prefix), color1, attrs=['bold']))
-    print('                    ' + colored('| Number of SI pvs: {0}'.format(len(si_pv_names)), color1, attrs=['bold']))
-    print('                    ' + colored('| Number of BO pvs: {0}'.format(len(bo_pv_names)), color1, attrs=['bold']))
-    print()
+    utils.print_banner(prefix, si_pv_names, bo_pv_names)
 
     si = models.SiModel()
     bo = models.BoModel()
