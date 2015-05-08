@@ -29,7 +29,7 @@ class Model(object):
         # stored model state parameters
         self._model_module = model_module
         self._record_names = self._model_module.record_names.get_record_names()
-        self._accelerator  = None
+        self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = utils.BeamCharge()
         self._quad_families_str = {}
         self._sext_families_str = {}
@@ -40,23 +40,25 @@ class Model(object):
         self._orbit_deprecated = True
         self._linear_optics_deprecated = True
 
-    def beam_init(self):
-        self.beam_lost('init  ' + self._model_module.lattice_version)
-        self.reset_state_flags()
-
-    def beam_lost(self, message='', c1='yellow', a1=None, c2='white', a2=None):
-        if message:
-            print(utils.timestamp_message(message, c1=c1, a1=a1, c2=c2, a2=a2))
+    def beam_dump(self, message1='panic', message2='', c='white', a=None):
+        if message1 or message2:
+            utils.log(message1, message2, c=c, a=a)
         self._beam_charge.dump()
         self._closed_orbit = None
         self._twiss = None
         self._m66 = None
         self._transfer_matrices = None
 
-    def beam_inject(self, charge, message='', c1='yellow', a1=None, c2='white', a2=None):
-        if message:
-            print(utils.timestamp_message(message, c1=c1, a1=a1, c2=c2, a2=a2))
-        if not self._beam_charge.value:
+    def beam_init(self):
+        self.beam_dump('init  ', self._model_module.lattice_version)
+        self.reset_state_flags()
+
+
+
+    def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
+        if message1:
+            utils.log(message1, message2, c=c, a=a)
+        if not self._beam_charge.total_value:
             self.reset_state_flags()
         self._beam_charge.inject(charge)
 
@@ -71,12 +73,23 @@ class Model(object):
 
     def get_pv(self, pv_name):
 
+        #print(utils.log('debug',pv_name,c2='red'))
         # process global parameters
-        if 'LIFETIME' in pv_name:
-            return self._beam_charge.lifetime / mathphys.units.hour
+        if 'PA-LIFETIME' in pv_name:
+            return self._beam_charge.average_lifetime / _u.hour
+        elif 'PA-BLIFETIME' in pv_name:
+            lifetime_hour = [bunch_lifetime / _u.hour for bunch_lifetime in self._beam_charge.lifetime]
+            return lifetime_hour
         elif 'DI-CURRENT' in pv_name:
-            current = self._beam_charge.value / pyaccel.optics.getrevolutionperiod(self._accelerator) / mathphys.units.mA
-            return current
+            time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
+            currents = self._beam_charge.current(time_interval)
+            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            return sum(currents_mA)
+        elif 'DI-BCURRENT' in pv_name:
+            time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
+            currents = self._beam_charge.current(time_interval)
+            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            return currents_mA
         elif '-BPM-' in pv_name:
             idx = self._get_element_index(pv_name)
             try:
@@ -98,6 +111,7 @@ class Model(object):
             return tune_value
         elif 'PS-CH' in pv_name:
             idx = self._get_element_index(pv_name) # vector with indices of corrector segments
+            #print(idx)
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
             value = sum(kicks)
@@ -136,7 +150,7 @@ class Model(object):
                     family_value = 0.0
                 value = self._accelerator[idx].polynom_b[2] - family_value
                 return value
-        elif 'FK-INJECT':
+        elif 'FK-' in pv_name:
             return 0.0
         else:
             return float("inf")
@@ -147,7 +161,10 @@ class Model(object):
         if self.set_pv_sextupoles(pv_name, value): return
         if 'FK-INJECT' in pv_name:
             charge = value * _u.mA * _Tp(self._accelerator)
-            self.beam_inject(charge, message='inj   '+str(value)+' mA', c2='green')
+            self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
+        elif 'FK-DUMP' in pv_name:
+            self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
+
 
     def set_pv_sextupoles(self, pv_name, value):
 
@@ -264,6 +281,7 @@ class Model(object):
         return False  # [pv is not a corrector]
 
     def update_state(self):
+
         if self._orbit_deprecated:
             self._calc_closed_orbit()
         if self._linear_optics_deprecated:
@@ -271,9 +289,10 @@ class Model(object):
 
     def _calc_closed_orbit(self):
 
-        if self._beam_charge.value:
+        if self._beam_charge.total_value:
             # calcs closed orbit when there is beam
             try:
+                utils.log('calc', 'closed orbit for '+self._model_module.lattice_version)
                 if TRACK6D:
                     self._closed_orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
                 else:
@@ -281,29 +300,30 @@ class Model(object):
                     self._closed_orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
             except pyaccel.tracking.TrackingException:
                 # beam is lost
-                self.beam_lost('panic BEAM LOST: closed orbit does not exist', c2='red')
+                self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
         self._orbit_deprecated = False
 
     def _calc_linear_optics(self):
 
-        if self._beam_charge.value:
+        if self._beam_charge.total_value:
             # calcs linear optics when there is beam
             if self._orbit_deprecated:
                 self._calc_closed_orbit()
             try:
                 # optics
+                utils.log('calc', 'linear optics for '+self._model_module.lattice_version)
                 self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
                   pyaccel.optics.calctwiss(accelerator=self._accelerator,
                                            closed_orbit=self._closed_orbit)
             except numpy.linalg.linalg.LinAlgError:
                 # beam is lost
-                self.beam_lost('panic BEAM LOST: unstable linear optics', c2='red')
+                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
             except pyaccel.optics.OpticsException:
                 # beam is lost
-                self.beam_lost('panic BEAM LOST: unstable linear optics', c2='red')
+                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
             except pyaccel.tracking.TrackingException:
                 # beam is lost
-                self.beam_lost('panic BEAM LOST: unstable linear optics', c2='red')
+                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
         self._linear_optics_deprecated = False
 
@@ -330,13 +350,11 @@ class SiModel(Model):
     def __init__(self):
 
         super().__init__(sirius.si)
-        self._record_names = sirius.si.record_names.get_record_names()
-        self._accelerator = sirius.si.create_accelerator()
-        self._accelerator.energy = 3e9 # [eV]
+        #self._accelerator.energy = 3e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = False
-        self._beam_charge = utils.BeamCharge(lifetime=10.0*_u.hour)
+        self._beam_charge = utils.BeamCharge(lifetime=[10.0*_u.hour] * self._accelerator.harmonic_number)
         self._beam_charge.inject(300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
 
@@ -345,13 +363,10 @@ class BoModel(Model):
 
     def __init__(self):
         super().__init__(sirius.bo)
-        self._record_names = sirius.bo.record_names.get_record_names()
-        self._accelerator = self._model_module.create_accelerator()
-        self._accelerator.energy = 0.15e9 # [eV]
+        #self._accelerator.energy = 0.15e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = False
-        self._beam_charge = utils.BeamCharge(lifetime=1.0*_u.hour)
+        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
         self._beam_charge.inject(2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
-
         self._init_families_str()
