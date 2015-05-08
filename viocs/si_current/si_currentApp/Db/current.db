@@ -1,9 +1,9 @@
-record(calc, "SIDI-CURRENT")
+record(ai, "SIDI-CURRENT")
 {
     field(DESC, "SI current")
     field(SCAN, ".1 second")
-    field(CALC, "A")
-    field(INPA, "VA-SIDI-CURRENT  NPP NMS")
+    field(PREC, 10)
+    field(INP, "VA-SIDI-CURRENT NPP NMS")
     field(EGU, "mA")
     field(HOPR, "500")
     field(HIHI, "600")
