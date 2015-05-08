@@ -1,9 +1,9 @@
 import sirius
-import bo_fake_record_names
+import va.bo_fake_record_names
 
 # subsystem dependent parameters
 model = sirius.bo
-fake_record_names = bo_fake_record_names.get_record_names()
+fake_record_names = va.bo_fake_record_names.get_record_names()
 def subsys(rn): return 'BO'+rn
 
 fk = [] # [fake]

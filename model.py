@@ -10,7 +10,7 @@ the server.
 import time
 import pyaccel
 import sirius
-import utils
+import va.utils as utils
 import numpy
 import math
 import lnls.utils
@@ -19,45 +19,52 @@ import mathphys
 
 
 TRACK6D = False
+VCHAMBER = False
 UNDEF_VALUE = 0.0 #float('nan')
 _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
 class Model(object):
 
-    def __init__(self, model_module):
+    def __init__(self, model_module, log_func=utils.log):
 
         # stored model state parameters
         self._model_module = model_module
-        self._record_names = self._model_module.record_names.get_record_names()
-        self._accelerator = self._model_module.create_accelerator()
-        self._beam_charge  = utils.BeamCharge()
-        self._quad_families_str = {}
-        self._sext_families_str = {}
-        self.beam_init() # inits beam data structure
+        self._log = log_func
+        self.reset('start')
 
     def reset_state_flags(self):
         # state flags for various calculated parameters
         self._orbit_deprecated = True
         self._linear_optics_deprecated = True
 
+    def reset(self, message1='reset', message2='', c='white', a=None):
+        self._record_names = self._model_module.record_names.get_record_names()
+        self._accelerator = self._model_module.create_accelerator()
+        self._beam_charge  = utils.BeamCharge()
+        self._quad_families_str = {}
+        self._sext_families_str = {}
+        self.beam_init(message1,message2,c,a)
+
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
-            utils.log(message1, message2, c=c, a=a)
+            self._log(message1, message2, c=c, a=a)
         self._beam_charge.dump()
         self._closed_orbit = None
         self._twiss = None
         self._m66 = None
         self._transfer_matrices = None
 
-    def beam_init(self):
-        self.beam_dump('init  ', self._model_module.lattice_version)
+    def beam_init(self, message1='init', message2=None, c='white', a=None):
+        if not message2:
+            message2 = self._model_module.lattice_version
+        self.beam_dump(message1,message2,c,a)
         self.reset_state_flags()
 
 
 
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
-            utils.log(message1, message2, c=c, a=a)
+            self._log(message1, message2, c=c, a=a)
         if not self._beam_charge.total_value:
             self.reset_state_flags()
         self._beam_charge.inject(charge)
@@ -73,7 +80,7 @@ class Model(object):
 
     def get_pv(self, pv_name):
 
-        #print(utils.log('debug',pv_name,c2='red'))
+        #print(self._log('debug',pv_name,c2='red'))
         # process global parameters
         if 'PA-LIFETIME' in pv_name:
             return self._beam_charge.average_lifetime / _u.hour
@@ -159,6 +166,8 @@ class Model(object):
         if self.set_pv_correctors(pv_name, value): return
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
+        if 'FK-RESET' in pv_name:
+            self.reset(message1='reset',message2=self._model_module.lattice_version)
         if 'FK-INJECT' in pv_name:
             charge = value * _u.mA * _Tp(self._accelerator)
             self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
@@ -292,7 +301,7 @@ class Model(object):
         if self._beam_charge.total_value:
             # calcs closed orbit when there is beam
             try:
-                utils.log('calc', 'closed orbit for '+self._model_module.lattice_version)
+                self._log('calc', 'closed orbit for '+self._model_module.lattice_version)
                 if TRACK6D:
                     self._closed_orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
                 else:
@@ -311,7 +320,7 @@ class Model(object):
                 self._calc_closed_orbit()
             try:
                 # optics
-                utils.log('calc', 'linear optics for '+self._model_module.lattice_version)
+                self._log('calc', 'linear optics for '+self._model_module.lattice_version)
                 self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
                   pyaccel.optics.calctwiss(accelerator=self._accelerator,
                                            closed_orbit=self._closed_orbit)
@@ -344,16 +353,15 @@ class Model(object):
                     self._sext_families_str[pv_name] = value
 
 
-
 class SiModel(Model):
 
-    def __init__(self):
+    def __init__(self, log_func=utils.log):
 
-        super().__init__(sirius.si)
+        super().__init__(sirius.si, log_func=log_func)
         #self._accelerator.energy = 3e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
-        self._accelerator.vchamber_on = False
+        self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[10.0*_u.hour] * self._accelerator.harmonic_number)
         self._beam_charge.inject(300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
@@ -361,12 +369,12 @@ class SiModel(Model):
 
 class BoModel(Model):
 
-    def __init__(self):
-        super().__init__(sirius.bo)
+    def __init__(self, log_func=utils.log):
+        super().__init__(sirius.bo, log_func=log_func)
         #self._accelerator.energy = 0.15e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
-        self._accelerator.vchamber_on = False
+        self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
         self._beam_charge.inject(2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()

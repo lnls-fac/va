@@ -12,10 +12,10 @@ def print_banner(prefix, si_pv_names, bo_pv_names):
         return colored(msg,color=color,attrs=attrs)
 
     print(r"")
-    print(c(r"         (___)    ",'white') + " | " + c("A virtual accelerator for the SIRIUS project"))
-    print(c(r"    _____(.oo)    ",'white') + " | " + c("Documentation: http://10.0.21.132"))
+    print(c(r"         (___)    ",'white') + " | " + c("Virtual Accelerator with Channel Access server"))
+    print(c(r"    _____(.oo)    ",'white') + " | " + c("Version {0}".format(va.__version__)))
     print(c(r"  //     ' ",'white')+c("@@     ",'magenta') + " | " + c("Accelerator Physics Group", attrs=['bold']))
-    print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Version {0}".format(va.__version__)))
+    print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Documentation: https://github.com/lnls-fac/va"))
     print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~  ",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
     print(c(r"    ^^   ^^       ",'white') + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
     print(r"              "+c("\|/ ",'green') + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
