@@ -1,0 +1,57 @@
+record(ai, "SIDI-TUNEH")
+{
+    field(DESC, "SI HORIZONTAL BETATRON TUNE")
+    field(INP, "VA-SIDI-TUNEH  NPP NMS")
+    field(SCAN, ".1 second")
+    field(FLNK, "SIDI-TUNEH-FREQ")
+}
+record(ai, "SIDI-TUNEV")
+{
+    field(DESC, "SI VERTICAL BETATRON TUNE")
+    field(INP, "VA-SIDI-TUNEV  NPP NMS")
+    field(SCAN, ".1 second")
+    field(FLNK, "SIDI-TUNEV-FREQ")
+}
+record(ai, "SIDI-TUNES")
+{
+    field(DESC, "SI SYNCHROTRON TUNE")
+    field(SCAN, ".1 second")
+    field(INP, "VA-SIDI-TUNES  NPP NMS")
+    field(FLNK, "SIDI-TUNES-FREQ")
+}
+record(calc, "SIDI-TUNEH-FREQ")
+{
+    field(DESC, "SI HORIZONTAL BETATRON FREQUENCY")
+    field(SCAN, "Passive")
+    field(INPA, "SIDI-TUNEH PP NMS")
+    field(INPB, 3e9 )
+    field(INPC, 0.510998910e6)
+    field(INPD, 518.396)
+    field(INPE, 299792458)
+    field(CALC, "SQR(1-(C/B))*(E/D)*(A-FLOOR(A))/1000")
+    field(EGU, "kHz")
+}
+record(calc, "SIDI-TUNEV-FREQ")
+{
+    field(DESC, "SI VERTICAL BETATRON FREQUENCY")
+    field(SCAN, "Passive")
+    field(INPA, "SIDI-TUNEV PP NMS")
+    field(INPB, 3e9 )
+    field(INPC, 0.510998910e6)
+    field(INPD, 518.396)
+    field(INPE, 299792458)
+    field(CALC, "SQR(1-(C/B))*(E/D)*(A-FLOOR(A))/1000")
+    field(EGU, "kHz")
+}
+record(calc, "SIDI-TUNES-FREQ")
+{
+    field(DESC, "SI SYNCHROTRON BETATRON FREQUENCY")
+    field(SCAN, "Passive")
+    field(INPA, "SIDI-TUNES PP NMS")
+    field(INPB, 3e9 )
+    field(INPC, 0.510998910e6)
+    field(INPD, 518.396)
+    field(INPE, 299792458)
+    field(CALC, "SQR(1-(C/B))*(E/D)*(A-FLOOR(A))/1000")
+    field(EGU, "kHz")
+}
