@@ -31,7 +31,7 @@ static double extrapolate(double x, double* xt, double* yt);
 
 long ps_conversion_init(struct subRecord *psub)
 {
-    has_table = read_interpolation_table(psub->name, phys, eng);
+    has_table = read_interpolation_table(psub->name, eng, phys);
     return 0;
 }
 
@@ -60,7 +60,7 @@ static int read_interpolation_table(char* name, double* xt, double* yt)
 
 
     char line[MAXLINESIZE];
-    double x, y;
+    float x, y;
     int i, n;
 
     i = 0;
@@ -79,6 +79,9 @@ static int read_interpolation_table(char* name, double* xt, double* yt)
     }
 
     num_pts = i;
+
+    for (i=0; i<num_pts; ++i)
+        printf("x: %7.3f, y: %7.3f\n", xt[i], yt[i]);
 
     if (num_pts > 0)
         return true;
