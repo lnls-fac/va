@@ -4,6 +4,7 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
 #include <dbDefs.h>
 #include <registryFunction.h>
@@ -13,14 +14,15 @@
 
 #define true 1
 #define false 0
-#define MAXTABSIZE 100
+#define MAXINTERPTABLESIZE 1000
+#define MAXLINESIZE 80
 
 
 typedef int bool;
 
-static int has_table;
-static int num_pts;
-static double phys[MAXTABSIZE], eng[MAXTABSIZE];
+static int has_table = false;
+static int num_pts = 0;
+static double phys[MAXINTERPTABLESIZE], eng[MAXINTERPTABLESIZE];
 
 static bool read_interpolation_table(char* name, double* xt, double* yt);
 static double calculate(double x, double* xt, double* yt);
@@ -45,15 +47,43 @@ long ps_conversion_phys2eng_process(struct subRecord *psub)
 
 static int read_interpolation_table(char* name, double* xt, double* yt)
 {
-    num_pts = 2;
+    FILE* fp;
+    char fullname[160] = "/home/fac_files/code/va/viocs/si_ps/si_psApp/src/";
 
-    xt[0] = 0.0;
-    xt[1] = 1.0;
-    yt[0] = 0.5;
-    yt[1] = 2.5;
+    strcat(fullname, name);
+    fp = fopen(fullname, "r");
+    if (fp == NULL) {
+        printf("Interpolation table for %s not found.\n", name);
+        return false;
+    } else
+        printf("FOUND %s!\n", fullname);
 
-    return true;
-    //return false;
+
+    char line[MAXLINESIZE];
+    double x, y;
+    int i, n;
+
+    i = 0;
+    while(fgets(line, MAXLINESIZE, fp) != NULL) {
+        if (line[0] == '#')
+            continue;
+
+        n = sscanf(line, "%f %f", &x, &y);
+        if (n != 2)
+            continue;
+
+        xt[i] = x;
+        yt[i] = y;
+
+        i++;
+    }
+
+    num_pts = i;
+
+    if (num_pts > 0)
+        return true;
+    else
+        return false;
 }
 
 static double calculate(double x, double* xt, double* yt)
