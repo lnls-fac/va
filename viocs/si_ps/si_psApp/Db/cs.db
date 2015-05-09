@@ -2,25 +2,28 @@
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick readback")
+    field(SCAN, ".1 second")
     field(PREC, 10)
     field(INP, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
     field(EGU, "rad")
+    field(FLNK, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB")
+}
+
+record(sub, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick2I conversion")
+    field(INAM, "ps_conversion_init")
+    field(SNAM, "ps_conversion_phys2eng_process")
+    field(INPA, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL")
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 }
 
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
-    field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INP, "SIPS-C$(plane)S-$(sector)$(pos)-RB PP MS")
+    field(INP, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB.B")
     field(EGU, "A")
-}
-
-record(sub, "SUBTEST")
-{
-    field(INAM, "testSubInit")
-    field(SNAM, "testSubProcess")
 }
 
 #record(calc, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
@@ -33,22 +36,6 @@ record(sub, "SUBTEST")
 #    field(INPB, "VA-SIPA-PSNOISELEVEL.VAL")
 #    field(EGU, "rad")
 #    #field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
-#}
-
-#record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
-#{
-#    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
-#    field(DTYP, "Raw Soft Channel")
-#    field(SCAN, ".1 second")
-#    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
-#    field(INP, "SIPS-C$(plane)S-$(sector)$(pos)-RB PP NMS")
-#    #field(CALC, "A*C + B")
-#    #field(INPA, 100)
-#    #field(INPB, 0)
-#    #field(INPC, "SIPS-C$(plane)S-$(sector)$(pos)-RB PP NMS")
-#    field(ESLO, 1000)
-#    field(EOFF, -10)
-#    field(EGU, "A")
 #}
 
 #record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
