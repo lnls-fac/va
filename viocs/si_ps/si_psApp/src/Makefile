@@ -5,12 +5,15 @@ include $(TOP)/configure/CONFIG
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #=============================
 
+USR_CXXFLAGS_DEFAULT += -fno-operator-names
+USR_CXXFLAGS_DEFAULT += -pedantic
+
 #=============================
 # Build the IOC support library
 
 LIBRARY_IOC += si_psSupport
 
-si_psSupport_SRCS += ps_conversion.c
+si_psSupport_SRCS += ps_conversion.cpp
 
 si_psSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
 

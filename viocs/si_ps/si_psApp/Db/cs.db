@@ -9,7 +9,7 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
     field(FLNK, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB")
 }
 
-record(sub, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick2I conversion")
     field(INAM, "ps_conversion_init")

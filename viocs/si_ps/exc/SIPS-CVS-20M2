@@ -1,6 +1,8 @@
 # SIPS-CVS-20M2 sample excitation curve
 # 2015-05-09
 #
+# Number of points
+3
 # Current [A] and integrated field [T*m]
   -10.000     -1.000
     0.000      0.000
