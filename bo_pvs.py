@@ -7,18 +7,21 @@ fake_record_names = va.bo_fake_record_names.get_record_names()
 def subsys(rn): return 'BO'+rn
 
 fk = [] # [fake]
-ps = [] # [power supply]
 pa = [] # [parameters]
-di = [] # [diagnostics]
-di_bpms = []
+di, di_bpms = [], [] # [diagnostics]
+ps, ps_ch, ps_cv = [], [], [] # [power supply]
 
 record_names = model.record_names.get_record_names()
 record_names = list(record_names.keys()) + list(fake_record_names.keys())
 for record_name in record_names:
-    if 'BPM-' in record_name:
+    if 'DI-BPM-' in record_name:
         di_bpms.append(record_name)
     elif 'DI-' in record_name:
         di.append(record_name)
+    elif 'PS-CH' in record_name:
+        ps_ch.append(record_name)
+    elif 'PS-CV' in record_name:
+        ps_cv.append(record_name)
     elif 'PS-' in record_name:
         ps.append(record_name)
     elif 'PA-' in record_name:
@@ -29,17 +32,21 @@ for record_name in record_names:
         print('Parameter', record_name, 'not found!')
 
 read_only_pvs  = di_bpms + pa + di
-read_write_pvs = ps + fk
+read_write_pvs = ps + ps_ch + ps_cv + fk
 dynamic_pvs = [subsys('DI-CURRENT'),
                subsys('DI-BCURRENT'),
               ]
 
+ps = ps + ps_ch + ps_cv
+di = di + di_bpms
+
 database = {}
-for p in di_bpms:
-    database[p] = {'type' : 'float', 'count': 2}
+
 for p in di:
     if any([substring in p for substring in ('BCURRENT',)]):
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
+    if 'DI-BPM' in p:
+        database[p] = {'type' : 'float', 'count': 2}
     else:
         database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in ps:

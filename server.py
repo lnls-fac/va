@@ -50,6 +50,7 @@ if __name__ == '__main__':
     si_pv_names = list(si_pvs.database.keys())
     bo_pv_names = list(bo_pvs.database.keys())
 
+    print(si_pvs.database['SIDI-BPM-01M1'])
     utils.print_banner(prefix, si_pv_names, bo_pv_names)
 
     si = models.SiModel()

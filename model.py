@@ -36,6 +36,7 @@ class Model(object):
         # state flags for various calculated parameters
         self._orbit_deprecated = True
         self._linear_optics_deprecated = True
+        self._equilibrium_deprecated = True
 
     def reset(self, message1='reset', message2='', c='white', a=None):
         self._record_names = self._model_module.record_names.get_record_names()
@@ -53,14 +54,13 @@ class Model(object):
         self._twiss = None
         self._m66 = None
         self._transfer_matrices = None
+        self._summary = None
 
     def beam_init(self, message1='init', message2=None, c='white', a=None):
         if not message2:
             message2 = self._model_module.lattice_version
         self.beam_dump(message1,message2,c,a)
         self.reset_state_flags()
-
-
 
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
@@ -69,25 +69,42 @@ class Model(object):
             self.reset_state_flags()
         self._beam_charge.inject(charge)
 
-
-
-    def _get_element_index(self, pv_name):
+    def _get_elements_indices_correctors(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
         data = self._record_names[pv_name]
+        idx = []
         keys = list(data.keys())
         idx = data[keys[0]]
         return idx
 
+    def _get_elements_indices(self, pv_name):
+        """Get flattened indices of element in the model"""
+        data = self._record_names[pv_name]
+        indices = []
+        for key in data.keys():
+            idx = lnls.utils.flatten(data[key])
+            indices.extend(idx)
+        return indices
+
     def get_pv(self, pv_name):
 
-        #print(self._log('debug',pv_name,c2='red'))
-        # process global parameters
-        if 'PA-LIFETIME' in pv_name:
-            return self._beam_charge.average_lifetime / _u.hour
-        elif 'PA-BLIFETIME' in pv_name:
-            lifetime_hour = [bunch_lifetime / _u.hour for bunch_lifetime in self._beam_charge.lifetime]
-            return lifetime_hour
-        elif 'DI-CURRENT' in pv_name:
+        value = self.get_pv_dynamic(pv_name)
+        if value is None:
+            value = self.get_pv_static(pv_name)
+        if value is None:
+            value = self.get_pv_fake(pv_name)
+        if value is None:
+            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
+        return value
+
+    def get_pv_fake(self, pv_name):
+        if 'FK-' in pv_name:
+            return 0.0
+        else:
+            return None
+
+    def get_pv_dynamic(self, pv_name):
+        if 'DI-CURRENT' in pv_name:
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
@@ -97,12 +114,23 @@ class Model(object):
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
+        else:
+            return None
+
+    def get_pv_static(self, pv_name):
+        # process global parameters
+        if 'PA-LIFETIME' in pv_name:
+            return self._beam_charge.average_lifetime / _u.hour
+        elif 'PA-BLIFETIME' in pv_name:
+            lifetime_hour = [bunch_lifetime / _u.hour for bunch_lifetime in self._beam_charge.lifetime]
+            return lifetime_hour
         elif '-BPM-' in pv_name:
-            idx = self._get_element_index(pv_name)
+            idx = self._get_elements_indices(pv_name)
             try:
                 pos = self._closed_orbit[[0,2],idx[0]]
             except TypeError:
                 pos = UNDEF_VALUE, UNDEF_VALUE
+            #print(pos)
             return pos
         elif 'DI-TUNEH' in pv_name:
             try:
@@ -117,14 +145,13 @@ class Model(object):
                 tune_value = UNDEF_VALUE
             return tune_value
         elif 'PS-CH' in pv_name:
-            idx = self._get_element_index(pv_name) # vector with indices of corrector segments
-            #print(idx)
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
             value = sum(kicks)
             return value
         elif 'PS-CV' in pv_name:
-            idx = self._get_element_index(pv_name)
+            idx = self._get_elements_indices(pv_name)
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
             kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
             value = sum(kicks)
@@ -134,38 +161,48 @@ class Model(object):
                 value = self._quad_families_str[pv_name]
                 return value
             else:
-                idx = self._get_element_index(pv_name)
-                while not isinstance(idx, int): idx = idx[0]
+                idx = self._get_elements_indices(pv_name)
                 pv_fam = '-'.join(pv_name.split()[:-1]) + '-FAM'
                 try:
                     family_value = self._quad_families_str[pv_fam]
                 except:
                     family_value = 0.0
-                value = self._accelerator[idx].polynom_b[1] - family_value
+                value = self._accelerator[idx[0]].polynom_b[1] - family_value
                 return value
         elif 'PS-S' in pv_name:
             if '-FAM' in pv_name:
                 value = self._sext_families_str[pv_name]
                 return value
             else:
-                idx = self._get_element_index(pv_name)
-                while not isinstance(idx, int): idx = idx[0]
+                idx = self._get_elements_indices(pv_name)
                 pv_fam = '-'.join(pv_name.split()[:-1]) + '-FAM'
                 try:
                     family_value = self._sext_families_str[pv_fam]
                 except:
                     family_value = 0.0
-                value = self._accelerator[idx].polynom_b[2] - family_value
+                value = self._accelerator[idx[0]].polynom_b[2] - family_value
                 return value
-        elif 'FK-' in pv_name:
-            return 0.0
+        elif 'PS-BEND' in pv_name:
+            return self._accelerator.energy
+        elif 'PS-QS' in pv_name:
+            idx = self._get_element_index(pv_name)
+            while not isinstance(idx, int): idx = idx[0]
+            value = self._accelerator[idx].polynom_a[1]
+            return value
+        elif 'PA-CHROMX':
+            return UNDEF_VALUE
+        elif 'PA-CHROMY':
+            return UNDEF_VALUE
         else:
-            return float("inf")
+            return None
 
     def set_pv(self, pv_name, value):
         if self.set_pv_correctors(pv_name, value): return
+        if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
+
+
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
         if 'FK-INJECT' in pv_name:
@@ -173,6 +210,21 @@ class Model(object):
             self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
         elif 'FK-DUMP' in pv_name:
             self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
+
+    def set_pv_quadrupoles_skew(self, pv_name, value):
+        if 'PS-Q' in pv_name:
+            indices = self._get_elements_indices_correctors(pv_name)
+            prev_Ks = pyaccel.lattice.getattributelat(self._accelerator, 'polynom_a', indices, m=1)
+            if value != prev_Ks[0]:
+                for idx in indices:
+                    self._accelerator[idx].polynom_a[1] = value
+                self._orbit_deprecated = True
+                self._linear_optics_deprecated = True
+                self._equilibrium_deprecated = True
+            return True
+        return False
+
+
 
 
     def set_pv_sextupoles(self, pv_name, value):
@@ -195,6 +247,7 @@ class Model(object):
                                 self._accelerator[idx2].polynom_b[2] = new_total_value
                     self._orbit_deprecated = True
                     self._linear_optics_deprecated = True
+                    self._equilibrium_deprecated = True
             else:
                 # individual sext PV
                 idx = self._get_element_index(pv_name)
@@ -214,7 +267,7 @@ class Model(object):
                         self._accelerator[i].polynom_b[2] = value + family_value
                     self._orbit_deprecated = True
                     self._linear_optics_deprecated = True
-
+                    self._equilibrium_deprecated = True
             return True
 
         return False # [pv is not a sextupole]
@@ -239,6 +292,7 @@ class Model(object):
                                 self._accelerator[idx2].polynom_b[1] = new_total_value
                     self._orbit_deprecated = True
                     self._linear_optics_deprecated = True
+                    self._equilibrium_deprecated = True
             else:
                 # individual quad PV
                 idx = self._get_element_index(pv_name)
@@ -258,6 +312,7 @@ class Model(object):
                         self._accelerator[i].polynom_b[1] = value + family_value
                     self._orbit_deprecated = True
                     self._linear_optics_deprecated = True
+                    self._equilibrium_deprecated = True
 
             return True
 
@@ -266,7 +321,7 @@ class Model(object):
     def set_pv_correctors(self, pv_name, value):
 
         if 'PS-CH' in pv_name:
-            idx = self._get_element_index(pv_name)
+            idx = self._get_elements_indices_correctors(pv_name)
             nr_segs = len(idx)
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
@@ -274,10 +329,11 @@ class Model(object):
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
                 self._orbit_deprecated = True
                 self._linear_optics_deprecated = True
+                self._equilibrium_deprecated = True
             return True
 
         if 'PS-CV' in pv_name:
-            idx = self._get_element_index(pv_name)
+            idx = self._get_elements_indices_correctors(pv_name)
             nr_segs = len(idx)
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
@@ -285,6 +341,7 @@ class Model(object):
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
                 self._orbit_deprecated = True
                 self._linear_optics_deprecated = True
+                self._equilibrium_deprecated = True
             return True
 
         return False  # [pv is not a corrector]
@@ -295,6 +352,8 @@ class Model(object):
             self._calc_closed_orbit()
         if self._linear_optics_deprecated:
             self._calc_linear_optics()
+        if self._equilibrium_deprecated:
+            self._calc_equilibrium_parameters()
 
     def _calc_closed_orbit(self):
 
@@ -336,20 +395,37 @@ class Model(object):
 
         self._linear_optics_deprecated = False
 
+    def _calc_equilibrium_parameters(self):
+
+        if self._beam_charge.total_value:
+            if self._linear_optics_deprecated:
+                self._calc_linear_optics(self)
+            try:
+                self._log('calc', 'equilibrium parameters for '+self._model_module.lattice_version)
+                self._summary = pyaccel.optics.getequilibriumparameters(\
+                                             accelerator=self._accelerator,
+                                             twiss=self._twiss,
+                                             m66=self._m66,
+                                             transfer_matrices=self._transfer_matrices,
+                                             closed_orbit=self._closed_orbit)
+            except:
+                raise Exception('problem')
+
+        self._equilibrium_deprecated = False
+
+
     def _init_families_str(self):
         rnames = self._record_names
         for pv_name in rnames.keys():
             #print(pv_name)
             if '-FAM' in pv_name:
                 if 'PS-Q' in pv_name:
-                    idx = self._get_element_index(pv_name)
-                    while not isinstance(idx,int): idx = idx[0]
-                    value = self._accelerator[idx].polynom_b[1]
+                    idx = self._get_elements_indices(pv_name)
+                    value = self._accelerator[idx[0]].polynom_b[1]
                     self._quad_families_str[pv_name] = value
                 if 'PS-S' in pv_name:
-                    idx = self._get_element_index(pv_name)
-                    while not isinstance(idx,int): idx = idx[0]
-                    value = self._accelerator[idx].polynom_b[2]
+                    idx = self._get_elements_indices(pv_name)
+                    value = self._accelerator[idx[0]].polynom_b[2]
                     self._sext_families_str[pv_name] = value
 
 
