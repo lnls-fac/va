@@ -2,6 +2,8 @@
  * Conversion of power supply values using excitation tables.
  */
 
+#include <stdio.h>
+
 #include <dbDefs.h>
 #include <registryFunction.h>
 #include <subRecord.h>
@@ -25,10 +27,12 @@ long ps_conversion_init(struct subRecord *psub)
 long ps_conversion_phys2eng_process(struct subRecord *psub)
 {
     switch (num_conversions) {
+        case 3:
+            psub->j = converter->convert_phys2eng(psub->h, psub->i);
         case 2:
-            psub->e = converter->convert_phys2eng(psub->d);
+            psub->g = converter->convert_phys2eng(psub->e, psub->f);
         case 1:
-            psub->c = converter->convert_phys2eng(psub->b);
+            psub->d = converter->convert_phys2eng(psub->b, psub->c);
     }
 
     return 0;
@@ -37,10 +41,12 @@ long ps_conversion_phys2eng_process(struct subRecord *psub)
 long ps_conversion_eng2phys_process(struct subRecord *psub)
 {
     switch (num_conversions) {
+        case 3:
+            psub->j = converter->convert_eng2phys(psub->h, psub->i);
         case 2:
-            psub->e = converter->convert_eng2phys(psub->d);
+            psub->g = converter->convert_eng2phys(psub->e, psub->f);
         case 1:
-            psub->c = converter->convert_eng2phys(psub->b);
+            psub->d = converter->convert_eng2phys(psub->b, psub->c);
     }
 
     return 0;

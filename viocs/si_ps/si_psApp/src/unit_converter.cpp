@@ -4,16 +4,12 @@
 
 UnitConverter::UnitConverter(std::string record_name)
 {
-    int size = record_name.size();
-
-    std::cout << record_name << '\n';
-    if (size <= min_name_size)
+    std::string ps_name = get_ps_name(record_name);
+    std::cout << ps_name << '\n';
+    if (ps_name.size() == 0)
         has_table = false;
-    else {
-        // Ignore "CONV-" and "-XX" in record name
-        std::string ps_name = record_name.substr(5, size-8);
+    else
         has_table = read_interpolation_table(ps_name);
-    }
 }
 
 UnitConverter::~UnitConverter()
@@ -24,31 +20,45 @@ UnitConverter::~UnitConverter()
     }
 }
 
-double UnitConverter::convert_phys2eng(double value)
+double UnitConverter::convert_phys2eng(double value, double noise_level)
 {
-    return calculate(value, phys, eng);
+    double output = calculate(value, phys, eng);
+    return output*(1 + noise_level*get_random());
 }
 
-double UnitConverter::convert_eng2phys(double value)
+double UnitConverter::convert_eng2phys(double value, double noise_level)
 {
-    return calculate(value, eng, phys);
+    double output = calculate(value, eng, phys);
+    return output*(1 + noise_level*get_random());
+}
+
+std::string UnitConverter::get_ps_name(std::string conv_record_name)
+{
+    const char sep = '-';
+
+    // Ignore "X-" and "-Y" in record name (get only middle part)
+    std::size_t ps = conv_record_name.find(sep);
+    std::size_t pe = conv_record_name.rfind(sep);
+
+    if (ps<conv_record_name.size()-1 && pe>ps)
+        return conv_record_name.substr(ps+1, pe-ps-1);
+    else
+        return std::string("");
 }
 
 bool UnitConverter::read_interpolation_table(std::string filename)
 {
-    std::cout << "Reading table for " << filename << "\n";
+    // std::cout << "Reading table for " << filename << "\n";
 
     std::string fullname = exc_directory + filename;
 
-    std::cout << "Fullname is " << fullname << "\n";
+    // std::cout << "Fullname is " << fullname << "\n";
 
     std::ifstream fp(fullname.c_str());
 	if (fp.fail())
         return false;
 
-    std::cout << "Success!\n";
-
-    unsigned int row = 0;
+    int row = 0;
     std::string line, s;
 
     // Read row count
@@ -62,7 +72,7 @@ bool UnitConverter::read_interpolation_table(std::string filename)
         }
     }
 
-    std::cout << "Row count is " << row_count << "\n";
+    // std::cout << "Row count is " << row_count << "\n";
 
     if (row_count < 2)
         return false;
@@ -75,11 +85,11 @@ bool UnitConverter::read_interpolation_table(std::string filename)
         if (line[0] == '#')
             continue;
         else {
-            std::cout << "line is: " << line << '\n';
+            // std::cout << "line is: " << line << '\n';
             std::istringstream ss(line);
             ss >> eng[row];
             ss >> phys[row];
-            std::cout << "eng, phys: " << eng[row] << ", " << phys[row] << "\n";
+            // std::cout << "eng, phys: " << eng[row] << ", " << phys[row] << "\n";
             ++row;
         }
     }
@@ -135,4 +145,10 @@ double UnitConverter::extrapolate(double x, double* xt, double* yt){
     }
 
     return y;
+}
+
+double UnitConverter::get_random()
+{
+    // Return random double between -1.0 and 1.0
+    return 2*(double)rand()/RAND_MAX - 1.0;
 }

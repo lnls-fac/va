@@ -1,53 +1,49 @@
 
-record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
+record(ai, "VA-SIPS-CS-CURRENT-NOISELEVEL")
 {
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick readback")
-    field(SCAN, ".1 second")
-    field(PREC, 10)
-    field(INP, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
-    field(EGU, "rad")
-    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
+    field(DESC, "Noise level for slow corrector current")
+    field(INP, 0.1)
+    field(EGU, "A")
 }
 
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
 {
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick2I conversion")
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K2I conversion")
+    field(SCAN, ".1 second")
     field(INAM, "ps_conversion_init")
     field(SNAM, "ps_conversion_phys2eng_process")
     field(INPA, 1)
-    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL")
+    field(INPB, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(INPC, "VA-SIPS-CS-CURRENT-NOISELEVEL")
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
+    field(EGU, "A")
 }
 
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
     field(PREC, 10)
-    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB.C")
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I.D")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
     field(EGU, "A")
 }
 
-#record(calc, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
-#{
-#    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick readback")
-#    #field(SCAN, ".1 second")
-#    #field(CALC, "A+RNDM")
-#    field(CALC, "A + B*(RNDM*2-1)")
-#    field(INPA, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
-#    field(INPB, "VA-SIPA-PSNOISELEVEL.VAL")
-#    field(EGU, "rad")
-#    #field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
-#}
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) I2K conversion")
+    field(INAM, "ps_conversion_init")
+    field(SNAM, "ps_conversion_eng2phys_process")
+    field(INPA, 1)
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT.VAL")
+    field(INPC, 0)
+    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
+    field(EGU, "rad")
+}
 
-#record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
-#{
-#    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) setpoint")
-#    field(OUT, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
-#    field(EGU, "rad")
-#}
-
-#record(ai, "VA-SIPA-PSNOISELEVEL")
-#{
-#    field(DESC, "Power supply noise level")
-#    field(INP, 0.0001)
-#}
+record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K readback")
+    field(PREC, 10)
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K.D")
+    field(EGU, "A")
+}
