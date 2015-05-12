@@ -1,0 +1,26 @@
+record(stringin, "SIPA-LIFETIME")
+{
+    field(DESC, "SI lifetime (hour:min:sec)")
+    field(SCAN, "Passive")
+}
+
+record(ai, "SIPA-LIFETIME-SEC")
+{
+    field(DESC, "SI lifetime")
+    field(SCAN, "Passive")
+    field(EGU, "sec")
+}
+
+record(ao, "HLA-LIFETIME-PREC")
+{
+    field(DESC, "Lifetime precision")
+    field(VAL, 1)
+    field(EGU, "%")
+}
+
+record(ao, "HLA-LIFETIME-DT")
+{
+    field(DESC, "Time interval between two measures")
+    field(VAL, 0.5)
+    field(EGU, "sec")
+}

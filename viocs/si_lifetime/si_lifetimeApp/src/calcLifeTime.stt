@@ -1,0 +1,115 @@
+program calcLifeTime
+
+%%#include "math.h"
+%%#include "stdio.h"
+
+double precision;
+double delta_t;
+double current;
+double lifetime = 0;
+double average_1 = 0;
+double average_2 = 0;
+double average_current = 0;
+double delta_current;
+double sigma_current= 1e-6;
+double tmin;
+double tmax;
+double measures[260];
+int measures_size = 260;
+int intervals[13] = {8,10,12,14,16,20,24,28,35,46,60,80,128};
+int interval = 0;
+int ind = 2;
+int flag = 0;
+int hora =0;
+int min = 0;
+int seg = 0;
+int j;
+int i;
+int lifetime_int = 0;
+string lifetime_str;
+assign lifetime_str to "SIPA-LIFETIME";
+assign lifetime to "SIPA-LIFETIME-SEC";
+assign precision to "HLA-LIFETIME-PREC";
+assign delta_t to "HLA-LIFETIME-DT";
+assign current to "SIDI-CURRENT";
+monitor current;
+monitor precision;
+monitor delta_t;
+
+ss current_measure{
+
+  state current_check{
+    when(current == 0){
+      lifetime = 0;
+      pvPut(lifetime);
+      strcpy(lifetime_str,"00:00:00");
+      pvPut(lifetime_str);
+    } state current_check
+
+    when(current != 0){
+    } state current_on
+  }
+
+  state current_on{
+    when(current == 0){} state current_check
+
+    when(flag == 0){
+      *(measures+(measures_size-1)) = current*(1e-3);
+      flag = 1;
+    } state current_on
+
+    when(flag ==1 && delay(delta_t)){
+      flag = 0;
+      for(j=0;j<(measures_size-1);j++){
+      measures[j] = measures[j+1];
+      }
+    }state current_on
+
+  }
+
+}
+
+ss calc_lifetime{
+
+  state calc{
+    when(){
+      interval = intervals[ind];
+      for(i=(measures_size-1);i>(measures_size-1)-interval;i--){
+        average_1 += measures[i];
+        average_2 += measures[i-interval];
+      }
+      average_1 = average_1/interval;
+      average_2 = average_2/interval;
+      average_current = (average_1 + average_2)/2.0;
+      delta_current = fabs(average_1 - average_2);
+      if(delta_current !=0){
+        lifetime = average_current*delta_t*interval/delta_current;
+        tmin = pow(lifetime*(sigma_current/average_current)*(sqrt(2*delta_t))/((precision/100)+0.01),(2.0/3.0));
+        tmax = pow(lifetime*(sigma_current/average_current)*(sqrt(2*delta_t))/((precision/100)-0.01),(2.0/3.0));
+        if(tmin>2*delta_t*interval && ind <13){
+          ind+=1;
+        }
+        else{
+          if(tmax<2*delta_t*interval && ind >=1){
+            ind-=1;
+          }
+        }
+      }
+      else{
+        lifetime = 0;
+        pvPut(lifetime);
+        strcpy(lifetime_str,"00:00:00");
+        pvPut(lifetime_str);
+      }
+      pvPut(lifetime);
+      lifetime_int = (int)(lifetime);
+      hora = lifetime_int/3600;
+      min = (lifetime_int - hora*3600)/60;
+      seg = lifetime_int - hora*3600 - min*60;
+      sprintf(lifetime_str,"%i:%.2i:%.2i",hora, min, seg);
+      strcpy(lifetime_str,lifetime_str);
+      pvPut(lifetime_str);
+    } state calc
+  }
+
+}
