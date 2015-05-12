@@ -14,6 +14,7 @@ USR_CXXFLAGS_DEFAULT += -pedantic
 LIBRARY_IOC += si_psSupport
 
 si_psSupport_SRCS += ps_conversion.cpp
+si_psSupport_SRCS += unit_converter.cpp
 
 si_psSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
 

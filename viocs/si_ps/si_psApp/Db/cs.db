@@ -6,7 +6,7 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
     field(PREC, 10)
     field(INP, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
     field(EGU, "rad")
-    field(FLNK, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
 }
 
 record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
@@ -14,7 +14,8 @@ record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick2I conversion")
     field(INAM, "ps_conversion_init")
     field(SNAM, "ps_conversion_phys2eng_process")
-    field(INPA, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL")
+    field(INPA, 1)
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL")
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 }
 
@@ -22,7 +23,7 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
     field(PREC, 10)
-    field(INP, "CONV-KICK2I-C$(plane)S-$(sector)$(pos)-RB.B")
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB.C")
     field(EGU, "A")
 }
 
