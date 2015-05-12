@@ -5,6 +5,19 @@ include $(TOP)/configure/CONFIG
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 #=============================
 
+USR_CXXFLAGS_DEFAULT += -fno-operator-names
+USR_CXXFLAGS_DEFAULT += -pedantic
+
+#=============================
+# Build the IOC support library
+
+LIBRARY_IOC += si_psSupport
+
+si_psSupport_SRCS += ps_conversion.cpp
+si_psSupport_SRCS += unit_converter.cpp
+
+si_psSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
+
 #=============================
 # Build the IOC application
 
@@ -14,6 +27,7 @@ DBD += si_ps.dbd
 
 # si_ps.dbd will be made up from these files:
 si_ps_DBD += base.dbd
+si_ps_DBD += ps_conversion.dbd
 
 # Include dbd files from all support applications:
 #si_ps_DBD += xxx.dbd
@@ -31,6 +45,9 @@ si_ps_SRCS_vxWorks += -nil-
 # Add support from base/src/vxWorks if needed
 #si_ps_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
 
+# Link in the code from the support library
+si_ps_LIBS += si_psSupport
+
 # Finally link to the EPICS Base libraries
 si_ps_LIBS += $(EPICS_BASE_IOC_LIBS)
 
@@ -39,4 +56,3 @@ si_ps_LIBS += $(EPICS_BASE_IOC_LIBS)
 include $(TOP)/configure/RULES
 #----------------------------------------
 #  ADD RULES AFTER THIS LINE
-

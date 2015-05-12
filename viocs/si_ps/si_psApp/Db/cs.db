@@ -1,24 +1,53 @@
 
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 {
-    field(DESC, "SI C$(plane)S kick readback sector $(sector) pos $(pos)")
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick readback")
     field(SCAN, ".1 second")
+    field(PREC, 10)
     field(INP, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
     field(EGU, "rad")
-    #field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
 }
 
-#record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick2I conversion")
+    field(INAM, "ps_conversion_init")
+    field(SNAM, "ps_conversion_phys2eng_process")
+    field(INPA, 1)
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL")
+    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
+}
+
+record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
+    field(PREC, 10)
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RB.C")
+    field(EGU, "A")
+}
+
+#record(calc, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 #{
-#    field(DESC, "SI C$(plane)S current readback sector $(sector) pos $(pos)")
-#    field(DTYP, "Raw Soft Channel")
-#    field(INP, "SIPS-C$(plane)S-$(sector)$(pos)-RB.VAL NPP NMS")
-#    field(EGU, "A")
+#    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) kick readback")
+#    #field(SCAN, ".1 second")
+#    #field(CALC, "A+RNDM")
+#    field(CALC, "A + B*(RNDM*2-1)")
+#    field(INPA, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+#    field(INPB, "VA-SIPA-PSNOISELEVEL.VAL")
+#    field(EGU, "rad")
+#    #field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 #}
 
-record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
-{
-    field(DESC, "SI C$(plane)S kick setpoint sector $(sector) pos $(pos)")
-    field(OUT, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
-    field(EGU, "rad")
-}
+#record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+#{
+#    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) setpoint")
+#    field(OUT, "VA-SIPS-C$(plane)S-$(sector)$(pos) NPP NMS")
+#    field(EGU, "rad")
+#}
+
+#record(ai, "VA-SIPA-PSNOISELEVEL")
+#{
+#    field(DESC, "Power supply noise level")
+#    field(INP, 0.0001)
+#}

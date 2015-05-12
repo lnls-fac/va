@@ -13,6 +13,7 @@ def get_record_names(family_name = None):
 
     if family_name.lower() == 'sifk':
         _dict = {
+                'SIFK-RESET':{},
                 'SIFK-INJECT':{},
                 'SIFK-DUMP':{},
         }
