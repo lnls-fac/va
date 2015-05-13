@@ -1,12 +1,7 @@
 
-record(ai, "VA-SIPS-CS-CURRENT-NOISELEVEL")
-{
-    field(DESC, "Noise level for slow corrector current")
-    field(INP, 0.1)
-    field(EGU, "A")
-}
+##### Readback #####
 
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBK2I")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K2I conversion")
     field(SCAN, ".1 second")
@@ -23,12 +18,12 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
     field(PREC, 10)
-    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I.D")
-    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBK2I.D")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K")
     field(EGU, "A")
 }
 
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) I2K conversion")
     field(INAM, "ps_conversion_init")
@@ -37,13 +32,115 @@ record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
     field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT.VAL")
     field(INPC, 0)
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
-    field(EGU, "rad")
+    field(EGU, "T*m")
 }
 
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K readback")
     field(PREC, 10)
-    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K.D")
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K.D")
+    field(EGU, "T*m")
+}
+
+
+##### Setpoint #####
+
+record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K setpoint")
+    field(PREC, 10)
+    field(PINI, "YES")
+    field(VAL, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
+    field(EGU, "T*m")
+}
+
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K2I conversion")
+    field(INAM, "ps_conversion_init")
+    field(SNAM, "ps_conversion_phys2eng_process")
+    field(INPA, 1)
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-SP.VAL")
+    field(INPC, 0)
+    field(FLNK, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
+{
+    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I.D")
+    field(LNK1, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
+    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
+}
+
+record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current setpoint")
+    field(PREC, 10)
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+    field(EGU, "T*m")
+}
+
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+{
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) I2K conversion")
+    field(INAM, "ps_conversion_init")
+    field(SNAM, "ps_conversion_eng2phys_process")
+    field(INPA, 1)
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT.VAL")
+    field(INPC, 0)
+    field(FLNK, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+    field(EGU, "T*m")
+}
+
+record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+{
+    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K.D")
+    field(DOL2, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K.D")
+    field(LNK1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(LNK2, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+}
+
+
+record(ao, "TEST-AO1")
+{
+    field(EGU, "m")
+}
+
+record(ao, "TEST-AO2")
+{
+    field(EGU, "m")
+}
+
+record(ao, "TEST-AO3")
+{
+    field(EGU, "m")
+}
+
+record(ao, "TEST-AO4")
+{
+    field(EGU, "m")
+}
+
+record(seq, "TEST-SEQ")
+{
+    field(DOL1, "TEST-AO1")
+    field(DOL2, "TEST-AO2")
+    field(LNK1, "TEST-AO3")
+    field(LNK2, "TEST-AO4")
+    field(SELM, "Specified")
+}
+
+
+
+
+##### Noise #####
+
+record(ai, "VA-SIPS-CS-CURRENT-NOISELEVEL")
+{
+    field(DESC, "Noise level for slow corrector current")
+    field(INP, 0.005)
     field(EGU, "A")
 }

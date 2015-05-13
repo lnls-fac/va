@@ -23,13 +23,13 @@ UnitConverter::~UnitConverter()
 double UnitConverter::convert_phys2eng(double value, double noise_level)
 {
     double output = calculate(value, phys, eng);
-    return output*(1 + noise_level*get_random());
+    return output + noise_level*get_random();
 }
 
 double UnitConverter::convert_eng2phys(double value, double noise_level)
 {
     double output = calculate(value, eng, phys);
-    return output*(1 + noise_level*get_random());
+    return output + noise_level*get_random();
 }
 
 std::string UnitConverter::get_ps_name(std::string conv_record_name)
@@ -104,10 +104,13 @@ bool UnitConverter::read_interpolation_table(std::string filename)
 
 double UnitConverter::calculate(double x, double* xt, double* yt)
 {
-    if (x>=xt[0] && x<xt[row_count-1])
-        return interpolate(x, xt, yt);
-    else
-        return extrapolate(x, xt, yt);
+    if (has_table) {
+        if (x>=xt[0] && x<xt[row_count-1])
+            return interpolate(x, xt, yt);
+        else
+            return extrapolate(x, xt, yt);
+    } else
+        return x;
 }
 
 double UnitConverter::interpolate(double x, double* xt, double* yt)
