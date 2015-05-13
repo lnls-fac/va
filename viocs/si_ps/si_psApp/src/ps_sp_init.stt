@@ -1,14 +1,13 @@
 program ps_sp_init
 
-int event;
-assign event to "EVENT-SIPS-SPINIT.PROC";
+int event_proc;
+assign event_proc to "EVENT-SIPS-SPINIT.PROC";
 
 ss ss1 {
     state init {
         when (delay(.5)) {
-            printf("I'm here\n");
-            event = 1;
-            pvPut(event);
+            event_proc = 1;
+            pvPut(event_proc);
         } exit
     }
 }

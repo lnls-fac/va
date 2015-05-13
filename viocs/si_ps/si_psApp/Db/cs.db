@@ -121,6 +121,6 @@ record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
 record(ai, "VA-SIPS-CS-CURRENT-NOISELEVEL")
 {
     field(DESC, "Noise level for slow corrector current")
-    field(INP, 0.005)
+    field(INP, 0.001)
     field(EGU, "A")
 }
