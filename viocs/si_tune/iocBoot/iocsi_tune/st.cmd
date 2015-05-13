@@ -1,8 +1,5 @@
 #!../../bin/linux-x86_64/si_tune
 
-## You may have to change si_tune to something else
-## everywhere it appears in this file
-
 < envPaths
 
 cd ${TOP}

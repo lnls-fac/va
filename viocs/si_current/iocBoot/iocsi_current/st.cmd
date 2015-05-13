@@ -1,8 +1,5 @@
 #!../../bin/linux-x86_64/si_current
 
-## You may have to change si_current to something else
-## everywhere it appears in this file
-
 < envPaths
 
 cd ${TOP}
@@ -16,6 +13,3 @@ dbLoadRecords("db/current.db")
 
 cd ${TOP}/iocBoot/${IOC}
 iocInit
-
-## Start any sequence programs
-#seq sncxxx,"user=afonsoHost"

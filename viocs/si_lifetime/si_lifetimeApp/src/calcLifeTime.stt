@@ -20,9 +20,11 @@ int intervals[13] = {8,10,12,14,16,20,24,28,35,46,60,80,128};
 int interval = 0;
 int ind = 2;
 int flag = 0;
+int flag_calc = 0;
 int hora =0;
 int min = 0;
 int seg = 0;
+int k = 0;
 int j;
 int i;
 int lifetime_int = 0;
@@ -31,39 +33,57 @@ assign lifetime_str to "SIPA-LIFETIME";
 assign lifetime to "SIPA-LIFETIME-SEC";
 assign precision to "HLA-LIFETIME-PREC";
 assign delta_t to "HLA-LIFETIME-DT";
-assign current to "SIDI-CURRENT";
+assign current to "VA-SIDI-CURRENT";
 monitor current;
 monitor precision;
 monitor delta_t;
 
 ss current_measure{
 
-  state current_check{
-    when(current == 0){
+  state init{
+    when(flag_calc == 0){
+      interval = intervals[ind];
       lifetime = 0;
       pvPut(lifetime);
       strcpy(lifetime_str,"00:00:00");
       pvPut(lifetime_str);
-    } state current_check
-
-    when(current != 0){
-    } state current_on
+    } state first_measures
   }
 
-  state current_on{
-    when(current == 0){} state current_check
+  state first_measures{
+    when(k >= (2*interval)){
+      flag = 0;
+      flag_calc = 1;
+    } state main_loop
+
+    when(flag == 0 && flag_calc == 0){
+      *(measures+(measures_size-1)) = current*(1e-3);
+      flag = 1;
+      k += 1;
+    } state first_measures
+
+    when(flag == 1 && delay(delta_t) && flag_calc == 0){
+      flag = 0;
+      for(j=0;j<(measures_size-1);j++){
+        measures[j] = measures[j+1];
+      }
+    }state first_measures
+
+  }
+
+  state main_loop{
 
     when(flag == 0){
       *(measures+(measures_size-1)) = current*(1e-3);
       flag = 1;
-    } state current_on
+    } state main_loop
 
     when(flag ==1 && delay(delta_t)){
       flag = 0;
       for(j=0;j<(measures_size-1);j++){
-      measures[j] = measures[j+1];
+        measures[j] = measures[j+1];
       }
-    }state current_on
+    }state main_loop
 
   }
 
@@ -71,8 +91,13 @@ ss current_measure{
 
 ss calc_lifetime{
 
+  state wait{
+    when(flag_calc == 0){} state wait
+    when(flag_calc == 1){} state calc
+  }
+
   state calc{
-    when(){
+    when(flag_calc == 1){
       interval = intervals[ind];
       for(i=(measures_size-1);i>(measures_size-1)-interval;i--){
         average_1 += measures[i];
@@ -106,7 +131,7 @@ ss calc_lifetime{
       hora = lifetime_int/3600;
       min = (lifetime_int - hora*3600)/60;
       seg = lifetime_int - hora*3600 - min*60;
-      sprintf(lifetime_str,"%i:%.2i:%.2i",hora, min, seg);
+      sprintf(lifetime_str,"%.2i:%.2i:%.2i",hora, min, seg);
       strcpy(lifetime_str,lifetime_str);
       pvPut(lifetime_str);
     } state calc
