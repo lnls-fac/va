@@ -1,4 +1,5 @@
 epicsEnvSet("ARCH","linux-x86_64")
 epicsEnvSet("IOC","iocsi_ps")
 epicsEnvSet("TOP","/home/fac_files/code/va/viocs/si_ps")
-epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14.12.4/base")
+epicsEnvSet("SNCSEQ","/usr/local/epics/R3.14/base/../extensions/seq-2.2.2")
+epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14/base")

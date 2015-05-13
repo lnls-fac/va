@@ -46,12 +46,24 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 
 ##### Setpoint #####
 
+record(event, "EVENT-SIPS-SPINIT")
+{
+    field(VAL, 123)
+}
+
+record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPINIT")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(LNK1, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
+}
+
 record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K setpoint")
     field(PREC, 10)
-    field(PINI, "YES")
-    field(VAL, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
     field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
     field(EGU, "T*m")
 }
@@ -80,7 +92,7 @@ record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current setpoint")
     field(PREC, 10)
     field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
-    field(EGU, "T*m")
+    field(EGU, "Q")
 }
 
 record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
@@ -102,38 +114,6 @@ record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
     field(LNK1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
     field(LNK2, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
 }
-
-
-record(ao, "TEST-AO1")
-{
-    field(EGU, "m")
-}
-
-record(ao, "TEST-AO2")
-{
-    field(EGU, "m")
-}
-
-record(ao, "TEST-AO3")
-{
-    field(EGU, "m")
-}
-
-record(ao, "TEST-AO4")
-{
-    field(EGU, "m")
-}
-
-record(seq, "TEST-SEQ")
-{
-    field(DOL1, "TEST-AO1")
-    field(DOL2, "TEST-AO2")
-    field(LNK1, "TEST-AO3")
-    field(LNK2, "TEST-AO4")
-    field(SELM, "Specified")
-}
-
-
 
 
 ##### Noise #####

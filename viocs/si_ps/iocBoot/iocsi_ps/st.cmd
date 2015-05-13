@@ -18,4 +18,4 @@ cd ${TOP}/iocBoot/${IOC}
 iocInit
 
 ## Start any sequence programs
-#seq sncxxx,"user=afonsoHost"
+seq ps_sp_init
