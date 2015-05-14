@@ -1,124 +1,76 @@
 
 ##### Readback #####
 
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBK2I")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K2I conversion")
     field(SCAN, ".1 second")
     field(INAM, "ps_conversion_init")
     field(SNAM, "ps_conversion_phys2eng_process")
-    field(INPA, 1)
+    field(INPA, 2)
     field(INPB, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
-    field(INPC, "VA-SIPS-CS-CURRENT-NOISELEVEL")
-    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
-    field(EGU, "A")
-}
-
-record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT")
-{
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
-    field(PREC, 10)
-    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBK2I.D")
-    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K")
-    field(EGU, "A")
-}
-
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K")
-{
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) I2K conversion")
-    field(INAM, "ps_conversion_init")
-    field(SNAM, "ps_conversion_eng2phys_process")
-    field(INPA, 1)
-    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-RB-CURRENT.VAL")
-    field(INPC, 0)
+    field(INPC, "VA-SIPS-CS-NOISELEVEL")
+    field(INPE, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(INPF, 0)
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
-    field(EGU, "T*m")
+    field(EGU, "A")
 }
 
 record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
 {
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K readback")
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current readback")
     field(PREC, 10)
-    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-RBI2K.D")
-    field(EGU, "T*m")
+    field(INP, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I.D")
+    field(EGU, "A")
 }
 
 
 ##### Setpoint #####
 
-record(event, "EVENT-SIPS-SPINIT")
+record(event, "EVENT-SIPS-SP-INIT")
 {
     field(VAL, 123)
 }
 
-record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPINIT")
+record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
 {
     field(SCAN, "Event")
     field(EVNT, 123)
-    field(DOL1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
+    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I.G")
     field(LNK1, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
     field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
 }
 
 record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
 {
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K setpoint")
+    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current setpoint")
     field(PREC, 10)
-    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
-    field(EGU, "T*m")
-}
-
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
-{
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) K2I conversion")
-    field(INAM, "ps_conversion_init")
-    field(SNAM, "ps_conversion_phys2eng_process")
-    field(INPA, 1)
-    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-SP.VAL")
-    field(INPC, 0)
-    field(FLNK, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
+    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I")
-{
-    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPK2I.D")
-    field(LNK1, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
-    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
-}
-
-record(ao, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT")
-{
-    field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) current setpoint")
-    field(PREC, 10)
-    field(FLNK, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
-    field(EGU, "Q")
-}
-
-record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
 {
     field(DESC, "SIPS-C$(plane)S$-(sector)$(pos) I2K conversion")
     field(INAM, "ps_conversion_init")
     field(SNAM, "ps_conversion_eng2phys_process")
     field(INPA, 1)
-    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-SP-CURRENT.VAL")
+    field(INPB, "SIPS-C$(plane)S-$(sector)$(pos)-SP.VAL")
     field(INPC, 0)
-    field(FLNK, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+    field(FLNK, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
     field(EGU, "T*m")
 }
 
-record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K")
+record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
 {
-    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K.D")
-    field(DOL2, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-SPI2K.D")
+    field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K.D")
     field(LNK1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
-    field(LNK2, "SIPS-C$(plane)S-$(sector)$(pos)-SP")
 }
 
 
 ##### Noise #####
 
-record(ai, "VA-SIPS-CS-CURRENT-NOISELEVEL")
+record(ai, "VA-SIPS-CS-NOISELEVEL")
 {
     field(DESC, "Noise level for slow corrector current")
     field(INP, 0.001)
