@@ -45,7 +45,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         prefix = sys.argv[1]
     else:
-        prefix = ''
+        raise Exception('Please provide a prefix!')
 
     si_pv_names = list(si_pvs.database.keys())
     bo_pv_names = list(bo_pvs.database.keys())
