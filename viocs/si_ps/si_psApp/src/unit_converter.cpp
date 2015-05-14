@@ -36,7 +36,7 @@ std::string UnitConverter::get_ps_name(std::string conv_record_name)
 {
     const char sep = '-';
 
-    // Ignore "X-" and "-Y" in record name (get only middle part)
+    // Ignore "-X" and "-Y" in record name (get only middle part)
     std::size_t ps = conv_record_name.find(sep);
     std::size_t pe = conv_record_name.rfind(sep);
 
