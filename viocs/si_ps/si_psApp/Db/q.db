@@ -1,0 +1,26 @@
+
+record(ai, "VA-SIPS-Q-NOISELEVEL")
+{
+    field(DESC, "Noise level for quadrupole current")
+    field(INP, 0.001)
+    field(EGU, "A")
+}
+
+##### Readback #####
+
+#record(sub, "CONV-SIPS-Q$(fam)-$(pos)-K2I")
+#{
+#    field(DESC, "SIPS-Q$(fam)-$(pos) K2I conversion")
+#    field(SCAN, ".1 second")
+#    field(INAM, "ps_conversion_init")
+#    field(SNAM, "ps_conversion_phys2eng_process")
+#    field(INPA, 2)
+#    field(INPB, "VA-SIPS-Q$(fam)-$(pos)")
+#    field(INPC, "VA-SIPS-Q-NOISELEVEL")
+#    field(INPE, "VA-SIPS-Q$(fam)-$(pos)")
+#    field(INPF, 0)
+#    field(FLNK, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
+#    field(EGU, "A")
+#}
+
+##### Setpoint #####

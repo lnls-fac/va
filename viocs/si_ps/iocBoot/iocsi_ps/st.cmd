@@ -12,6 +12,7 @@ dbLoadDatabase "dbd/si_ps.dbd"
 si_ps_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
+dbLoadRecords("db/common.db")
 dbLoadTemplate("db/cs.substitutions")
 
 cd ${TOP}/iocBoot/${IOC}

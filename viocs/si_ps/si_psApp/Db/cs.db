@@ -1,4 +1,11 @@
 
+record(ai, "VA-SIPS-CS-NOISELEVEL")
+{
+    field(DESC, "Noise level for slow corrector current")
+    field(INP, 0.001)
+    field(EGU, "A")
+}
+
 ##### Readback #####
 
 record(sub, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
@@ -24,13 +31,7 @@ record(ai, "SIPS-C$(plane)S-$(sector)$(pos)-RB")
     field(EGU, "A")
 }
 
-
 ##### Setpoint #####
-
-record(event, "EVENT-SIPS-SP-INIT")
-{
-    field(VAL, 123)
-}
 
 record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-K2I")
 {
@@ -65,14 +66,4 @@ record(seq, "SEQ-SIPS-C$(plane)S-$(sector)$(pos)-I2K")
 {
     field(DOL1, "CONV-SIPS-C$(plane)S-$(sector)$(pos)-I2K.D")
     field(LNK1, "VA-SIPS-C$(plane)S-$(sector)$(pos)")
-}
-
-
-##### Noise #####
-
-record(ai, "VA-SIPS-CS-NOISELEVEL")
-{
-    field(DESC, "Noise level for slow corrector current")
-    field(INP, 0.001)
-    field(EGU, "A")
 }
