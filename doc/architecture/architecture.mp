@@ -87,7 +87,7 @@ beginfig(1)
     draw o3--(xpart o3, ypart o3-h)-deltay;
     o4 := model.nw-deltay-deltax/4;
     draw (xpart o2, ypart o2-h)-deltay--o4--(xpart o4, ypart va.c)--va.w;
-    label.lft("?", o2+(0, -h)-deltay);
+    label.lft("Channel Access", o2+(0, -h)-deltay);
 
     path bounds;
     bounds := ulcorner currentpicture+(-bound*u,bound*u)--urcorner currentpicture+(bound*u,bound*u)--lrcorner currentpicture+(bound*u,-bound*u)--cycle;
