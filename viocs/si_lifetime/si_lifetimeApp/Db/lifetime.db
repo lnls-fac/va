@@ -11,14 +11,14 @@ record(ai, "SIPA-LIFETIME-SEC")
     field(EGU, "sec")
 }
 
-record(ao, "HLA-LIFETIME-PREC")
+record(ao, "SIPA-LIFETIME-PREC")
 {
     field(DESC, "Lifetime precision")
     field(VAL, 1)
     field(EGU, "%")
 }
 
-record(ao, "HLA-LIFETIME-DT")
+record(ao, "SIPA-LIFETIME-DT")
 {
     field(DESC, "Time interval between two measures")
     field(VAL, 0.5)
