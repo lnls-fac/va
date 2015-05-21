@@ -8,7 +8,7 @@ import signal
 import sys
 
 _TOPUP_CURRENT     = 300 # [mA]
-_MAX_CURRENT_DECAY = 5.0 # [%]
+_MAX_CURRENT_DECAY = 0.5 # [%]
 _TIME_INTERVAL     = 2.0 # [s]
 _DELTA_CURRENT     = 0.1 # [mA]
 _RAMP_CYCLE_FREQ   = 2.0 # [Hz]
@@ -23,14 +23,15 @@ def signal_handler(signum, frame):
     sys.exit()
 
 def inject():
-    timer1.stop()
+    #timer1.stop()
     value = si_current.get()
     delta_current = _TOPUP_CURRENT - value
-    if abs(delta_current)/_TOPUP_CURRENT >= _MAX_CURRENT_DECAY/100.0:
+    if value < _TOPUP_CURRENT and abs(delta_current)/_TOPUP_CURRENT >= _MAX_CURRENT_DECAY/100.0:
         while value < _TOPUP_CURRENT:
             va_inject.put(delta_current)
             time.sleep(1.0/_RAMP_CYCLE_FREQ)
-    timer1.start()
+            value = si_current.get()
+    #timer1.start()
 
 
 timer1 = lnls.Timer(_TIME_INTERVAL,inject, signal_handler=signal_handler)
