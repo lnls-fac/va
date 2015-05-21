@@ -439,7 +439,7 @@ class SiModel(Model):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[10.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._beam_charge.inject(0 * 300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
 
 
@@ -452,5 +452,5 @@ class BoModel(Model):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
