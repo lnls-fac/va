@@ -23,13 +23,44 @@ VCHAMBER = False
 UNDEF_VALUE = 0.0 #float('nan')
 _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
+
 class Model(object):
+
+    def __init__(self, model_module=None, log_func=utils.log):
+
+        # stored model state parameters
+        self._driver = None # this will be set latter by Driver
+        self._model_module = model_module
+        self._log = log_func
+
+    def get_pv(self, pv_name):
+
+        value = self.get_pv_dynamic(pv_name)
+        if value is None:
+            value = self.get_pv_static(pv_name)
+        if value is None:
+            value = self.get_pv_fake(pv_name)
+        if value is None:
+            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
+        return value
+
+    def set_pv(self, pv_name, value):
+        return None
+
+    def get_pv_dynamics(self, pv_name):
+        return None
+    def get_pv_static(self, pv_name):
+        return None
+    def get_pv_fake(self, pv_name):
+        return None
+
+
+class RingModel(Model):
 
     def __init__(self, model_module, log_func=utils.log):
 
         # stored model state parameters
-        self._model_module = model_module
-        self._log = log_func
+        super().__init__(model_module, log_func)
         self.reset('start')
 
     def reset_state_flags(self):
@@ -86,16 +117,6 @@ class Model(object):
             indices.extend(idx)
         return indices
 
-    def get_pv(self, pv_name):
-
-        value = self.get_pv_dynamic(pv_name)
-        if value is None:
-            value = self.get_pv_static(pv_name)
-        if value is None:
-            value = self.get_pv_fake(pv_name)
-        if value is None:
-            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
-        return value
 
     def get_pv_fake(self, pv_name):
         if 'FK-' in pv_name:
@@ -429,7 +450,13 @@ class Model(object):
                     self._sext_families_str[pv_name] = value
 
 
-class SiModel(Model):
+class SyModel(Model):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(log_func=log_func)
+        
+class SiModel(RingModel):
 
     def __init__(self, log_func=utils.log):
 
@@ -443,7 +470,7 @@ class SiModel(Model):
         self._init_families_str()
 
 
-class BoModel(Model):
+class BoModel(RingModel):
 
     def __init__(self, log_func=utils.log):
         super().__init__(sirius.bo, log_func=log_func)

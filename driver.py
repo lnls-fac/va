@@ -14,16 +14,26 @@ class PCASDriver(Driver):
                         bo_model = None,
                         ts_model = None,
                         tb_model = None,
-                        li_model = None):
+                        li_model = None,
+                        sy_model = None):
+
         super().__init__()
-        self.si_model = si_model
-        self.bo_model = bo_model
-        self.ts_model = ts_model
-        self.tb_model = tb_model
-        self.li_model = li_model
+        self.si_model = si_model   # storage ring
+        self.bo_model = bo_model   # booster
+        self.ts_model = ts_model   # booster-to-storage ring transport line
+        self.tb_model = tb_model   # linac-to-booster transport line
+        self.li_model = li_model   # linac
+        self.sy_model = sy_model   # synchronism
         self.queue = queue.Queue()
         self.si_deprecated = True
         self.bo_deprecated = True
+
+        # signals models of sybsystem what driver object is using them
+        if self.si_model: self.si_model._driver = self
+        if self.bo_model: self.bo_model._driver = self
+        if self.ts_model: self.ts_model._driver = self
+        if self.tb_model: self.tb_model._driver = self
+        if self.li_model: self.li_model._driver = self
 
         self.read_only_pvs  = si_pvs.read_only_pvs + bo_pvs.read_only_pvs
         self.read_write_pvs = si_pvs.read_write_pvs + bo_pvs.read_write_pvs
@@ -107,11 +117,11 @@ class PCASDriver(Driver):
                 self.setParam(pv, value)
 
     def update_sp_pv_values(self):
-        utils.log('init', 'epics pv data for SI')
+        utils.log('init', 'epics sp memory for SI pvs')
         for pv in si_pvs.read_write_pvs:
             value = self.si_model.get_pv(pv)
             self.setParam(pv, value)
-        utils.log('init', 'epics pv data for BO')
+        utils.log('init', 'epics sp memory for BO pvs')
         for pv in bo_pvs.read_write_pvs:
             value = self.bo_model.get_pv(pv)
             self.setParam(pv, value)

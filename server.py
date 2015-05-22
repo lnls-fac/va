@@ -9,6 +9,7 @@ import va.driver as pcasdriver
 import va.model as models
 import va.si_pvs as si_pvs
 import va.bo_pvs as bo_pvs
+import va.sy_pvs as sy_pvs
 import va
 import utils
 
@@ -54,16 +55,22 @@ if __name__ == '__main__':
 
     si = models.SiModel()
     bo = models.BoModel()
+    sy = models.SyModel()
+
     stop_event = threading.Event()
 
     pvs_database = {}
     pvs_database.update(si_pvs.database)
     pvs_database.update(bo_pvs.database)
+    pvs_database.update(sy_pvs.database)
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)
 
-    driver = pcasdriver.PCASDriver(si_model = si, bo_model = bo)
+    driver = pcasdriver.PCASDriver(si_model = si,
+                                   bo_model = bo,
+                                   sy_model = sy)
+
     driver_thread = DriverThread(driver, stop_event)
     driver_thread.start()
 
