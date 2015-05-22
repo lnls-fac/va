@@ -37,7 +37,7 @@ def check_inject():
         while s_current.status and si_current.get() < max_current:
             bo_inject.put(BO_DELTA_CURRENT)    # inject in booster
             bo_inject.put(-BO_DELTA_CURRENT)   # eject from booster
-            va_inject.put(SI_DELTA_CURRENT)    # inject in sirius
+            si_inject.put(SI_DELTA_CURRENT)    # inject in sirius
             time.sleep(1.0/_RAMP_CYCLE_FREQ)   # cycle intercal
         is_injecting = False
 
