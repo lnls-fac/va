@@ -32,6 +32,7 @@ def signal_handler(signum, frame):
     sys.exit()
 
 def check_inject():
+    global is_injecting
     while not is_injecting and si_current.status and si_current.get() < min_current:
         is_injecting = True
         while s_current.status and si_current.get() < max_current:
