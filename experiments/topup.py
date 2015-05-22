@@ -10,19 +10,13 @@ import sys
 _TOPUP_CURRENT     = 300       # [mA]
 _MAX_CURRENT_DECAY = 0.5       # [%]
 _TIME_INTERVAL     = 2.0       # [s]
-_SI_DELTA_CURRENT  = 0.6 * 0.5 # [0.6 mA @ 50% efficiency]
 _RAMP_CYCLE_FREQ   = 2.0       # [Hz]
-_SI_CIRCUMFERENCE  = 518.396   # [m]
-_BO_CIRCUMFERENCE  = 496.800   # [m]
-_BO_DELTA_CURRENT  = _SI_DELTA_CURRENT * (_SI_CIRCUMFERENCE/_BO_CIRCUMFERENCE)
 
-max_current = _TOPUP_CURRENT 
+max_current = _TOPUP_CURRENT
 min_current = _TOPUP_CURRENT * (1.0 - _MAX_CURRENT_DECAY/100.0)
 
 # pvs that control injection process
-si_current = epics.pv.PV('SIDI-CURRENT')
-si_inject  = epics.pv.PV('VA-SIFK-INJECT')
-bo_inject  = epics.pv.PV('VA-BOFK-INJECT')
+ti_cycle   = epics.pv.PV('VA-TI-CYCLE')
 
 is_injecting = False
 

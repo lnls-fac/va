@@ -1,10 +1,10 @@
 import sirius
-import va.sy_fake_record_names
+import va.li_fake_record_names
 
 # subsystem dependent parameters
-model = sirius.sy
-fake_record_names = va.sy_fake_record_names.get_record_names()
-def subsys(rn): return 'SY'+rn
+model = sirius.li
+fake_record_names = va.li_fake_record_names.get_record_names()
+def subsys(rn): return 'LI'+rn
 
 fk = [] # [fake]
 pa = [] # [parameters]

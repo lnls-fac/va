@@ -7,9 +7,10 @@ import threading
 from pcaspy import SimpleServer
 import va.driver as pcasdriver
 import va.model as models
-import va.si_pvs as si_pvs
+import va.li_pvs as li_pvs
 import va.bo_pvs as bo_pvs
-import va.sy_pvs as sy_pvs
+import va.si_pvs as si_pvs
+import va.ti_pvs as ti_pvs
 import va
 import utils
 
@@ -48,28 +49,37 @@ if __name__ == '__main__':
     else:
         raise Exception('Please provide a prefix!')
 
-    si_pv_names = list(si_pvs.database.keys())
+    li_pv_names = list(li_pvs.database.keys())
     bo_pv_names = list(bo_pvs.database.keys())
+    si_pv_names = list(si_pvs.database.keys())
+    ti_pv_names = list(ti_pvs.database.keys())
 
-    utils.print_banner(prefix, si_pv_names, bo_pv_names)
+    utils.print_banner(prefix,
+                      li_pv_names = li_pv_names,
+                      bo_pv_names = bo_pv_names,
+                      si_pv_names = si_pv_names,
+                      ti_pv_names = ti_pv_names)
 
-    si = models.SiModel()
+    li = models.LiModel()
     bo = models.BoModel()
-    sy = models.SyModel()
+    si = models.SiModel()
+    ti = models.TiModel()
 
     stop_event = threading.Event()
 
     pvs_database = {}
-    pvs_database.update(si_pvs.database)
+    pvs_database.update(li_pvs.database)
     pvs_database.update(bo_pvs.database)
-    pvs_database.update(sy_pvs.database)
+    pvs_database.update(si_pvs.database)
+    pvs_database.update(ti_pvs.database)
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)
 
-    driver = pcasdriver.PCASDriver(si_model = si,
+    driver = pcasdriver.PCASDriver(li_model = li,
                                    bo_model = bo,
-                                   sy_model = sy)
+                                   si_model = si,
+                                   ti_model = ti)
 
     driver_thread = DriverThread(driver, stop_event)
     driver_thread.start()

@@ -47,12 +47,15 @@ class Model(object):
     def set_pv(self, pv_name, value):
         return None
 
-    def get_pv_dynamics(self, pv_name):
+    def get_pv_dynamic(self, pv_name):
         return None
     def get_pv_static(self, pv_name):
         return None
     def get_pv_fake(self, pv_name):
         return None
+
+    def update_state(self):
+        pass
 
 
 class RingModel(Model):
@@ -100,6 +103,9 @@ class RingModel(Model):
             self.reset_state_flags()
         self._beam_charge.inject(charge)
 
+
+
+
     def _get_elements_indices_correctors(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
         data = self._record_names[pv_name]
@@ -129,6 +135,7 @@ class RingModel(Model):
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            #print(self._beam_charge.total_value)
             return sum(currents_mA)
         elif 'DI-BCURRENT' in pv_name:
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
@@ -222,7 +229,6 @@ class RingModel(Model):
         if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
-
 
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
@@ -450,12 +456,88 @@ class RingModel(Model):
                     self._sext_families_str[pv_name] = value
 
 
-class SyModel(Model):
+class TLineModel(Model):
+
+    def __init__(self, model_module, log_func=utils.log):
+
+        super().__init__(model_module=model_module, log_func=log_func)
+        self.reset('start')
+
+    def reset(self, message1='reset', message2='', c='white', a=None):
+        self._record_names = self._model_module.record_names.get_record_names()
+        self._beam_charge  = utils.BeamCharge()
+        if not message2:
+            message2 = self._model_module.lattice_version
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+
+    def transport(self, charge):
+        self._beam_charge.inject(charge)
+
+
+class TimingModel(Model):
+
+    def __init__(self, model_module, log_func=utils.log):
+
+        super().__init__(model_module=model_module, log_func=log_func)
+        self.reset('start')
+
+    def reset(self, message1='reset', message2='', c='white', a=None):
+        self._record_names = self._model_module.record_names.get_record_names()
+        if not message2:
+            message2 = self._model_module.lattice_version
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+        self._cycle = 0
+
+    def get_pv_static(self, pv_name):
+        if 'CYCLE' in pv_name:
+            return self._cycle
+        else:
+            return None
+
+    def beam_inject(self):
+        if not self._cycle: return
+        self._log(message1 = 'cycle', message2 = 'TI starting injection')
+        # create charge from electron gun
+        charge = self._driver.li_model._single_bunch_charge
+        # transport through linac
+        self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'transport through LI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+        self._driver.li_model.transport(charge = charge)
+        charge = self._driver.li_model._beam_charge.total_value
+        # inject at booster
+        self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into BO, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+        # eject from booster
+        charge = self._driver.bo_model._beam_charge.total_value
+        self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge/1e-9) + ' nC')
+        self._driver.bo_model._beam_charge.dump()
+        # inject at storage ring
+        self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+
+    def set_pv(self, pv_name, value):
+        if 'CYCLE' in pv_name:
+            self._cycle = value
+            self.beam_inject()
+            self._cycle = 0
+            self._driver.setParam(pv_name, self._cycle)
+        return None
+
+
+
+class TiModel(TimingModel):
 
     def __init__(self, log_func=utils.log):
 
-        super().__init__(log_func=log_func)
-        
+        super().__init__(sirius.ti, log_func=log_func)
+
+class LiModel(TLineModel):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(sirius.li, log_func=log_func)
+        self._single_bunch_charge = 1e-9    #[coulomb]
+
+
 class SiModel(RingModel):
 
     def __init__(self, log_func=utils.log):

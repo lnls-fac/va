@@ -4,7 +4,10 @@ import datetime
 from termcolor import colored
 import va
 
-def print_banner(prefix, si_pv_names, bo_pv_names):
+def print_banner(prefix, li_pv_names=None,
+                         bo_pv_names=None,
+                         si_pv_names=None,
+                         ti_pv_names=None):
 
     def c(msg,color=None,attrs=None):
         if not attrs:
@@ -19,6 +22,10 @@ def print_banner(prefix, si_pv_names, bo_pv_names):
     print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~  ",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
     print(c(r"    ^^   ^^       ",'white') + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
     print(r"              "+c("\|/ ",'green') + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
+    if li_pv_names:
+        print(c(r"                  ",'white') + " | " + c("Number of LI pvs: {0}".format(len(li_pv_names))))
+    if ti_pv_names:
+        print(c(r"                  ",'white') + " | " + c("Number of TI pvs: {0}".format(len(ti_pv_names))))
     print(r"")
 
 
