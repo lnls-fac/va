@@ -65,6 +65,7 @@ class RingModel(Model):
         # stored model state parameters
         super().__init__(model_module, log_func)
         self.reset('start')
+        self.update_state(force=True)
 
     def reset_state_flags(self):
         # state flags for various calculated parameters
@@ -99,9 +100,13 @@ class RingModel(Model):
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
             self._log(message1, message2, c=c, a=a)
-        if not self._beam_charge.total_value:
-            self.reset_state_flags()
+        #if not self._beam_charge.total_value:
+        #    self.reset_state_flags()
         self._beam_charge.inject(charge)
+
+    def beam_charge(self):
+        self.update_state()
+        return self._beam_charge.total_value
 
 
 
@@ -373,18 +378,18 @@ class RingModel(Model):
 
         return False  # [pv is not a corrector]
 
-    def update_state(self):
+    def update_state(self, force=False):
 
         if self._orbit_deprecated:
-            self._calc_closed_orbit()
+            self._calc_closed_orbit(force)
         if self._linear_optics_deprecated:
-            self._calc_linear_optics()
+            self._calc_linear_optics(force)
         if self._equilibrium_deprecated:
-            self._calc_equilibrium_parameters()
+            self._calc_equilibrium_parameters(force)
 
-    def _calc_closed_orbit(self):
+    def _calc_closed_orbit(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             # calcs closed orbit when there is beam
             try:
                 self._log('calc', 'closed orbit for '+self._model_module.lattice_version)
@@ -398,9 +403,9 @@ class RingModel(Model):
                 self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
         self._orbit_deprecated = False
 
-    def _calc_linear_optics(self):
+    def _calc_linear_optics(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             # calcs linear optics when there is beam
             if self._orbit_deprecated:
                 self._calc_closed_orbit()
@@ -422,9 +427,9 @@ class RingModel(Model):
 
         self._linear_optics_deprecated = False
 
-    def _calc_equilibrium_parameters(self):
+    def _calc_equilibrium_parameters(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             if self._linear_optics_deprecated:
                 self._calc_linear_optics(self)
             try:
@@ -474,6 +479,11 @@ class TLineModel(Model):
     def transport(self, charge):
         self._beam_charge.inject(charge)
 
+    def beam_charge(self):
+        self.update_state()
+        return self._beam_charge.total_value
+
+
 
 class TimingModel(Model):
 
@@ -498,19 +508,25 @@ class TimingModel(Model):
 
     def beam_inject(self):
         if not self._cycle: return
+
         self._log(message1 = 'cycle', message2 = 'TI starting injection')
+
         # create charge from electron gun
         charge = self._driver.li_model._single_bunch_charge
+
         # transport through linac
-        self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'transport through LI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
         self._driver.li_model.transport(charge = charge)
-        charge = self._driver.li_model._beam_charge.total_value
+        charge = self._driver.li_model.beam_charge()
+        self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(charge/1e-9) + ' nC')
+        self._driver.li_model._beam_charge.dump()
+
         # inject at booster
         self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into BO, ' + str(charge/1e-9) + ' nC', c='white', a=None)
         # eject from booster
-        charge = self._driver.bo_model._beam_charge.total_value
+        charge = self._driver.bo_model.beam_charge()
         self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge/1e-9) + ' nC')
         self._driver.bo_model._beam_charge.dump()
+
         # inject at storage ring
         self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
 
