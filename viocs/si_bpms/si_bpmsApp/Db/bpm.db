@@ -59,3 +59,37 @@ record(calc, "SIDI-BPM-$(sector)$(pos)-Y")
     field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)")
     field(EGU, "um")
 }
+
+record(aSub, "SUBROUTINE")
+{
+    field(SCAN, ".1 second")
+    field(SNAM, "add_noise")
+    field(INPA, "VA-SIDI-BPM-FAM-X")
+    field(INPB, "VA-SIDI-BPM-FAM-Y")
+    field(INPC, "VA-SIDI-BPM-NOISELEVEL")
+    field(NOA, 180)
+    field(NOB, 180)
+    field(NOC, 1)
+    field(NOVA, 180)
+    field(NOVB, 180)
+    field(FLNK, "SIDI-BPM-FAM-X")
+}
+
+record(waveform, "SIDI-BPM-FAM-X")
+{
+    field(DESC, "SI BPM FAM X")
+    field(INP, "SUBROUTINE.A")
+    field(NELM, 180)
+    field(FTVL, "DOUBLE")
+    field(EGU, "um")
+    field(FLNK, "SIDI-BPM-FAM-Y")
+}
+
+record(waveform, "SIDI-BPM-FAM-Y")
+{
+    field(DESC, "SI BPM FAM Y")
+    field(INP, "SUBROUTINE.B")
+    field(NELM, 180)
+    field(FTVL, "DOUBLE")
+    field(EGU, "um")
+}
