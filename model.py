@@ -23,14 +23,49 @@ VCHAMBER = False
 UNDEF_VALUE = 0.0 #float('nan')
 _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
+
 class Model(object):
+
+    def __init__(self, model_module=None, log_func=utils.log):
+
+        # stored model state parameters
+        self._driver = None # this will be set latter by Driver
+        self._model_module = model_module
+        self._log = log_func
+
+    def get_pv(self, pv_name):
+
+        value = self.get_pv_dynamic(pv_name)
+        if value is None:
+            value = self.get_pv_static(pv_name)
+        if value is None:
+            value = self.get_pv_fake(pv_name)
+        if value is None:
+            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
+        return value
+
+    def set_pv(self, pv_name, value):
+        return None
+
+    def get_pv_dynamic(self, pv_name):
+        return None
+    def get_pv_static(self, pv_name):
+        return None
+    def get_pv_fake(self, pv_name):
+        return None
+
+    def update_state(self):
+        pass
+
+
+class RingModel(Model):
 
     def __init__(self, model_module, log_func=utils.log):
 
         # stored model state parameters
-        self._model_module = model_module
-        self._log = log_func
+        super().__init__(model_module, log_func)
         self.reset('start')
+        self.update_state(force=True)
 
     def reset_state_flags(self):
         # state flags for various calculated parameters
@@ -65,9 +100,16 @@ class Model(object):
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
             self._log(message1, message2, c=c, a=a)
-        if not self._beam_charge.total_value:
-            self.reset_state_flags()
+        #if not self._beam_charge.total_value:
+        #    self.reset_state_flags()
         self._beam_charge.inject(charge)
+
+    def beam_charge(self):
+        self.update_state()
+        return self._beam_charge.total_value
+
+
+
 
     def _get_elements_indices_correctors(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
@@ -86,16 +128,6 @@ class Model(object):
             indices.extend(idx)
         return indices
 
-    def get_pv(self, pv_name):
-
-        value = self.get_pv_dynamic(pv_name)
-        if value is None:
-            value = self.get_pv_static(pv_name)
-        if value is None:
-            value = self.get_pv_fake(pv_name)
-        if value is None:
-            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
-        return value
 
     def get_pv_fake(self, pv_name):
         if 'FK-' in pv_name:
@@ -108,6 +140,7 @@ class Model(object):
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            #print(self._beam_charge.total_value)
             return sum(currents_mA)
         elif 'DI-BCURRENT' in pv_name:
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
@@ -213,7 +246,6 @@ class Model(object):
         if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
-
 
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
@@ -358,18 +390,18 @@ class Model(object):
 
         return False  # [pv is not a corrector]
 
-    def update_state(self):
+    def update_state(self, force=False):
 
         if self._orbit_deprecated:
-            self._calc_closed_orbit()
+            self._calc_closed_orbit(force)
         if self._linear_optics_deprecated:
-            self._calc_linear_optics()
+            self._calc_linear_optics(force)
         if self._equilibrium_deprecated:
-            self._calc_equilibrium_parameters()
+            self._calc_equilibrium_parameters(force)
 
-    def _calc_closed_orbit(self):
+    def _calc_closed_orbit(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             # calcs closed orbit when there is beam
             try:
                 self._log('calc', 'closed orbit for '+self._model_module.lattice_version)
@@ -383,9 +415,9 @@ class Model(object):
                 self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
         self._orbit_deprecated = False
 
-    def _calc_linear_optics(self):
+    def _calc_linear_optics(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             # calcs linear optics when there is beam
             if self._orbit_deprecated:
                 self._calc_closed_orbit()
@@ -407,9 +439,9 @@ class Model(object):
 
         self._linear_optics_deprecated = False
 
-    def _calc_equilibrium_parameters(self):
+    def _calc_equilibrium_parameters(self, force=False):
 
-        if self._beam_charge.total_value:
+        if force or self._beam_charge.total_value:
             if self._linear_optics_deprecated:
                 self._calc_linear_optics(self)
             try:
@@ -441,7 +473,100 @@ class Model(object):
                     self._sext_families_str[pv_name] = value
 
 
-class SiModel(Model):
+class TLineModel(Model):
+
+    def __init__(self, model_module, log_func=utils.log):
+
+        super().__init__(model_module=model_module, log_func=log_func)
+        self.reset('start')
+
+    def reset(self, message1='reset', message2='', c='white', a=None):
+        self._record_names = self._model_module.record_names.get_record_names()
+        self._beam_charge  = utils.BeamCharge()
+        if not message2:
+            message2 = self._model_module.lattice_version
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+
+    def transport(self, charge):
+        self._beam_charge.inject(charge)
+
+    def beam_charge(self):
+        self.update_state()
+        return self._beam_charge.total_value
+
+
+
+class TimingModel(Model):
+
+    def __init__(self, model_module, log_func=utils.log):
+
+        super().__init__(model_module=model_module, log_func=log_func)
+        self.reset('start')
+
+    def reset(self, message1='reset', message2='', c='white', a=None):
+        self._record_names = self._model_module.record_names.get_record_names()
+        if not message2:
+            message2 = self._model_module.lattice_version
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+        self._cycle = 0
+
+    def get_pv_static(self, pv_name):
+        if 'CYCLE' in pv_name:
+            return self._cycle
+        else:
+            return None
+
+    def beam_inject(self):
+        if not self._cycle: return
+
+        self._log(message1 = 'cycle', message2 = 'TI starting injection')
+
+        # create charge from electron gun
+        charge = self._driver.li_model._single_bunch_charge
+
+        # transport through linac
+        self._driver.li_model.transport(charge = charge)
+        charge = self._driver.li_model.beam_charge()
+        self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(charge/1e-9) + ' nC')
+        self._driver.li_model._beam_charge.dump()
+
+        # inject at booster
+        self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into BO, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+        # eject from booster
+        charge = self._driver.bo_model.beam_charge()
+        self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge/1e-9) + ' nC')
+        self._driver.bo_model._beam_charge.dump()
+
+        # inject at storage ring
+        self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+
+    def set_pv(self, pv_name, value):
+        if 'CYCLE' in pv_name:
+            self._cycle = value
+            self.beam_inject()
+            self._cycle = 0
+            self._driver.setParam(pv_name, self._cycle)
+        return None
+
+
+
+class TiModel(TimingModel):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(sirius.ti, log_func=log_func)
+
+class LiModel(TLineModel):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(sirius.li, log_func=log_func)
+        self._single_bunch_charge = 1e-9    #[coulomb]
+
+
+class SiModel(RingModel):
 
     def __init__(self, log_func=utils.log):
 
@@ -451,11 +576,11 @@ class SiModel(Model):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[10.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._beam_charge.inject(0 * 300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
 
 
-class BoModel(Model):
+class BoModel(RingModel):
 
     def __init__(self, log_func=utils.log):
         super().__init__(sirius.bo, log_func=log_func)
@@ -464,5 +589,5 @@ class BoModel(Model):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()

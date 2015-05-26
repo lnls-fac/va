@@ -1,8 +1,5 @@
-import sirius
 
 def get_record_names(family_name = None):
-
-    family_data = sirius.bo._lattice._family_data
 
     if family_name == None:
         families = ['bofk']
@@ -13,6 +10,7 @@ def get_record_names(family_name = None):
 
     if family_name.lower() == 'bofk':
         _dict = {
+                'BOFK-RESET':{},
                 'BOFK-INJECT':{},
                 'BOFK-DUMP':{},
         }
