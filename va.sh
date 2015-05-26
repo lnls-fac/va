@@ -11,19 +11,18 @@ declare -a viocsprojs=("si_bpms" "si_current" "si_lifetime" "si_ps" "si_tune")
 
 
 ### guarantees that IOCs are executable by anyone
-chmod a+x $FACCODE/va/server.py
+chmod a+rx $FACCODE/va/server.py
 for ioc in "${viocsprojs[@]}"
 do
-    chmod a+x $VIOCS/$ioc/$ioc"App"/src/O.linux-x86_64/$ioc
+    chmod a+rx $VIOCS/$ioc/$ioc"App"/src/O.linux-x86_64/$ioc
 done
 
-### starts VIOCS
+### starts SERVER and VIOCS
 procServ -n server -i ^D^C $port $FACCODE/va/server.py VA-
 for ioc in "${viocsprojs[@]}"
 do
     port=$((port+1))
+    cd $VIOCS/$ioc/iocBoot/"ioc"$ioc
     #echo $ioc" "$port
     procServ -n $ioc -i ^D^C $port $VIOCS/$ioc/$ioc"App"/src/O.linux-x86_64/$ioc $VIOCS/$ioc/iocBoot/"ioc"$ioc/st.cmd
 done
-
-
