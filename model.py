@@ -64,14 +64,7 @@ class RingModel(Model):
 
         # stored model state parameters
         super().__init__(model_module, log_func)
-        self.reset('start')
-        self.update_state(force=True)
-
-    def reset_state_flags(self):
-        # state flags for various calculated parameters
-        self._orbit_deprecated = True
-        self._linear_optics_deprecated = True
-        self._equilibrium_deprecated = True
+        self.reset('start', model_module.lattice_version)
 
     def reset(self, message1='reset', message2='', c='white', a=None):
         self._record_names = self._model_module.record_names.get_record_names()
@@ -79,11 +72,18 @@ class RingModel(Model):
         self._beam_charge  = utils.BeamCharge()
         self._quad_families_str = {}
         self._sext_families_str = {}
-        self.beam_init(message1,message2,c,a)
+        self.beam_dump(message1,message2,c,a)
+        self.update_state(force=True)
+
+    def beam_init(self, message1='init', message2=None, c='white', a=None):
+        if not message2:
+            message2 = self._model_module.lattice_version
+        self.beam_dump(message1,message2,c,a)
 
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
+        self._state_deprecated = True
         self._beam_charge.dump()
         self._closed_orbit = None
         self._twiss = None
@@ -91,25 +91,17 @@ class RingModel(Model):
         self._transfer_matrices = None
         self._summary = None
 
-    def beam_init(self, message1='init', message2=None, c='white', a=None):
-        if not message2:
-            message2 = self._model_module.lattice_version
-        self.beam_dump(message1,message2,c,a)
-        self.reset_state_flags()
 
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
             self._log(message1, message2, c=c, a=a)
-        #if not self._beam_charge.total_value:
-        #    self.reset_state_flags()
+        if self._summary is None: return
         self._beam_charge.inject(charge)
+        self.update_state()
 
     def beam_charge(self):
         self.update_state()
         return self._beam_charge.total_value
-
-
-
 
     def _get_elements_indices_correctors(self, pv_name):
         """Get index of model element which corresponds to single-element PV"""
@@ -250,9 +242,7 @@ class RingModel(Model):
             if value != prev_Ks[0]:
                 for idx in indices:
                     self._accelerator[idx].polynom_a[1] = value
-                self._orbit_deprecated = True
-                self._linear_optics_deprecated = True
-                self._equilibrium_deprecated = True
+                self._state_deprecated = True
             return True
         return False
 
@@ -277,9 +267,7 @@ class RingModel(Model):
                                 prev_sext_value = prev_total_value - prev_family_value
                                 new_total_value = value + prev_sext_value
                                 self._accelerator[idx2].polynom_b[2] = new_total_value
-                    self._orbit_deprecated = True
-                    self._linear_optics_deprecated = True
-                    self._equilibrium_deprecated = True
+                    self._state_deprecated = True
             else:
                 # individual sext PV
                 idx = self._get_element_index(pv_name)
@@ -297,9 +285,7 @@ class RingModel(Model):
                     if isinstance(idx,int): idx = [idx]
                     for i in idx:
                         self._accelerator[i].polynom_b[2] = value + family_value
-                    self._orbit_deprecated = True
-                    self._linear_optics_deprecated = True
-                    self._equilibrium_deprecated = True
+                    self._state_deprecated = True
             return True
 
         return False # [pv is not a sextupole]
@@ -322,9 +308,7 @@ class RingModel(Model):
                                 prev_quad_value = prev_total_value - prev_family_value
                                 new_total_value = value + prev_quad_value
                                 self._accelerator[idx2].polynom_b[1] = new_total_value
-                    self._orbit_deprecated = True
-                    self._linear_optics_deprecated = True
-                    self._equilibrium_deprecated = True
+                    self._state_deprecated = True
             else:
                 # individual quad PV
                 idx = self._get_element_index(pv_name)
@@ -342,10 +326,7 @@ class RingModel(Model):
                     if isinstance(idx,int): idx = [idx]
                     for i in idx:
                         self._accelerator[i].polynom_b[1] = value + family_value
-                    self._orbit_deprecated = True
-                    self._linear_optics_deprecated = True
-                    self._equilibrium_deprecated = True
-
+                    self._state_deprecated = True
             return True
 
         return False # [pv is not a quadrupole]
@@ -359,9 +340,7 @@ class RingModel(Model):
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
-                self._orbit_deprecated = True
-                self._linear_optics_deprecated = True
-                self._equilibrium_deprecated = True
+                self._state_deprecated = True
             return True
 
         if 'PS-CV' in pv_name:
@@ -371,79 +350,63 @@ class RingModel(Model):
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
-                self._orbit_deprecated = True
-                self._linear_optics_deprecated = True
-                self._equilibrium_deprecated = True
+                self._state_deprecated = True
             return True
 
         return False  # [pv is not a corrector]
 
     def update_state(self, force=False):
 
-        if self._orbit_deprecated:
-            self._calc_closed_orbit(force)
-        if self._linear_optics_deprecated:
-            self._calc_linear_optics(force)
-        if self._equilibrium_deprecated:
-            self._calc_equilibrium_parameters(force)
+        if force or self._state_deprecated:
+            self._calc_closed_orbit()
+            self._calc_linear_optics()
+            self._calc_equilibrium_parameters()
+            self._state_deprecated = False
 
-    def _calc_closed_orbit(self, force=False):
+    def _calc_closed_orbit(self):
+        # calcs closed orbit when there is beam
+        try:
+            self._log('calc', 'closed orbit for '+self._model_module.lattice_version)
+            if TRACK6D:
+                self._closed_orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
+            else:
+                self._closed_orbit = numpy.zeros((6,len(self._accelerator)))
+                self._closed_orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
+        except pyaccel.tracking.TrackingException:
+            # beam is lost
+            self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
 
-        if force or self._beam_charge.total_value:
-            # calcs closed orbit when there is beam
-            try:
-                self._log('calc', 'closed orbit for '+self._model_module.lattice_version)
-                if TRACK6D:
-                    self._closed_orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
-                else:
-                    self._closed_orbit = numpy.zeros((6,len(self._accelerator)))
-                    self._closed_orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
-            except pyaccel.tracking.TrackingException:
-                # beam is lost
-                self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
-        self._orbit_deprecated = False
+    def _calc_linear_optics(self):
+        # calcs linear optics when there is beam
+        if self._closed_orbit is None: return
+        try:
+            # optics
+            self._log('calc', 'linear optics for '+self._model_module.lattice_version)
+            self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
+              pyaccel.optics.calctwiss(accelerator=self._accelerator,
+                                       closed_orbit=self._closed_orbit)
+        except numpy.linalg.linalg.LinAlgError:
+            # beam is lost
+            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        except pyaccel.optics.OpticsException:
+            # beam is lost
+            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        except pyaccel.tracking.TrackingException:
+            # beam is lost
+            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
-    def _calc_linear_optics(self, force=False):
-
-        if force or self._beam_charge.total_value:
-            # calcs linear optics when there is beam
-            if self._orbit_deprecated:
-                self._calc_closed_orbit()
-            try:
-                # optics
-                self._log('calc', 'linear optics for '+self._model_module.lattice_version)
-                self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
-                  pyaccel.optics.calctwiss(accelerator=self._accelerator,
-                                           closed_orbit=self._closed_orbit)
-            except numpy.linalg.linalg.LinAlgError:
-                # beam is lost
-                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-            except pyaccel.optics.OpticsException:
-                # beam is lost
-                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-            except pyaccel.tracking.TrackingException:
-                # beam is lost
-                self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-
-        self._linear_optics_deprecated = False
-
-    def _calc_equilibrium_parameters(self, force=False):
-
-        if force or self._beam_charge.total_value:
-            if self._linear_optics_deprecated:
-                self._calc_linear_optics(self)
-            try:
-                self._log('calc', 'equilibrium parameters for '+self._model_module.lattice_version)
-                self._summary = pyaccel.optics.getequilibriumparameters(\
-                                             accelerator=self._accelerator,
-                                             twiss=self._twiss,
-                                             m66=self._m66,
-                                             transfer_matrices=self._transfer_matrices,
-                                             closed_orbit=self._closed_orbit)
-            except:
-                raise Exception('problem')
-
-        self._equilibrium_deprecated = False
+    def _calc_equilibrium_parameters(self):
+        if self._m66 is None: return
+        try:
+            self._log('calc', 'equilibrium parameters for '+self._model_module.lattice_version)
+            self._summary = pyaccel.optics.getequilibriumparameters(\
+                                         accelerator=self._accelerator,
+                                         twiss=self._twiss,
+                                         m66=self._m66,
+                                         transfer_matrices=self._transfer_matrices,
+                                         closed_orbit=self._closed_orbit)
+        except:
+            raise Exception('problem')
 
 
     def _init_families_str(self):
