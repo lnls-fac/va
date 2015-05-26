@@ -46,7 +46,10 @@ for p in di:
     if any([substring in p for substring in ('BCURRENT',)]):
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
     if 'DI-BPM' in p:
-        database[p] = {'type' : 'float', 'count': 2}
+        if 'FAM' in p:
+            database[p] = {'type' : 'float', 'count': 180}
+        else:
+            database[p] = {'type' : 'float', 'count': 2}
     else:
         database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in ps:

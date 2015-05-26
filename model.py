@@ -151,12 +151,24 @@ class RingModel(Model):
             return lifetime_hour
         elif '-BPM-' in pv_name:
             idx = self._get_elements_indices(pv_name)
-            try:
-                pos = self._closed_orbit[[0,2],idx[0]]
-            except TypeError:
-                pos = UNDEF_VALUE, UNDEF_VALUE
-            #print(pos)
-            return pos
+            if 'FAM-X' in pv_name:
+                try:
+                    pos_x = self._closed_orbit[0,idx]
+                except TypeError:
+                    pos_x = [UNDEF_VALUE]*180
+                return pos_x
+            elif 'FAM-Y' in pv_name:
+                try:
+                    pos_y = self._closed_orbit[2,idx]
+                except TypeError:
+                    pos_y = [UNDEF_VALUE]*180
+                return pos_y
+            else:
+                try:
+                    pos = self._closed_orbit[[0,2],idx[0]]
+                except TypeError:
+                    pos = UNDEF_VALUE, UNDEF_VALUE
+                return pos
         elif 'DI-TUNEH' in pv_name:
             try:
                 tune_value = self._twiss[-1].mux / 2.0 / math.pi
