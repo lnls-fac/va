@@ -42,6 +42,7 @@ if __name__ == '__main__':
     run_vaca()
     run_si_current()
     run_si_lifetime()
+    run_si_bpms()
     run_si_ps()
     run_si_tune()
 
