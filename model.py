@@ -152,34 +152,21 @@ class RingModel(Model):
         elif '-BPM-' in pv_name:
             idx = self._get_elements_indices(pv_name)
             if 'FAM-X' in pv_name:
-                try:
-                    pos_x = self._closed_orbit[0,idx]
-                except TypeError:
-                    pos_x = [UNDEF_VALUE]*180
-                return pos_x
+                if self._closed_orbit is None: return [UNDEF_VALUE]*len(idx)
+                return self._closed_orbit[0,idx]
             elif 'FAM-Y' in pv_name:
-                try:
-                    pos_y = self._closed_orbit[2,idx]
-                except TypeError:
-                    pos_y = [UNDEF_VALUE]*180
-                return pos_y
+                if self._closed_orbit is None: return [UNDEF_VALUE]*len(idx)
+                return self._closed_orbit[2,idx]
             else:
-                try:
-                    pos = self._closed_orbit[[0,2],idx[0]]
-                except TypeError:
-                    pos = UNDEF_VALUE, UNDEF_VALUE
-                return pos
+                if self._closed_orbit is None: return UNDEF_VALUE
+                return self._closed_orbit[[0,2],idx[0]]
         elif 'DI-TUNEH' in pv_name:
-            try:
-                tune_value = self._twiss[-1].mux / 2.0 / math.pi
-            except TypeError:
-                tune_value = UNDEF_VALUE
+            if self._twiss is None: return UNDEF_VALUE
+            tune_value = self._twiss[-1].mux / 2.0 / math.pi
             return tune_value
         elif 'DI-TUNEV' in pv_name:
-            try:
-                tune_value = self._twiss[-1].muy / 2.0 / math.pi
-            except TypeError:
-                tune_value = UNDEF_VALUE
+            if self._twiss is None: return UNDEF_VALUE
+            tune_value = self._twiss[-1].muy / 2.0 / math.pi
             return tune_value
         elif 'PS-CH' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
