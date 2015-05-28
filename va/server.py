@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 import sys
 import time
@@ -42,8 +41,8 @@ def handle_signal(signum, frame):
     stop_event.set()
     driver_thread.join()
 
-if __name__ == '__main__':
 
+def run():
     if len(sys.argv) > 1:
         prefix = sys.argv[1]
     else:
