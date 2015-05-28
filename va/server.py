@@ -10,8 +10,8 @@ import va.li_pvs as li_pvs
 import va.bo_pvs as bo_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
+import va.utils
 import va
-import utils
 
 
 WAIT_TIMEOUT = 0.1
