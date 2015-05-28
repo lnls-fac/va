@@ -8,7 +8,9 @@ from pcaspy import SimpleServer
 import va.driver as pcasdriver
 import va.model as models
 import va.li_pvs as li_pvs
+import va.tb_pvs as tb_pvs
 import va.bo_pvs as bo_pvs
+import va.ts_pvs as ts_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
 import va
@@ -50,18 +52,24 @@ if __name__ == '__main__':
         raise Exception('Please provide a prefix!')
 
     li_pv_names = list(li_pvs.database.keys())
+    tb_pv_names = list(tb_pvs.database.keys())
     bo_pv_names = list(bo_pvs.database.keys())
+    ts_pv_names = list(ts_pvs.database.keys())
     si_pv_names = list(si_pvs.database.keys())
     ti_pv_names = list(ti_pvs.database.keys())
 
     utils.print_banner(prefix,
                       li_pv_names = li_pv_names,
+                      tb_pv_names = tb_pv_names,
                       bo_pv_names = bo_pv_names,
+                      ts_pv_names = ts_pv_names,
                       si_pv_names = si_pv_names,
                       ti_pv_names = ti_pv_names)
 
     li = models.LiModel()
+    tb = models.TbModel()
     bo = models.BoModel()
+    ts = models.TsModel()
     si = models.SiModel()
     ti = models.TiModel()
 
@@ -69,7 +77,9 @@ if __name__ == '__main__':
 
     pvs_database = {}
     pvs_database.update(li_pvs.database)
+    pvs_database.update(tb_pvs.database)
     pvs_database.update(bo_pvs.database)
+    pvs_database.update(ts_pvs.database)
     pvs_database.update(si_pvs.database)
     pvs_database.update(ti_pvs.database)
 
@@ -77,9 +87,12 @@ if __name__ == '__main__':
     server.createPV(prefix, pvs_database)
 
     driver = pcasdriver.PCASDriver(li_model = li,
+                                   tb_model = tb,
                                    bo_model = bo,
+                                   ts_model = ts,
                                    si_model = si,
-                                   ti_model = ti)
+                                   ti_model = ti,
+                                   )
 
     driver_thread = DriverThread(driver, stop_event)
     driver_thread.start()

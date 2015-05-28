@@ -3,7 +3,9 @@ import queue
 import numpy
 from pcaspy import Driver
 import va.li_pvs as li_pvs
+import va.tb_pvs as tb_pvs
 import va.bo_pvs as bo_pvs
+import va.ts_pvs as ts_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
 import utils
@@ -30,7 +32,9 @@ class PCASDriver(Driver):
 
         self.queue = queue.Queue()
         self.li_deprecated = True
+        self.tb_deprecated = True
         self.bo_deprecated = True
+        self.ts_deprecated = True
         self.si_deprecated = True
         self.ti_deprecated = True
 
@@ -43,15 +47,21 @@ class PCASDriver(Driver):
         if self.ti_model: self.ti_model._driver = self
 
         self.read_only_pvs  = li_pvs.read_only_pvs + \
+                              tb_pvs.read_only_pvs +\
                               bo_pvs.read_only_pvs + \
+                              ts_pvs.read_only_pvs + \
                               si_pvs.read_only_pvs + \
                               ti_pvs.read_only_pvs
         self.read_write_pvs = li_pvs.read_write_pvs + \
+                              tb_pvs.read_write_pvs + \
                               bo_pvs.read_write_pvs + \
+                              ts_pvs.read_write_pvs + \
                               si_pvs.read_write_pvs + \
                               ti_pvs.read_write_pvs
         self.dynamic_pvs    = li_pvs.dynamic_pvs + \
+                              tb_pvs.dynamic_pvs + \
                               bo_pvs.dynamic_pvs + \
+                              ts_pvs.dynamic_pvs + \
                               si_pvs.dynamic_pvs + \
                               ti_pvs.dynamic_pvs
 
@@ -82,7 +92,9 @@ class PCASDriver(Driver):
         self.updatePVs()
 
         self.li_deprecated = False
+        self.tb_deprecated = False
         self.bo_deprecated = False
+        self.ts_deprecated = False
         self.si_deprecated = False
         self.ti_deprecated = False
 
@@ -93,12 +105,14 @@ class PCASDriver(Driver):
             self.li_deprecated = True
             self.li_model.set_pv(pv_name, value)
         elif pv_name.startswith('TB'):
-            raise Exception('TB model not implemented yet')
+            self.tb_deprecated = True
+            self.tb_model.set_pv(pv_name, value)
         elif pv_name.startswith('BO'):
             self.bo_deprecated = True
             self.bo_model.set_pv(pv_name, value)
         elif pv_name.startswith('TS'):
-            raise Exception('TS model not implemented yet')
+            self.ts_deprecated = True
+            self.ts_model.set_pv(pv_name, value)
         elif pv_name.startswith('SI'):
             self.si_deprecated = True
             self.si_model.set_pv(pv_name, value)
@@ -110,7 +124,9 @@ class PCASDriver(Driver):
 
     def update_model_state(self):
         self.li_model.update_state()
+        self.tb_model.update_state()
         self.bo_model.update_state()
+        self.ts_model.update_state()
         self.si_model.update_state()
         self.ti_model.update_state()
 
@@ -126,6 +142,16 @@ class PCASDriver(Driver):
                 value = self.li_model.get_pv(pv)
                 self.setParam(pv, value)
 
+        # linac-to-booster transport line
+        if self.tb_deprecated:
+            for pv in tb_pvs.read_only_pvs:
+                value = self.tb_model.get_pv(pv)
+                self.setParam(pv, value)
+        else:
+            for pv in tb_pvs.dynamic_pvs:
+                value = self.tb_model.get_pv(pv)
+                self.setParam(pv, value)
+
         # booster
         if self.bo_deprecated:
             for pv in bo_pvs.read_only_pvs:
@@ -134,6 +160,16 @@ class PCASDriver(Driver):
         else:
             for pv in bo_pvs.dynamic_pvs:
                 value = self.bo_model.get_pv(pv)
+                self.setParam(pv, value)
+
+        # booster-to-storage ring transport line
+        if self.ts_deprecated:
+            for pv in ts_pvs.read_only_pvs:
+                value = self.ts_model.get_pv(pv)
+                self.setParam(pv, value)
+        else:
+            for pv in ts_pvs.dynamic_pvs:
+                value = self.ts_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # sirius
@@ -161,14 +197,27 @@ class PCASDriver(Driver):
         for pv in li_pvs.read_write_pvs:
             value = self.li_model.get_pv(pv)
             self.setParam(pv, value)
+
+        utils.log('init', 'epics sp memory for TB pvs')
+        for pv in tb_pvs.read_write_pvs:
+            value = self.tb_model.get_pv(pv)
+            self.setParam(pv, value)
+
         utils.log('init', 'epics sp memory for BO pvs')
         for pv in bo_pvs.read_write_pvs:
             value = self.bo_model.get_pv(pv)
             self.setParam(pv, value)
+
+        utils.log('init', 'epics sp memory for TS pvs')
+        for pv in ts_pvs.read_write_pvs:
+            value = self.ts_model.get_pv(pv)
+            self.setParam(pv, value)
+
         utils.log('init', 'epics sp memory for SI pvs')
         for pv in si_pvs.read_write_pvs:
             value = self.si_model.get_pv(pv)
             self.setParam(pv, value)
+
         utils.log('init', 'epics sp memory for TI pvs')
         for pv in ti_pvs.read_write_pvs:
             value = self.ti_model.get_pv(pv)

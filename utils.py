@@ -5,7 +5,9 @@ from termcolor import colored
 import va
 
 def print_banner(prefix, li_pv_names=None,
+                         tb_pv_names=None,
                          bo_pv_names=None,
+                         ts_pv_names=None,
                          si_pv_names=None,
                          ti_pv_names=None):
 
@@ -26,6 +28,10 @@ def print_banner(prefix, li_pv_names=None,
         print(c(r"                  ",'white') + " | " + c("Number of LI pvs: {0}".format(len(li_pv_names))))
     if ti_pv_names is not None:
         print(c(r"                  ",'white') + " | " + c("Number of TI pvs: {0}".format(len(ti_pv_names))))
+    if tb_pv_names is not None:
+        print(c(r"                  ",'white') + " | " + c("Number of TB pvs: {0}".format(len(tb_pv_names))))
+    if ts_pv_names is not None:
+        print(c(r"                  ",'white') + " | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
     print(r"")
 
 

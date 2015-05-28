@@ -103,14 +103,6 @@ class RingModel(Model):
         self.update_state()
         return self._beam_charge.total_value
 
-    def _get_elements_indices_correctors(self, pv_name):
-        """Get index of model element which corresponds to single-element PV"""
-        data = self._record_names[pv_name]
-        idx = []
-        keys = list(data.keys())
-        idx = data[keys[0]]
-        return idx
-
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
         data = self._record_names[pv_name]
@@ -119,7 +111,6 @@ class RingModel(Model):
             idx = lnls.utils.flatten(data[key])
             indices.extend(idx)
         return indices
-
 
     def get_pv_fake(self, pv_name):
         if 'FK-' in pv_name:
@@ -186,11 +177,12 @@ class RingModel(Model):
                 return value
             else:
                 idx = self._get_elements_indices(pv_name)
-                pv_fam = '-'.join(pv_name.split()[:-1]) + '-FAM'
+                pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
                 try:
                     family_value = self._quad_families_str[pv_fam]
                 except:
                     family_value = 0.0
+                #print(family_value)
                 value = self._accelerator[idx[0]].polynom_b[1] - family_value
                 return value
         elif 'PS-S' in pv_name:
@@ -199,7 +191,7 @@ class RingModel(Model):
                 return value
             else:
                 idx = self._get_elements_indices(pv_name)
-                pv_fam = '-'.join(pv_name.split()[:-1]) + '-FAM'
+                pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
                 try:
                     family_value = self._sext_families_str[pv_fam]
                 except:
@@ -209,7 +201,7 @@ class RingModel(Model):
         elif 'PS-BEND' in pv_name:
             return self._accelerator.energy
         elif 'PS-QS' in pv_name:
-            idx = self._get_element_index(pv_name)
+            idx = self._get_elements_indices(pv_name)
             while not isinstance(idx, int): idx = idx[0]
             value = self._accelerator[idx].polynom_a[1]
             return value
@@ -236,7 +228,7 @@ class RingModel(Model):
 
     def set_pv_quadrupoles_skew(self, pv_name, value):
         if 'PS-Q' in pv_name:
-            indices = self._get_elements_indices_correctors(pv_name)
+            indices = self._get_elements_indices(pv_name)
             prev_Ks = pyaccel.lattice.getattributelat(self._accelerator, 'polynom_a', indices, m=1)
             if value != prev_Ks[0]:
                 for idx in indices:
@@ -269,7 +261,7 @@ class RingModel(Model):
                     self._state_deprecated = True
             else:
                 # individual sext PV
-                idx = self._get_element_index(pv_name)
+                idx = self._get_elements_indices(pv_name)
                 idx2 = idx
                 while not isinstance(idx2,int):
                     idx2 = idx2[0]
@@ -310,7 +302,7 @@ class RingModel(Model):
                     self._state_deprecated = True
             else:
                 # individual quad PV
-                idx = self._get_element_index(pv_name)
+                idx = self._get_elements_indices(pv_name)
                 idx2 = idx
                 while not isinstance(idx2,int):
                     idx2 = idx2[0]
@@ -333,7 +325,7 @@ class RingModel(Model):
     def set_pv_correctors(self, pv_name, value):
 
         if 'PS-CH' in pv_name:
-            idx = self._get_elements_indices_correctors(pv_name)
+            idx = self._get_elements_indices(pv_name)
             nr_segs = len(idx)
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
@@ -343,7 +335,7 @@ class RingModel(Model):
             return True
 
         if 'PS-CV' in pv_name:
-            idx = self._get_elements_indices_correctors(pv_name)
+            idx = self._get_elements_indices(pv_name)
             nr_segs = len(idx)
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
@@ -411,7 +403,6 @@ class RingModel(Model):
     def _init_families_str(self):
         rnames = self._record_names
         for pv_name in rnames.keys():
-            #print(pv_name)
             if '-FAM' in pv_name:
                 if 'PS-Q' in pv_name:
                     idx = self._get_elements_indices(pv_name)
@@ -432,6 +423,7 @@ class TLineModel(Model):
 
     def reset(self, message1='reset', message2='', c='white', a=None):
         self._record_names = self._model_module.record_names.get_record_names()
+        self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = utils.BeamCharge()
         if not message2:
             message2 = self._model_module.lattice_version
@@ -445,6 +437,111 @@ class TLineModel(Model):
         self.update_state()
         return self._beam_charge.total_value
 
+    def _get_elements_indices(self, pv_name):
+        """Get flattened indices of element in the model"""
+        data = self._record_names[pv_name]
+        indices = []
+        for key in data.keys():
+            idx = lnls.utils.flatten(data[key])
+            indices.extend(idx)
+        return indices
+
+    def get_pv_fake(self, pv_name):
+        if 'FK-' in pv_name:
+            return 0.0
+        else:
+            return None
+
+    def get_pv_dynamic(self, pv_name):
+        if 'DI-CURRENT' in pv_name:
+            # time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
+            # currents = self._beam_charge.current(time_interval)
+            # currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            # #print(self._beam_charge.total_value)
+            # return sum(currents_mA)
+            return 0
+        else:
+            return None
+
+    def get_pv_static(self, pv_name):
+        # process global parameters
+        if '-BPM-' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            try:
+                #pos = self._closed_orbit[[0,2],idx[0]]
+                pos = [0,0]
+            except TypeError:
+                pos = UNDEF_VALUE, UNDEF_VALUE
+            return pos
+        elif 'PS-CH' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
+            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            value = sum(kicks)
+            return value
+        elif 'PS-CV' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
+            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            value = sum(kicks)
+            return value
+        elif 'PS-Q' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            value = self._accelerator[idx[0]].polynom_b[1]
+            return value
+        elif 'PS-BEND' in pv_name:
+            return 0
+        elif 'PU-SEP' in pv_name:
+            return 0
+        else:
+            return None
+
+    def set_pv(self, pv_name, value):
+        if self.set_pv_correctors(pv_name, value): return
+        if self.set_pv_quadrupoles(pv_name, value): return
+
+        if 'FK-RESET' in pv_name:
+            self.reset(message1='reset',message2=self._model_module.lattice_version)
+        if 'FK-INJECT' in pv_name:
+            charge = value * _u.mA * _Tp(self._accelerator)
+            self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
+        elif 'FK-DUMP' in pv_name:
+            self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
+
+    def set_pv_quadrupoles(self, pv_name, value):
+        if 'PS-Q' in pv_name:
+            # individual quad PV
+            idx = self._get_elements_indices(pv_name)
+            idx2 = idx
+            while not isinstance(idx2,int):
+                idx2 = idx2[0]
+            prev_value = self._accelerator[idx2].polynom_b[1]
+            if value != prev_quad_value:
+                if isinstance(idx,int): idx = [idx]
+                for i in idx:
+                    self._accelerator[i].polynom_b[1] = value
+            return True
+        return False # [pv is not a quadrupole]
+
+    def set_pv_correctors(self, pv_name, value):
+        if 'PS-CH' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            nr_segs = len(idx)
+            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
+            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
+            if value != prev_value:
+                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+            return True
+
+        if 'PS-CV' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            nr_segs = len(idx)
+            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
+            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
+            if value != prev_value:
+                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+            return True
+        return False  # [pv is not a corrector]
 
 
 class TimingModel(Model):
@@ -501,13 +598,6 @@ class TimingModel(Model):
         return None
 
 
-
-class TiModel(TimingModel):
-
-    def __init__(self, log_func=utils.log):
-
-        super().__init__(sirius.ti, log_func=log_func)
-
 class LiModel(TLineModel):
 
     def __init__(self, log_func=utils.log):
@@ -515,6 +605,31 @@ class LiModel(TLineModel):
         super().__init__(sirius.li, log_func=log_func)
         self._single_bunch_charge = 1e-9    #[coulomb]
 
+class TbModel(TLineModel):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(sirius.tb, log_func=log_func)
+        self._single_bunch_charge = 1e-9    #[coulomb]
+
+class BoModel(RingModel):
+
+    def __init__(self, log_func=utils.log):
+        super().__init__(sirius.bo, log_func=log_func)
+        #self._accelerator.energy = 0.15e9 # [eV]
+        self._accelerator.cavity_on = TRACK6D
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = VCHAMBER
+        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
+        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._init_families_str()
+
+class TsModel(TLineModel):
+
+    def __init__(self, log_func=utils.log):
+
+        super().__init__(sirius.ts, log_func=log_func)
+        self._single_bunch_charge = 1e-9    #[coulomb]
 
 class SiModel(RingModel):
 
@@ -529,15 +644,8 @@ class SiModel(RingModel):
         self._beam_charge.inject(0 * 300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
 
-
-class BoModel(RingModel):
+class TiModel(TimingModel):
 
     def __init__(self, log_func=utils.log):
-        super().__init__(sirius.bo, log_func=log_func)
-        #self._accelerator.energy = 0.15e9 # [eV]
-        self._accelerator.cavity_on = TRACK6D
-        self._accelerator.radiation_on = TRACK6D
-        self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
-        self._init_families_str()
+
+        super().__init__(sirius.ti, log_func=log_func)
