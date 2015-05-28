@@ -17,6 +17,7 @@ class TestSI(unittest.TestCase):
     #@unittest.skip("long test")
     def test_bpms(self):
         pvs_bpm = va.si_pvs.di_bpms
+        print(pvs_bpm)
         for pv in pvs_bpm:
             r1 = self.model.get_pv(pv)
             r2 = epics.caget('TestVA-' + pv)

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 import sys
 import time
@@ -13,8 +12,8 @@ import va.bo_pvs as bo_pvs
 import va.ts_pvs as ts_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
+import va.utils
 import va
-import utils
 
 
 WAIT_TIMEOUT = 0.1
@@ -44,8 +43,8 @@ def handle_signal(signum, frame):
     stop_event.set()
     driver_thread.join()
 
-if __name__ == '__main__':
 
+def run():
     if len(sys.argv) > 1:
         prefix = sys.argv[1]
     else:
