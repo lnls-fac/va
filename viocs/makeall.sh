@@ -1,8 +1,13 @@
 #!/bin/bash
 
-cd si_bpms; make
-cd si_current; make
-cd si_lifetime; make
-cd si_ps; make
-cd si_tune; make
+declare -a viocsprojs=("si_bpms" "si_current" "si_lifetime" "si_ps" "si_tune")
 
+for ioc in "${viocsprojs[@]}"
+do
+  chmod -R a+r $ioc
+  cd $ioc
+  make
+  chmod a+rx $ioc"App/src/O.linux-x86_64/"$ioc
+  chmod a+rx iocBoot/ioc$ioc/st.cmd
+  cd ..
+done
