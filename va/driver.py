@@ -8,7 +8,7 @@ import va.bo_pvs as bo_pvs
 import va.ts_pvs as ts_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
-import utils
+import va.utils as utils
 
 
 class PCASDriver(Driver):

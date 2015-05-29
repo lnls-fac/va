@@ -12,7 +12,7 @@ import va.bo_pvs as bo_pvs
 import va.ts_pvs as ts_pvs
 import va.si_pvs as si_pvs
 import va.ti_pvs as ti_pvs
-import va.utils
+import va.utils as utils
 import va
 
 
@@ -44,11 +44,8 @@ def handle_signal(signum, frame):
     driver_thread.join()
 
 
-def run():
-    if len(sys.argv) > 1:
-        prefix = sys.argv[1]
-    else:
-        raise Exception('Please provide a prefix!')
+def run(prefix):
+    global stop_event, driver_thread
 
     li_pv_names = list(li_pvs.database.keys())
     tb_pv_names = list(tb_pvs.database.keys())
