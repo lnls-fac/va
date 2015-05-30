@@ -23,6 +23,7 @@ setup(
 
     install_requires=[
         'numpy>=1.8.2',
+        'termcolor>=1.1.0',
         'pcaspy==0.5.1',
         'lnls>=0.1.0',
         'mathphys>=0.1.0',
