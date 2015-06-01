@@ -35,5 +35,10 @@ setup(
         'https://github.com/lnls-fac/mathphys/archive/v0.1.0.tar.gz#egg=mathphys-0.1.0',
         'https://github.com/lnls-fac/pyaccel/archive/v0.3.0.tar.gz#egg=pyaccel-0.3.0',
         'https://github.com/lnls-fac/sirius/archive/v0.1.0.tar.gz#egg=sirius-0.1.0'
-    ]
+    ],
+    scripts=[
+        'scripts/sirius-vaca.py',
+        'scripts/sirius-va'
+    ],
+    script_dir='/usr/local/bin'
 )

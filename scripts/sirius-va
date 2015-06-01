@@ -1,0 +1,162 @@
+#!/bin/bash
+
+### This script is supposed to be run at lnls82-linux
+### It starts the virtual accelerator and addtional experiment scripts
+
+export EPICS_CA_AUTO_ADDR_LIST=NO
+export EPICS_CA_ADDR_LIST=10.0.21.255
+VIOCS=$FACCODE/va/viocs
+
+function stop_instances {
+  local cmd='ps -elf | grep "procServ -n '$1'" | grep -v grep | tr -s " " | cut -d " " -f 4'
+  # first try to be gentle
+  local pids=`eval $cmd`
+  if [ ! -z "$pids" ] ; then
+    echo "sending SIGINT to "$1"..."
+    for pid in "${pids[@]}"
+    do
+      kill -s SIGINT $pid
+    done
+  fi
+  # but be rude, if needed
+  pids=`eval $cmd`
+  if [ ! -z "$pids" ] ; then
+    echo "sending SIGKILL to "$1"..."
+    for pid in "${pids[@]}"
+    do
+      kill -s SIGKILL $pid
+    done
+  fi
+}
+
+function start_instance {
+  local mod=$1
+  local port=$2
+  local script=$3
+  local args=$4
+  echo "starting "$mod" at port "$port"..."
+  stop_instances $mod
+  chmod a+rx $script
+  str="procServ -n $mod -i ^D^C $port $script $args"
+  procServ -n $mod --pidfile=/dev/null --logfile=/dev/null -i ^D^C $port $script $args
+}
+
+function dir_app {
+    local mod=$1
+    local dir=$VIOCS/$mod/$mod"App"/src/O.linux-x86_64/$mod
+    echo $dir
+}
+
+function dir_boot {
+  local mod=$1
+    local dir=$VIOCS/$mod/iocBoot/ioc$mod
+    echo $dir
+}
+
+function start_module {
+    if [ $1 == "vaca" ]; then
+      start_instance vaca 38000 $FACCODE/scripts/experiments/sirius-vaca.py VA-
+    elif [ $1 == "si_current" ]; then
+      cd $(dir_boot si_current); start_instance si_current 38001 $(dir_app si_current) $(dir_boot si_current)"/st.cmd"
+    elif [ $1 == "si_lifetime" ]; then
+      cd $(dir_boot si_lifetime); start_instance si_lifetime 38002 $(dir_app si_lifetime) $(dir_boot si_lifetime)"/st.cmd"
+    elif [ $1 == "si_bpms" ]; then
+      cd $(dir_boot si_bpms); start_instance si_bpms 38003 $(dir_app si_bpms) $(dir_boot si_bpms)"/st.cmd"
+    elif [ $1 == "si_ps" ]; then
+      cd $(dir_boot si_ps); start_instance si_ps 38004 $(dir_app si_ps) $(dir_boot si_ps)"/st.cmd"
+    elif [ $1 == "si_tune" ]; then
+      cd $(dir_boot si_tune); start_instance si_tune 38005 $(dir_app si_tune) $(dir_boot si_tune)"/st.cmd"
+    elif [ $1 == "topup" ]; then
+      start_instance topup 38100 $FACCODE/scripts/experiments/sirius_topup.py
+    elif [ $1 == "viocs" ]; then
+      start_viocs
+    else
+      echo $0": module not defined!"
+    fi
+}
+
+function stop_module {
+  if [ $1 == "vaca" ]; then
+    stop_instances vaca
+  elif [ $1 == "si_current" ]; then
+    stop_instances si_current
+  elif [ $1 == "si_lifetime" ]; then
+    stop_instances si_lifetime
+  elif [ $1 == "si_bpms" ]; then
+    stop_instances si_bpms
+  elif [ $1 == "si_ps" ]; then
+    stop_instances si_ps
+  elif [ $1 == "si_tune" ]; then
+    stop_instances si_tune
+  elif [ $1 == "topup" ]; then
+    stop_instances topup
+  elif [ $1 == "viocs" ]; then
+    stop_viocs
+  else
+    echo $0": module not defined!"
+  fi
+}
+
+function start_all {
+  start_module vaca
+  start_module si_current
+  start_module si_lifetime
+  start_module si_bpms
+  start_module si_ps
+  start_module si_tune
+  start_module topup
+}
+
+function start_viocs {
+  start_module si_current
+  start_module si_lifetime
+  start_module si_bpms
+  start_module si_ps
+  start_module si_tune
+}
+
+function stop_all {
+  stop_instances topup
+  stop_instances si_tune
+  stop_instances si_ps
+  stop_instances si_bpms
+  stop_instances si_lifetime
+  stop_instances si_current
+  stop_instances vaca
+}
+
+function stop_viocs {
+  stop_instances si_tune
+  stop_instances si_ps
+  stop_instances si_bpms
+  stop_instances si_lifetime
+  stop_instances si_current
+}
+
+function list_modules {
+  echo " PID  MODULE"
+  echo "-------------"
+  ps -elf | grep procServ | grep -v grep | tr -s " " | cut -d " " -f 4,17
+}
+
+if [ $# == 1 ]; then
+  if [ $1 == "start" ]; then
+    start_all
+  elif [ $1 == "stop" ]; then
+    stop_all
+  elif [ $1 == "list" ]; then
+    list_modules
+  else
+    echo $0": invalid argument!"
+  fi
+elif [ $# == 2 ]; then
+  if [ $1 == "start" ]; then
+    start_module $2
+  elif [ $1 == "stop" ]; then
+    stop_module $2
+  else
+    echo $0": invalid argumnet!"
+  fi
+else
+  echo $0": invalid number of argumnets!"
+fi
