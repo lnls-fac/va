@@ -38,7 +38,6 @@ setup(
     ],
     scripts=[
         'scripts/sirius-vaca.py',
-        'scripts/sirius-va'
     ],
     script_dir='/usr/local/bin'
 )
