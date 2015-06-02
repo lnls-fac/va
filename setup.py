@@ -20,5 +20,6 @@ setup(
     ],
     packages=['va'],
     package_data={'va': ['VERSION']},
+    scripts=['scripts/sirius-vaca.py'],
     zip_safe=False
 )
