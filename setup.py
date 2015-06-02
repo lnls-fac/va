@@ -21,21 +21,21 @@ setup(
     packages=['va'],
     package_data={'va': ['VERSION']},
 
-    install_requires=[
-        'numpy>=1.8.2',
-        'termcolor>=1.1.0',
-        'pcaspy==0.5.1',
-        'lnls>=0.1.0',
-        'mathphys>=0.1.0',
-        'pyaccel>=0.3.0',
-        'sirius>=0.1.0'
-    ],
-    dependency_links=[
-        'https://github.com/lnls-fac/lnls/archive/v0.1.0.tar.gz#egg=lnls-0.1.0',
-        'https://github.com/lnls-fac/mathphys/archive/v0.1.0.tar.gz#egg=mathphys-0.1.0',
-        'https://github.com/lnls-fac/pyaccel/archive/v0.3.0.tar.gz#egg=pyaccel-0.3.0',
-        'https://github.com/lnls-fac/sirius/archive/v0.1.0.tar.gz#egg=sirius-0.1.0'
-    ],
+    # install_requires=[
+    #     'numpy>=1.8.2',
+    #     'termcolor>=1.1.0',
+    #     'pcaspy==0.5.1',
+    #     'lnls>=0.1.0',
+    #     'mathphys>=0.1.0',
+    #     'pyaccel>=0.3.0',
+    #     'sirius>=0.1.0'
+    # ],
+    #dependency_links=[
+        #'https://github.com/lnls-fac/lnls/archive/v0.1.0.tar.gz#egg=lnls-0.1.0',
+        #'https://github.com/lnls-fac/mathphys/archive/v0.1.0.tar.gz#egg=mathphys-0.1.0',
+        #'https://github.com/lnls-fac/pyaccel/archive/v0.3.0.tar.gz#egg=pyaccel-0.3.0',
+        #'https://github.com/lnls-fac/sirius/archive/v0.1.0.tar.gz#egg=sirius-0.1.0'
+        #],
     scripts=[
         'scripts/sirius-vaca.py',
     ]

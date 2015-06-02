@@ -99,9 +99,21 @@ class RingModel(Model):
         self._beam_charge.inject(charge)
         self.update_state()
 
+    def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
+        if message1:
+            self._log(message1, message2, c=c, a=a)
+        charge = self._beam_charge.total_value
+        self._beam_charge.dump()
+        return charge
+
     def beam_charge(self):
         self.update_state()
         return self._beam_charge.total_value
+
+    def beam_accelerate(self, charge):
+        self.beam_inject(charge, message1='')
+        charge = self._beam_charge.total_value
+        return charge
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -205,6 +217,8 @@ class RingModel(Model):
             while not isinstance(idx, int): idx = idx[0]
             value = self._accelerator[idx].polynom_a[1]
             return value
+        elif 'RF-FREQUENCY' in pv_name:
+            return 0
         elif 'PA-CHROMX':
             return UNDEF_VALUE
         elif 'PA-CHROMY':
@@ -430,8 +444,24 @@ class TLineModel(Model):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
 
-    def transport(self, charge):
+    def beam_dump(self, message1='panic', message2='', c='white', a=None):
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+        self._state_deprecated = True
+        self._beam_charge.dump()
+        self._orbit = None
+
+    def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
+        if message1:
+            self._log(message1, message2, c=c, a=a)
         self._beam_charge.inject(charge)
+        self.update_state()
+
+    def beam_transport(self, charge):
+        self.beam_inject(charge, message1='')
+        charge = self._beam_charge.total_value
+        self._beam_charge.dump()
+        return charge
 
     def beam_charge(self):
         self.update_state()
@@ -572,22 +602,24 @@ class TimingModel(Model):
 
         # create charge from electron gun
         charge = self._driver.li_model._single_bunch_charge
+        self._log(message1 = 'cycle', message2 = 'electron gun providing ' + str(charge*1e9) + ' nC of charge', c='white')
 
         # transport through linac
-        self._driver.li_model.transport(charge = charge)
-        charge = self._driver.li_model.beam_charge()
-        self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(charge/1e-9) + ' nC')
-        self._driver.li_model._beam_charge.dump()
+        self._log(message1 = 'cycle', message2 = 'injection in LI, ' + str(charge*1e9) + ' nC of charge', c='white')
+        charge = self._driver.li_model.beam_transport(charge)
+        self._driver.li_model.notify_driver()
+        self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(charge*1e9) + ' nC of charge', c='white')
 
-        # inject at booster
-        self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into BO, ' + str(charge/1e-9) + ' nC', c='white', a=None)
-        # eject from booster
-        charge = self._driver.bo_model.beam_charge()
-        self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge/1e-9) + ' nC')
-        self._driver.bo_model._beam_charge.dump()
+        # acceleration through booster
+        self._log(message1 = 'cycle', message2 = 'injection in BO, ' + str(charge*1e9) + ' nC of charge', c='white')
+        self._driver.bo_model.beam_accelerate(charge)
+        charge = self._driver.bo_model.beam_eject(message1='')
+        self._driver.bo_model.notify_driver()
+        self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge*1e9) + ' nC of charge', c='white')
 
         # inject at storage ring
         self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
+        self._driver.si_model.notify_driver()
 
     def set_pv(self, pv_name, value):
         if 'CYCLE' in pv_name:
@@ -605,31 +637,28 @@ class LiModel(TLineModel):
         super().__init__(sirius.li, log_func=log_func)
         self._single_bunch_charge = 1e-9    #[coulomb]
 
+    def notify_driver(self):
+        if self._driver: self._driver.li_deprecated = True
+
+
 class TbModel(TLineModel):
 
     def __init__(self, log_func=utils.log):
 
         super().__init__(sirius.tb, log_func=log_func)
-        self._single_bunch_charge = 1e-9    #[coulomb]
 
-class BoModel(RingModel):
+    def notify_driver(self):
+        if self._driver: self._driver.tb_deprecated = True
 
-    def __init__(self, log_func=utils.log):
-        super().__init__(sirius.bo, log_func=log_func)
-        #self._accelerator.energy = 0.15e9 # [eV]
-        self._accelerator.cavity_on = TRACK6D
-        self._accelerator.radiation_on = TRACK6D
-        self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
-        self._init_families_str()
 
 class TsModel(TLineModel):
 
     def __init__(self, log_func=utils.log):
 
         super().__init__(sirius.ts, log_func=log_func)
-        self._single_bunch_charge = 1e-9    #[coulomb]
+
+    def notify_driver(self):
+        if self._driver: self._driver.ts_deprecated = True
 
 class SiModel(RingModel):
 
@@ -644,8 +673,30 @@ class SiModel(RingModel):
         self._beam_charge.inject(0 * 300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
         self._init_families_str()
 
+    def notify_driver(self):
+        if self._driver: self._driver.si_deprecated = True
+
+class BoModel(RingModel):
+
+    def __init__(self, log_func=utils.log):
+        super().__init__(sirius.bo, log_func=log_func)
+        #self._accelerator.energy = 0.15e9 # [eV]
+        self._accelerator.cavity_on = TRACK6D
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = VCHAMBER
+        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
+        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._init_families_str()
+
+    def notify_driver(self):
+        if self._driver: self._driver.bo_deprecated = True
+
+
 class TiModel(TimingModel):
 
     def __init__(self, log_func=utils.log):
 
         super().__init__(sirius.ti, log_func=log_func)
+
+    def notify_driver(self):
+        if self._driver: self._driver.ti_deprecated = True
