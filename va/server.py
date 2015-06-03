@@ -62,12 +62,12 @@ def run(prefix):
                       si_pv_names = si_pv_names,
                       ti_pv_names = ti_pv_names)
 
-    li = models.LiModel()
-    tb = models.TbModel()
-    bo = models.BoModel()
-    ts = models.TsModel()
-    si = models.SiModel()
-    ti = models.TiModel()
+    li = models.LiModel(all_pvs=li_pvs.all_record_names)
+    tb = models.TbModel(all_pvs=tb_pvs.all_record_names)
+    bo = models.BoModel(all_pvs=bo_pvs.all_record_names)
+    ts = models.TsModel(all_pvs=ts_pvs.all_record_names)
+    si = models.SiModel(all_pvs=si_pvs.all_record_names)
+    ti = models.TiModel(all_pvs=ti_pvs.all_record_names)
 
     stop_event = threading.Event()
 

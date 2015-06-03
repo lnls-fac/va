@@ -26,19 +26,22 @@ _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
 class Model(object):
 
-    def __init__(self, model_module=None, log_func=utils.log):
+    def __init__(self, model_module=None, all_pvs=None, log_func=utils.log):
 
         # stored model state parameters
         self._driver = None # this will be set latter by Driver
         self._model_module = model_module
         self._log = log_func
+        self._all_pvs = all_pvs
 
     def get_pv(self, pv_name):
-
         value = self.get_pv_dynamic(pv_name)
         if value is None:
+            #print('try static: ' + pv_name + ' ', end='')
             value = self.get_pv_static(pv_name)
+            #print(value)
         if value is None:
+            #print('try fake: ' + pv_name)
             value = self.get_pv_fake(pv_name)
         if value is None:
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
@@ -60,14 +63,17 @@ class Model(object):
 
 class RingModel(Model):
 
-    def __init__(self, model_module, log_func=utils.log):
+    def __init__(self, model_module, all_pvs=None, log_func=utils.log):
 
         # stored model state parameters
-        super().__init__(model_module, log_func)
+        super().__init__(model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start', model_module.lattice_version)
 
     def reset(self, message1='reset', message2='', c='white', a=None):
-        self._record_names = self._model_module.record_names.get_record_names()
+        if self._all_pvs is None:
+            self._record_names = self._model_module.record_names.get_record_names()
+        else:
+            self._record_names = self._all_pvs
         self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = utils.BeamCharge()
         self._quad_families_str = {}
@@ -125,7 +131,17 @@ class RingModel(Model):
         return indices
 
     def get_pv_fake(self, pv_name):
-        if 'FK-' in pv_name:
+        if '-ERRORX' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            #print('ok get_pv fake ERRORX')
+            return error
+        if '-ERRORY' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            #print('ok get_pv fake ERRORY')
+            return error
+        elif 'FK-' in pv_name:
             return 0.0
         else:
             return None
@@ -171,6 +187,8 @@ class RingModel(Model):
             if self._twiss is None: return UNDEF_VALUE
             tune_value = self._twiss[-1].muy / 2.0 / math.pi
             return tune_value
+        elif 'DI-TUNES' in pv_name:
+            return UNDEF_VALUE
         elif 'PS-CH' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
@@ -219,9 +237,19 @@ class RingModel(Model):
             return value
         elif 'RF-FREQUENCY' in pv_name:
             return 0
-        elif 'PA-CHROMX':
+        elif 'PA-CHROMX' in pv_name:
             return UNDEF_VALUE
-        elif 'PA-CHROMY':
+        elif 'PA-CHROMY' in pv_name:
+            return UNDEF_VALUE
+        elif 'PA-EMITX' in pv_name:
+            return UNDEF_VALUE
+        elif 'PA-EMITY' in pv_name:
+            return UNDEF_VALUE
+        elif 'PA-SIGX' in pv_name:
+            return UNDEF_VALUE
+        elif 'PA-SIGY' in pv_name:
+            return UNDEF_VALUE
+        elif 'PA-SIGS' in pv_name:
             return UNDEF_VALUE
         else:
             return None
@@ -231,14 +259,29 @@ class RingModel(Model):
         if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
+        if self.set_pv_fake(pv_name, value): return
 
+    def set_pv_fake(self, pv_name, value):
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
-        if 'FK-INJECT' in pv_name:
+        elif 'FK-INJECT' in pv_name:
             charge = value * _u.mA * _Tp(self._accelerator)
             self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
         elif 'FK-DUMP' in pv_name:
             self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
+        elif '-ERRORX' in pv_name:
+            #print('ok set_pv fake ERRORX')
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            if value != prev_errorx:
+                pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
+        elif '-ERRORY' in pv_name:
+            #print('ok set_pv fake ERRORX')
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            prev_errorx = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            if value != prev_errorx:
+                pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
+
 
     def set_pv_quadrupoles_skew(self, pv_name, value):
         if 'PS-Q' in pv_name:
@@ -250,9 +293,6 @@ class RingModel(Model):
                 self._state_deprecated = True
             return True
         return False
-
-
-
 
     def set_pv_sextupoles(self, pv_name, value):
 
@@ -424,19 +464,25 @@ class RingModel(Model):
                     self._quad_families_str[pv_name] = value
                 if 'PS-S' in pv_name:
                     idx = self._get_elements_indices(pv_name)
-                    value = self._accelerator[idx[0]].polynom_b[2]
+                    try:
+                        value = self._accelerator[idx[0]].polynom_b[2]
+                    except:
+                        print(idx)
                     self._sext_families_str[pv_name] = value
 
 
 class TLineModel(Model):
 
-    def __init__(self, model_module, log_func=utils.log):
+    def __init__(self, model_module, all_pvs=None, log_func=utils.log):
 
-        super().__init__(model_module=model_module, log_func=log_func)
+        super().__init__(model_module=model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start')
 
     def reset(self, message1='reset', message2='', c='white', a=None):
-        self._record_names = self._model_module.record_names.get_record_names()
+        if self._all_pvs is None:
+            self._record_names = self._model_module.record_names.get_record_names()
+        else:
+            self._record_names = self._all_pvs
         self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = utils.BeamCharge()
         if not message2:
@@ -576,13 +622,16 @@ class TLineModel(Model):
 
 class TimingModel(Model):
 
-    def __init__(self, model_module, log_func=utils.log):
+    def __init__(self, model_module, all_pvs=None, log_func=utils.log):
 
-        super().__init__(model_module=model_module, log_func=log_func)
+        super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
         self.reset('start')
 
     def reset(self, message1='reset', message2='', c='white', a=None):
-        self._record_names = self._model_module.record_names.get_record_names()
+        if self._all_pvs is None:
+            self._record_names = self._model_module.record_names.get_record_names()
+        else:
+            self._record_names = self._all_pvs
         if not message2:
             message2 = self._model_module.lattice_version
         if message1 or message2:
@@ -632,9 +681,9 @@ class TimingModel(Model):
 
 class LiModel(TLineModel):
 
-    def __init__(self, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
 
-        super().__init__(sirius.li, log_func=log_func)
+        super().__init__(sirius.li, all_pvs=all_pvs, log_func=log_func)
         self._single_bunch_charge = 1e-9    #[coulomb]
 
     def notify_driver(self):
@@ -643,9 +692,9 @@ class LiModel(TLineModel):
 
 class TbModel(TLineModel):
 
-    def __init__(self, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
 
-        super().__init__(sirius.tb, log_func=log_func)
+        super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
 
     def notify_driver(self):
         if self._driver: self._driver.tb_deprecated = True
@@ -653,18 +702,18 @@ class TbModel(TLineModel):
 
 class TsModel(TLineModel):
 
-    def __init__(self, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
 
-        super().__init__(sirius.ts, log_func=log_func)
+        super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
 
     def notify_driver(self):
         if self._driver: self._driver.ts_deprecated = True
 
 class SiModel(RingModel):
 
-    def __init__(self, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
 
-        super().__init__(sirius.si, log_func=log_func)
+        super().__init__(sirius.si, all_pvs=all_pvs, log_func=log_func)
         #self._accelerator.energy = 3e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
@@ -678,8 +727,8 @@ class SiModel(RingModel):
 
 class BoModel(RingModel):
 
-    def __init__(self, log_func=utils.log):
-        super().__init__(sirius.bo, log_func=log_func)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(sirius.bo, all_pvs=all_pvs, log_func=log_func)
         #self._accelerator.energy = 0.15e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
@@ -694,9 +743,9 @@ class BoModel(RingModel):
 
 class TiModel(TimingModel):
 
-    def __init__(self, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
 
-        super().__init__(sirius.ti, log_func=log_func)
+        super().__init__(sirius.ti, all_pvs=all_pvs, log_func=log_func)
 
     def notify_driver(self):
         if self._driver: self._driver.ti_deprecated = True

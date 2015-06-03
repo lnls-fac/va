@@ -12,6 +12,10 @@ pa = [] # [parameters]
 di, di_bpms = [], [] # [diagnostics]
 ps, ps_ch, ps_cv, pu = [], [], [], [] # [power supply]
 
+all_record_names = {}
+all_record_names.update(model.record_names.get_record_names())
+all_record_names.update(fake_record_names)
+
 record_names = model.record_names.get_record_names()
 record_names = list(record_names.keys()) + list(fake_record_names.keys())
 for record_name in record_names:
@@ -36,7 +40,7 @@ for record_name in record_names:
 
 read_only_pvs  = di_bpms + pa + di
 read_write_pvs = ps + ps_ch + ps_cv + fk + pu
-dynamic_pvs = [subsys('DI-CURRENT'),
+dynamic_pvs = [#subsys('DI-CURRENT'),
               ]
 
 ps = ps + ps_ch + ps_cv + pu

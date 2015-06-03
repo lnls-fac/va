@@ -11,6 +11,10 @@ pa = [] # [parameters]
 di, di_bpms = [], [] # [diagnostics]
 ps, ps_ch, ps_cv = [], [], [] # [power supply]
 
+all_record_names = dict()
+all_record_names.update(model.record_names.get_record_names())
+all_record_names.update(fake_record_names)
+
 record_names = model.record_names.get_record_names()
 record_names = list(record_names.keys()) + list(fake_record_names.keys())
 for record_name in record_names:
