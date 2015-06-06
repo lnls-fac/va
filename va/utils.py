@@ -37,7 +37,9 @@ def print_banner(prefix, li_pv_names=None,
 
 
 def log(message1='', message2='', c='white', a=None):
-    st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    t0 = time.time()
+    st = datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
+    st = st + '.{0:03d}'.format(int(1000*(t0-int(t0))))
     if a is None: a = []
     strt = colored(st, 'white', attrs=[])
     str1 = colored('{0:<6.6s}'.format(message1), c, attrs=a)

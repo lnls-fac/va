@@ -169,22 +169,25 @@ class RingModel(Model):
             lifetime_hour = [bunch_lifetime / _u.hour for bunch_lifetime in self._beam_charge.lifetime]
             return lifetime_hour
         elif '-BPM-' in pv_name:
+            charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if 'FAM-X' in pv_name:
-                if self._closed_orbit is None: return [UNDEF_VALUE]*len(idx)
+                if self._closed_orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return self._closed_orbit[0,idx]
             elif 'FAM-Y' in pv_name:
-                if self._closed_orbit is None: return [UNDEF_VALUE]*len(idx)
+                if self._closed_orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return self._closed_orbit[2,idx]
             else:
-                if self._closed_orbit is None: return UNDEF_VALUE
+                if self._closed_orbit is None or charge == 0.0: return UNDEF_VALUE
                 return self._closed_orbit[[0,2],idx[0]]
         elif 'DI-TUNEH' in pv_name:
-            if self._twiss is None: return UNDEF_VALUE
+            charge = self._beam_charge.total_value
+            if self._twiss is None or charge == 0.0: return UNDEF_VALUE
             tune_value = self._twiss[-1].mux / 2.0 / math.pi
             return tune_value
         elif 'DI-TUNEV' in pv_name:
-            if self._twiss is None: return UNDEF_VALUE
+            charge = self._beam_charge.total_value
+            if self._twiss is None or charge == 0.0: return UNDEF_VALUE
             tune_value = self._twiss[-1].muy / 2.0 / math.pi
             return tune_value
         elif 'DI-TUNES' in pv_name:
@@ -270,17 +273,19 @@ class RingModel(Model):
         elif 'FK-DUMP' in pv_name:
             self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
         elif '-ERRORX' in pv_name:
-            #print('ok set_pv fake ERRORX')
+            #print('fake ERRORX set_pv ' + pv_name)
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
+                self._state_deprecated = True
         elif '-ERRORY' in pv_name:
-            #print('ok set_pv fake ERRORX')
+            #print('fake ERRORX set_pv ' + pv_name)
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
+                self._state_deprecated = True
 
 
     def set_pv_quadrupoles_skew(self, pv_name, value):

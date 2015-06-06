@@ -17,13 +17,21 @@ def get_record_names(family_name = None):
                 'SIFK-DUMP':{},
         }
 
-        # adds fake fake CHS and CVS pvs for errors
+        # adds fake CF pvs for errors
         cfrn = sirius.si.record_names.get_record_names('chf')
         for key in cfrn.keys():
             value = cfrn[key]['chf']
-            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-CF-ERRORX')] = {'cf':value}
-            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-CF-ERRORY')] = {'cf':value}
-            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-CF-ERRORR')] = {'cf':value}
+            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-ERRORX-CF')] = {'cf':value}
+            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-ERRORY-CF')] = {'cf':value}
+            _dict[str.replace(key, 'SIPS-CHF', 'SIFK-ERRORR-CF')] = {'cf':value}
+        # adds fake QUAD pvs for errors
+        for quad_name in ('qfa', 'qda', 'qfb', 'qdb1', 'qdb2','qf1', 'qf2', 'qf3', 'qf4'):
+            cfrn = sirius.si.record_names.get_record_names(quad_name)
+            for key in cfrn.keys():
+                value = cfrn[key][quad_name]
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORX-')] = {quad_name:value}
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORY-')] = {quad_name:value}
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORR-')] = {quad_name:value}
         return _dict
 
     else:
