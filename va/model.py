@@ -133,12 +133,10 @@ class RingModel(Model):
         if '-ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
-            #print('ok get_pv fake ERRORX')
             return error
         if '-ERRORY' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
-            #print('ok get_pv fake ERRORY')
             return error
         elif 'FK-' in pv_name:
             return 0.0
@@ -177,7 +175,7 @@ class RingModel(Model):
                 if self._closed_orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return self._closed_orbit[2,idx]
             else:
-                if self._closed_orbit is None or charge == 0.0: return UNDEF_VALUE, UNDEF_VALUE
+                if self._closed_orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
                 return self._closed_orbit[[0,2],idx[0]]
         elif 'DI-TUNEH' in pv_name:
             charge = self._beam_charge.total_value
@@ -272,14 +270,12 @@ class RingModel(Model):
         elif 'FK-DUMP' in pv_name:
             self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
         elif '-ERRORX' in pv_name:
-            #print('fake ERRORX set_pv ' + pv_name)
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
                 self._state_deprecated = True
         elif '-ERRORY' in pv_name:
-            #print('fake ERRORX set_pv ' + pv_name)
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             if value != prev_errorx:
@@ -565,7 +561,15 @@ class TLineModel(Model):
         return frac
 
     def get_pv_fake(self, pv_name):
-        if 'FK-' in pv_name:
+        if '-ERRORX' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            return error
+        if '-ERRORY' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            return error
+        elif 'FK-' in pv_name:
             return 0.0
         else:
             return None
@@ -615,7 +619,10 @@ class TLineModel(Model):
         if self.set_pv_correctors(pv_name, value): return
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_bends(pv_name, value): return
+        if self.set_pv_fake(pv_name, value): return
 
+
+    def set_pv_fake(self, pv_name, value):
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
         if 'FK-INJECT' in pv_name:
@@ -623,6 +630,18 @@ class TLineModel(Model):
             self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
         elif 'FK-DUMP' in pv_name:
             self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
+        elif '-ERRORX' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            if value != prev_errorx:
+                pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
+                self._state_deprecated = True
+        elif '-ERRORY' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            prev_errorx = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            if value != prev_errorx:
+                pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
+                self._state_deprecated = True
 
     def set_pv_quadrupoles(self, pv_name, value):
         if 'PS-Q' in pv_name:
