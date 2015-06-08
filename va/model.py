@@ -17,7 +17,6 @@ import lnls.utils
 import datetime
 import mathphys
 
-
 TRACK6D = False
 VCHAMBER = False
 UNDEF_VALUE = 0.0 #float('nan')
@@ -178,7 +177,7 @@ class RingModel(Model):
                 if self._closed_orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return self._closed_orbit[2,idx]
             else:
-                if self._closed_orbit is None or charge == 0.0: return UNDEF_VALUE
+                if self._closed_orbit is None or charge == 0.0: return UNDEF_VALUE, UNDEF_VALUE
                 return self._closed_orbit[[0,2],idx[0]]
         elif 'DI-TUNEH' in pv_name:
             charge = self._beam_charge.total_value
@@ -494,6 +493,12 @@ class TLineModel(Model):
             message2 = self._model_module.lattice_version
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
+        self._state_deprecated = False
+
+    def update_state(self, force=False):
+        if force or self._state_deprecated:
+            self._calc_beam_size()
+            self._state_deprecated = False
 
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
@@ -506,17 +511,19 @@ class TLineModel(Model):
         if message1:
             self._log(message1, message2, c=c, a=a)
         self._beam_charge.inject(charge)
-        self.update_state()
-
-    def beam_transport(self, charge):
-        self.beam_inject(charge, message1='')
-        charge = self._beam_charge.total_value
-        self._beam_charge.dump()
-        return charge
 
     def beam_charge(self):
-        self.update_state()
         return self._beam_charge.total_value
+
+    def _calc_beam_size(self):
+        if len(self._accelerator) == 0:
+            self._sigma_x = 0
+        else:
+            self._twiss = pyaccel.optics.calctwiss(self._accelerator, twiss_in = self._twiss_in)[0]
+            sigma_x = []
+            for i in range(len(self._twiss)):
+                sigma_x.append(math.sqrt(self._twiss[i].betax*self._emittance + (self._twiss[i].etax*self._sigma_e)**2))
+            self._sigma_x = sigma_x
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -527,6 +534,36 @@ class TLineModel(Model):
             indices.extend(idx)
         return indices
 
+    def beam_transport(self, charge):
+        self.update_state(force = True)
+        self._orbit = pyaccel.tracking.linepass(self._accelerator, self._rin, indices = 'open')[0]
+        try:
+            self._rout = [i for i in self._orbit[:,(len(self._accelerator)-1)]]
+        except IndexError:
+            self._rout = [0,0,0,0,0,0]
+        self.coordinate_transformation()
+        new_charge = charge*self._calc_loss_charge()
+        self._beam_charge.inject(new_charge)
+        return new_charge
+
+    def coordinate_transformation(self):
+        r = [i for i in self._rout]
+        self._rout[0] = r[0]*math.cos(self._xl_out) + r[5]*math.sin(self._xl_out) + self._x_out
+        self._rout[1] = r[1] + self._xl_out
+        self._rout[5] = r[5]*math.cos(self._xl_out) - r[0]*math.sin(self._xl_out)
+
+    def _calc_loss_charge(self):
+        try:
+            orbit = [math.fabs(i) for i in self._orbit[0,:]]
+            xmax = numpy.amax(orbit)
+            ind_xmax = numpy.argmax(orbit)
+            hmax = self._accelerator[ind_xmax].hmax
+        except:
+            return 1
+        sigma_x = self._sigma_x[ind_xmax]
+        frac = (1.0/2.0)*(math.erf((hmax+xmax)/(math.sqrt(2.0)*sigma_x))-math.erf((-hmax+xmax)/(math.sqrt(2.0)*sigma_x)))
+        return frac
+
     def get_pv_fake(self, pv_name):
         if 'FK-' in pv_name:
             return 0.0
@@ -535,11 +572,6 @@ class TLineModel(Model):
 
     def get_pv_dynamic(self, pv_name):
         if 'DI-CURRENT' in pv_name:
-            # time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
-            # currents = self._beam_charge.current(time_interval)
-            # currents_mA = [bunch_current / _u.mA for bunch_current in currents]
-            # #print(self._beam_charge.total_value)
-            # return sum(currents_mA)
             return 0
         else:
             return None
@@ -549,9 +581,8 @@ class TLineModel(Model):
         if '-BPM-' in pv_name:
             idx = self._get_elements_indices(pv_name)
             try:
-                #pos = self._closed_orbit[[0,2],idx[0]]
-                pos = [0,0]
-            except TypeError:
+                pos = self._orbit[[0,2],idx[0]]
+            except:
                 pos = UNDEF_VALUE, UNDEF_VALUE
             return pos
         elif 'PS-CH' in pv_name:
@@ -570,16 +601,20 @@ class TLineModel(Model):
             idx = self._get_elements_indices(pv_name)
             value = self._accelerator[idx[0]].polynom_b[1]
             return value
-        elif 'PS-BEND' in pv_name:
-            return 0
-        elif 'PU-SEP' in pv_name:
-            return 0
+        elif 'PS-BEND-' in pv_name or 'PU-SEP' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            value = 0
+            for i in idx:
+                value += self._accelerator[i].polynom_b[0]*self._accelerator[i].length
+                value += self._accelerator[i].angle
+            return value
         else:
             return None
 
     def set_pv(self, pv_name, value):
         if self.set_pv_correctors(pv_name, value): return
         if self.set_pv_quadrupoles(pv_name, value): return
+        if self.set_pv_bends(pv_name, value): return
 
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
@@ -591,7 +626,6 @@ class TLineModel(Model):
 
     def set_pv_quadrupoles(self, pv_name, value):
         if 'PS-Q' in pv_name:
-            # individual quad PV
             idx = self._get_elements_indices(pv_name)
             idx2 = idx
             while not isinstance(idx2,int):
@@ -601,6 +635,7 @@ class TLineModel(Model):
                 if isinstance(idx,int): idx = [idx]
                 for i in idx:
                     self._accelerator[i].polynom_b[1] = value
+                self._state_deprecated = True
             return True
         return False # [pv is not a quadrupole]
 
@@ -612,6 +647,7 @@ class TLineModel(Model):
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                self._state_deprecated = True
             return True
 
         if 'PS-CV' in pv_name:
@@ -621,8 +657,25 @@ class TLineModel(Model):
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
                 pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                self._state_deprecated = True
             return True
         return False  # [pv is not a corrector]
+
+    def set_pv_bends(self, pv_name, value):
+        if 'PS-BEND-' in pv_name or 'PU-SEP' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            prev_value = 0
+            for i in idx:
+                prev_value += self._accelerator[i].polynom_b[0]*self._accelerator[i].length
+                prev_value += self._accelerator[i].angle
+            if value != prev_value:
+                for i in idx:
+                    angle_i = self._accelerator[i].angle
+                    new_angle_i = angle_i *(value/prev_value)
+                    self._accelerator[i].polynom_b[0] = (new_angle_i - angle_i)/self._accelerator[i].length
+                self._state_deprecated = True
+            return True
+        return False
 
 
 class TimingModel(Model):
@@ -664,12 +717,24 @@ class TimingModel(Model):
         self._driver.li_model.notify_driver()
         self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(charge*1e9) + ' nC of charge', c='white')
 
+        # transport through linac-to-booster transport line
+        self._log(message1 = 'cycle', message2 = 'injection in TB, ' + str(charge*1e9) + ' nC of charge', c='white')
+        charge = self._driver.tb_model.beam_transport(charge)
+        self._driver.tb_model.notify_driver()
+        self._log(message1 = 'cycle', message2 = 'ejection from TB, ' + str(charge*1e9) + ' nC of charge', c='white')
+
         # acceleration through booster
         self._log(message1 = 'cycle', message2 = 'injection in BO, ' + str(charge*1e9) + ' nC of charge', c='white')
         self._driver.bo_model.beam_accelerate(charge)
         charge = self._driver.bo_model.beam_eject(message1='')
         self._driver.bo_model.notify_driver()
         self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(charge*1e9) + ' nC of charge', c='white')
+
+        # transport through booster-to-storage ring transport line
+        self._log(message1 = 'cycle', message2 = 'injection in TS, ' + str(charge*1e9) + ' nC of charge', c='white')
+        charge = self._driver.ts_model.beam_transport(charge)
+        self._driver.ts_model.notify_driver()
+        self._log(message1 = 'cycle', message2 = 'ejection from TS, ' + str(charge*1e9) + ' nC of charge', c='white')
 
         # inject at storage ring
         self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(charge/1e-9) + ' nC', c='white', a=None)
@@ -690,26 +755,57 @@ class LiModel(TLineModel):
 
         super().__init__(sirius.li, all_pvs=all_pvs, log_func=log_func)
         self._single_bunch_charge = 1e-9    #[coulomb]
+        self._rin = [0,0,0,0,0,0]
+        self._x_out  = 0
+        self._xl_out = 0
+        self._twiss_in = pyaccel.optics.set_twiss_in()
+        self._emittance = sirius.li.emittance
+        self._sigma_e = 0.005
 
     def notify_driver(self):
         if self._driver: self._driver.li_deprecated = True
-
 
 class TbModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
+        self._rin = [0,0,0,0,0,0]
+        self._x_out  = -30e-3
+        self._xl_out = 14.3e-3
+        self._twiss_in = pyaccel.optics.set_twiss_in(beta=[7.0,7.0], alpha=[-1.0,-1.0])
+        self._emittance = sirius.li.emittance
+        self._sigma_e = 0.005
 
     def notify_driver(self):
         if self._driver: self._driver.tb_deprecated = True
 
+class BoModel(RingModel):
+
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(sirius.bo, all_pvs=all_pvs, log_func=log_func)
+        #self._accelerator.energy = 0.15e9 # [eV]
+        self._accelerator.cavity_on = TRACK6D
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = VCHAMBER
+        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
+        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._init_families_str()
+
+    def notify_driver(self):
+        if self._driver: self._driver.bo_deprecated = True
 
 class TsModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
+        self._rin = [0,0,0,0,0,0]
+        self._x_out  = 0
+        self._xl_out = 0
+        self._twiss_in = pyaccel.optics.set_twiss_in(beta=[6.57, 15.30], alpha=[-2.155, 2.22], eta=[0.191, 0.0689])
+        self._emittance = sirius.li.emittance
+        self._sigma_e = 0.005
 
     def notify_driver(self):
         if self._driver: self._driver.ts_deprecated = True
@@ -729,22 +825,6 @@ class SiModel(RingModel):
 
     def notify_driver(self):
         if self._driver: self._driver.si_deprecated = True
-
-class BoModel(RingModel):
-
-    def __init__(self, all_pvs=None, log_func=utils.log):
-        super().__init__(sirius.bo, all_pvs=all_pvs, log_func=log_func)
-        #self._accelerator.energy = 0.15e9 # [eV]
-        self._accelerator.cavity_on = TRACK6D
-        self._accelerator.radiation_on = TRACK6D
-        self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
-        self._init_families_str()
-
-    def notify_driver(self):
-        if self._driver: self._driver.bo_deprecated = True
-
 
 class TiModel(TimingModel):
 
