@@ -39,6 +39,8 @@ read_only_pvs  = di_bpms + pa + di
 read_write_pvs = ps + ps_ch + ps_cv + fk
 dynamic_pvs = [subsys('DI-CURRENT'),
                subsys('DI-BCURRENT'),
+               subsys('PA-LIFETIME'),
+               subsys('PA-BLIFETIME'),
               ]
 
 ps = ps + ps_ch + ps_cv
@@ -48,8 +50,9 @@ database = {}
 
 for p in di:
     if any([substring in p for substring in ('BCURRENT',)]):
+        print(p, model.harmonic_number)
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
-    if 'DI-BPM' in p:
+    elif 'DI-BPM' in p:
         if 'FAM' in p:
             database[p] = {'type' : 'float', 'count': 180}
         else:

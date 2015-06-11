@@ -21,6 +21,8 @@ import mathphys
 TRACK6D = False
 VCHAMBER = False
 UNDEF_VALUE = 0.0 #float('nan')
+
+
 _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
 
@@ -156,17 +158,16 @@ class RingModel(Model):
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
+        elif 'PA-LIFETIME' in pv_name:
+            return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]  # INCORRECT!!!
+        elif 'PA-BLIFETIME' in pv_name:
+            return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
         else:
             return None
 
     def get_pv_static(self, pv_name):
         # process global parameters
-        if 'PA-LIFETIME' in pv_name:
-            return self._beam_charge.average_lifetime / _u.hour
-        elif 'PA-BLIFETIME' in pv_name:
-            lifetime_hour = [bunch_lifetime / _u.hour for bunch_lifetime in self._beam_charge.lifetime]
-            return lifetime_hour
-        elif '-BPM-' in pv_name:
+        if '-BPM-' in pv_name:
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if 'FAM-X' in pv_name:
@@ -673,7 +674,10 @@ class TimingModel(Model):
         self._log(message1 = 'cycle', message2 = 'TI starting injection')
 
         # create charge from electron gun
-        charge = self._driver.li_model._single_bunch_charge
+        if self._driver.li_model._single_bunch_mode:
+            charge = self._driver.li_model._model_module.single_bunch_charge
+        else:
+            raise Exception('multi-bunch mode not implemented')
         self._log(message1 = 'cycle', message2 = 'electron gun providing ' + str(charge*1e9) + ' nC of charge', c='white')
 
         # transport through linac
@@ -707,7 +711,8 @@ class LiModel(TLineModel):
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.li, all_pvs=all_pvs, log_func=log_func)
-        self._single_bunch_charge = 1e-9    #[coulomb]
+        self._single_bunch_mode   = True
+        self._pulse_duration      = sirius.li.pulse_duration_interval[1]
 
     def notify_driver(self):
         if self._driver: self._driver.li_deprecated = True
@@ -741,8 +746,12 @@ class SiModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(lifetime=[10.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(0 * 300 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+        self._beam_charge = utils.BeamCharge(nr_bunches=1, #self._accelerator.harmonic_number,
+                                             elastic_lifetime=40.0*_u.hour,
+                                             inelastic_lifetime=87.0*_u.hour,
+                                             quantum_lifetime=float("inf"),
+                                             touschek_coefficient=1.0*3.7e4)
+        self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
 
     def notify_driver(self):
@@ -756,8 +765,13 @@ class BoModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(lifetime=[1.0*_u.hour] * self._accelerator.harmonic_number)
-        self._beam_charge.inject(0 * 2.0 * _u.mA * _Tp(self._accelerator)) # [coulomb]
+
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number,
+                                             elastic_lifetime=1.1*_u.minute,
+                                             inelastic_lifetime=6.5*_u.hour,
+                                             quantum_lifetime=float("inf"),
+                                             touschek_coefficient=0.0)
+        self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
 
     def notify_driver(self):
