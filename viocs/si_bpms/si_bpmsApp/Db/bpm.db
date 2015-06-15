@@ -60,7 +60,7 @@ record(calc, "SIDI-BPM-$(sector)$(pos)-Y")
     field(EGU, "um")
 }
 
-record(aSub, "SUBROUTINE")
+record(aSub, "ADD-NOISE-SIDI-BPM")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
@@ -78,7 +78,7 @@ record(aSub, "SUBROUTINE")
 record(waveform, "SIDI-BPM-FAM-X")
 {
     field(DESC, "SI BPM FAM X")
-    field(INP, "SUBROUTINE.A")
+    field(INP, "ADD-NOISE-SIDI-BPM.A")
     field(NELM, 180)
     field(FTVL, "DOUBLE")
     field(EGU, "um")
@@ -88,7 +88,7 @@ record(waveform, "SIDI-BPM-FAM-X")
 record(waveform, "SIDI-BPM-FAM-Y")
 {
     field(DESC, "SI BPM FAM Y")
-    field(INP, "SUBROUTINE.B")
+    field(INP, "ADD-NOISE-SIDI-BPM.B")
     field(NELM, 180)
     field(FTVL, "DOUBLE")
     field(EGU, "um")

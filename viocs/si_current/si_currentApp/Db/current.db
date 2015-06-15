@@ -15,3 +15,24 @@ record(ai, "VA-SIDI-CURRENT-NOISELEVEL")
     field(INP, 10)
     field(EGU, "uA")
 }
+
+record(aSub, "ADD-NOISE-SIDI-BCURRENT")
+{
+    field(SCAN, ".1 second")
+    field(SNAM, "add_noise")
+    field(INPA, "VA-SIDI-BCURRENT")
+    field(INPB, "VA-SIDI-CURRENT-NOISELEVEL")
+    field(NOA, 864)
+    field(NOB, 1)
+    field(NOVA, 864)
+    field(FLNK, "SIDI-BCURRENT")
+}
+
+record(waveform, "SIDI-BCURRENT")
+{
+    field(DESC, "SI bunch current")
+    field(INP, "ADD-NOISE-SIDI-BCURRENT.A")
+    field(NELM, 864)
+    field(FTVL, "DOUBLE")
+    field(EGU, "mA")
+}
