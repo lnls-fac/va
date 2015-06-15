@@ -115,6 +115,7 @@ class BeamCharge:
         if isinstance(delta_charge, (int, float)):
             delta_charge = [delta_charge/len(self._charge)] * len(self._charge)
         current_charge = self.value
+        #print(current_charge)
         self._charge = [current_charge[i]+delta_charge[i] for i in range(len(delta_charge))]
 
     def dump(self):
