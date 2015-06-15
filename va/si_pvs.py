@@ -10,6 +10,7 @@ fk = [] # [fake]
 pa = [] # [parameters]
 di, di_bpms = [], [] # [diagnostics]
 ps, ps_ch, ps_cv = [], [], [] # [power supply]
+rf = [] # [RF]
 
 all_record_names = dict()
 all_record_names.update(model.record_names.get_record_names())
@@ -32,13 +33,17 @@ for record_name in record_names:
         pa.append(record_name)
     elif 'FK-' in record_name:
         fk.append(record_name)
+    elif 'RF-' in record_name:
+        rf.append(record_name)
     else:
         print('Parameter', record_name, 'not found!')
 
 read_only_pvs  = di_bpms + pa + di
-read_write_pvs = ps + ps_ch + ps_cv + fk
+read_write_pvs = ps + ps_ch + ps_cv + fk + rf
 dynamic_pvs = [subsys('DI-CURRENT'),
                subsys('DI-BCURRENT'),
+               subsys('PA-LIFETIME'),
+               subsys('PA-BLIFETIME'),
               ]
 
 ps = ps + ps_ch + ps_cv
@@ -49,7 +54,7 @@ database = {}
 for p in di:
     if any([substring in p for substring in ('BCURRENT',)]):
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
-    if 'DI-BPM' in p:
+    elif 'DI-BPM' in p:
         if 'FAM' in p:
             database[p] = {'type' : 'float', 'count': 180}
         else:
@@ -63,5 +68,7 @@ for p in pa:
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
     else:
         database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+for p in rf:
+    database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in fk:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}

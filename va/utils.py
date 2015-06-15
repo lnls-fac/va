@@ -50,53 +50,54 @@ def log(message1='', message2='', c='white', a=None):
 
 class BeamCharge:
 
-    def __init__(self, charge=None, lifetime = float("inf")):
+    def __init__(self, charge = 0.0,
+                 nr_bunches = 1,
+                 elastic_lifetime = float("inf"),
+                 inelastic_lifetime = float("inf"),
+                 quantum_lifetime = float("inf"),
+                 touschek_coefficient = 0.0):
 
         # converts args to lists, if not yet. get nr_bunches
-        if not charge: charge = [0.0]
-        if isinstance(charge, (int,float)):
-            charge = [charge]
-        if isinstance(lifetime, (int, float)):
-            lifetime = [lifetime]
-        nr_bunches = max(len(lifetime),len(charge))
+        self._charge = [charge/nr_bunches] * nr_bunches
+        self._elastic_lifetime = elastic_lifetime
+        self._inelastic_lifetime = inelastic_lifetime
+        self._quantum_lifetime = quantum_lifetime
+        self._touschek_coefficient = touschek_coefficient
+        self._timestamp = time.time()
 
-        # make sure both charge and lifetime lists have appropriate lens
-        if len(charge) == 1:
-            if len(lifetime)==1:
-                self._charge = charge      # [coulomb]
-                self._lifetime = lifetime  # [seconds]
-            else:
-                self._charge = [charge[0]/nr_bunches] * nr_bunches
-                self._lifetime = lifetime
-        else:
-            if len(lifetime) == 1:
-                self._charge = charge
-                self._lifetime = [lifetime[0]] * nr_bunches
-            else:
-                if len(charge) != len(lifetime):
-                    raise Excpetion('inconsistent charge and lifetime arguments')
 
-        self._timestamp  = time.time()
+    def set_lifetime(elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
+        self.value # updates values
+        if elastic: self._elastic_lifetime = elastic_lifetime
+        if inelastic: self._inelastic_lifetime = inelastic_lifetime
+        if quantum: self._quantum_lifetime = quantum_lifetime
+        if touschek_coefficient: self._touschek_coefficient = touschek_coefficient
 
     @property
     def lifetime(self):
-        return self._lifetime
-
-    @lifetime.setter
-    def lifetime(self, value):
-        if isinstance(value, (int,float)):
-            self._lifetime = [value] * len(self._lifetime)
-        else:
-            self._lifetime = value
+        self.value # updates values
+        n = len(self._charge)
+        scattering_rate = [self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1) + self._touschek_coefficient * charge for charge in self._charge]
+        b_lifetime  = [float("inf") if bunch_scattering_rate==0.0 else bunch_scattering_rate**(-1) for bunch_scattering_rate in scattering_rate]
+        return b_lifetime
 
     @property
     def value(self):
-        # updates current value
+        single_particle_scatt_ratio = self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1)
+        if single_particle_scatt_ratio == 0:
+            single_particle_lifetime = float('inf')
+        else:
+            single_particle_lifetime = 1.0 / single_particle_scatt_ratio
+        # updates bunch charges
         t0, t1 = self._timestamp, time.time()
         for i in range(len(self._charge)):
-            new_value = self._charge[i] * math.exp(-(t1-t0)/self._lifetime[i])
+            expf = math.exp(-(t1-t0)/single_particle_lifetime)
+            touf = self._touschek_coefficient * single_particle_lifetime * self._charge[i] * (1.0 - expf)
+            #print(touf)
+            new_value = self._charge[i] * expf / (1.0 + touf)
             if not math.isnan(new_value):
                 self._charge[i] = new_value
+        # updates timestamp
         self._timestamp = t1
         return self._charge
 
@@ -104,17 +105,6 @@ class BeamCharge:
     def total_value(self):
         current_charge = self.value
         return sum(current_charge)
-
-    @property
-    def average_lifetime(self):
-        lifetime = self._lifetime
-        charges = self.value
-        total_charge = sum(charges)
-        if total_charge:
-            avg_lifetime = sum([(charges[i]/total_charge) * lifetime[i] for i in range(len(lifetime))])
-        else:
-            avg_lifetime = 0.0
-        return avg_lifetime
 
     def current(self, time_interval):
         charges = self.value
@@ -125,6 +115,7 @@ class BeamCharge:
         if isinstance(delta_charge, (int, float)):
             delta_charge = [delta_charge/len(self._charge)] * len(self._charge)
         current_charge = self.value
+        #print(current_charge)
         self._charge = [current_charge[i]+delta_charge[i] for i in range(len(delta_charge))]
 
     def dump(self):
