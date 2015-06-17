@@ -119,8 +119,8 @@ class RingModel(Model):
 
     def beam_accelerate(self, charge):
         self.beam_inject(charge, message1='')
-        charge = self._beam_charge.value
-        return charge
+        new_charge = self._beam_charge.value
+        return new_charge
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -150,7 +150,6 @@ class RingModel(Model):
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
-            #print(self._beam_charge.total_value)
             return sum(currents_mA)
         elif 'DI-BCURRENT' in pv_name:
             time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
@@ -514,19 +513,16 @@ class RingModel(Model):
         i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
         q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
 
-        #print(self._beam_charge.value)
-
-        print('elastic    [h]    : ', e_lifetime/3600.0)
-        print('inelastic  [h]    : ', i_lifetime/3600.0)
-        print('quantum    [h]    : ', q_lifetime/3600.0)
-        print('touschek [1/(sC)] : ', t_coeff)
+        #print('elastic    [h]    : ', e_lifetime/3600.0)
+        #print('inelastic  [h]    : ', i_lifetime/3600.0)
+        #print('quantum    [h]    : ', q_lifetime/3600.0)
+        #print('touschek [1/(sC)] : ', t_coeff)
 
         self._beam_charge.set_lifetime(elastic=e_lifetime,
                                        inelastic=i_lifetime,
                                        quantum=q_lifetime,
                                        touschek_coefficient=t_coeff)
 
-        #print(self._beam_charge.lifetime)
 
         #except:
         #    self.beam_dump('panic', 'BEAM LOST: unable to calc beam lifetimes', c='red')
@@ -549,6 +545,7 @@ class RingModel(Model):
                         value = self._accelerator[idx[0]].polynom_b[2]
                     except:
                         print(idx)
+                        raise Exception('problem!')
                     self._sext_families_str[pv_name] = value
 
 
@@ -613,8 +610,8 @@ class TLineModel(Model):
         return indices
 
     def beam_transport(self, charge):
-        return charge
-        # self.update_state(force = True)
+
+        self.update_state(force = True)
         # self._orbit = pyaccel.tracking.linepass(self._accelerator, self._rin, indices = 'open')[0]
         # try:
         #     self._rout = [i for i in self._orbit[:,(len(self._accelerator)-1)]]
@@ -622,8 +619,10 @@ class TLineModel(Model):
         #     self._rout = [0,0,0,0,0,0]
         # self.coordinate_transformation()
         # new_charge = charge*self._calc_loss_charge()
-        # self._beam_charge.inject(new_charge)
-        # return new_charge
+        loss_factor = self._calc_loss_charge()
+        new_charge = [charge_bunch * loss_factor for charge_bunch in charge]
+        self._beam_charge.inject(new_charge)
+        return new_charge
 
     def coordinate_transformation(self):
         r = [i for i in self._rout]
@@ -632,6 +631,7 @@ class TLineModel(Model):
         self._rout[5] = r[5]*math.cos(self._xl_out) - r[0]*math.sin(self._xl_out)
 
     def _calc_loss_charge(self):
+        return 1.0 # !!! TEST
         try:
             orbit = [math.fabs(i) for i in self._orbit[0,:]]
             xmax = numpy.amax(orbit)
@@ -914,6 +914,9 @@ class TbModel(TLineModel):
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = VCHAMBER
+        self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
 
         self._state_deprecated = True
         self.notify_driver()
@@ -926,6 +929,9 @@ class TsModel(TLineModel):
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
+        self._accelerator.radiation_on = TRACK6D
+        self._accelerator.vchamber_on = VCHAMBER
+        self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
 
         self._state_deprecated = True
         self.notify_driver()
@@ -943,7 +949,7 @@ class SiModel(RingModel):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
-        self._beam_charge.inject(0.0) # [coulomb]
+        #self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
         self._calc_lifetimes()
 
@@ -960,7 +966,7 @@ class BoModel(RingModel):
         self._accelerator.vchamber_on = VCHAMBER
 
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
-        self._beam_charge.inject(0.0) # [coulomb]
+        #self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
         self._calc_lifetimes()
 
