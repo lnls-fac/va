@@ -25,7 +25,7 @@ class DriverThread(threading.Thread):
         self._driver = driver
         self._stop_event = stop_event
         super().__init__(target=self._main)
-        self._driver.update_sp_pv_values() # inits SP fields from model
+        self._driver.init_sp_pv_values() # inits SP fields from model
 
     def _main(self):
         while True:

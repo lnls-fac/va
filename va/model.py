@@ -821,7 +821,7 @@ class LiModel(TLineModel):
         self._pulse_duration      = sirius.li.pulse_duration_interval[1]
 
     def notify_driver(self):
-        if self._driver: self._driver.li_deprecated = True
+        if self._driver: self._driver.li_changed = True
 
 class TbModel(TLineModel):
 
@@ -830,7 +830,7 @@ class TbModel(TLineModel):
         super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
 
     def notify_driver(self):
-        if self._driver: self._driver.tb_deprecated = True
+        if self._driver: self._driver.tb_changed = True
 
 class TsModel(TLineModel):
 
@@ -839,7 +839,7 @@ class TsModel(TLineModel):
         super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
 
     def notify_driver(self):
-        if self._driver: self._driver.ts_deprecated = True
+        if self._driver: self._driver.ts_changed = True
 
 class SiModel(RingModel):
 
@@ -859,7 +859,7 @@ class SiModel(RingModel):
         self._init_families_str()
 
     def notify_driver(self):
-        if self._driver: self._driver.si_deprecated = True
+        if self._driver: self._driver.si_changed = True
 
 class BoModel(RingModel):
 
@@ -879,7 +879,7 @@ class BoModel(RingModel):
         self._init_families_str()
 
     def notify_driver(self):
-        if self._driver: self._driver.bo_deprecated = True
+        if self._driver: self._driver.bo_changed = True
 
 class TiModel(TimingModel):
 
@@ -889,4 +889,11 @@ class TiModel(TimingModel):
         self._delta_delay_bo2si = 0.0
 
     def notify_driver(self):
-        if self._driver: self._driver.ti_deprecated = True
+        if self._driver: self._driver.ti_changed = True
+
+
+class PowerSupplyModel(Model):
+    # def __init__(self, model_module, all_pvs=None, log_func=utils.log):
+        # super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
+    #     self.reset('start')
+    pass
