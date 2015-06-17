@@ -119,7 +119,7 @@ class RingModel(Model):
 
     def beam_accelerate(self, charge):
         self.beam_inject(charge, message1='')
-        charge = self._beam_charge.total_value
+        charge = self._beam_charge.value
         return charge
 
     def _get_elements_indices(self, pv_name):
@@ -238,6 +238,9 @@ class RingModel(Model):
             return value
         elif 'RF-FREQUENCY' in pv_name:
             return pyaccel.optics.getrffrequency(self._accelerator)
+        elif 'RF-VOLTAGE' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            return self._accelerator[idx[0]].voltage
         elif 'PA-CHROMX' in pv_name:
             return UNDEF_VALUE
         elif 'PA-CHROMY' in pv_name:
@@ -260,7 +263,25 @@ class RingModel(Model):
         if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
         if self.set_pv_quadrupoles(pv_name, value): return
         if self.set_pv_sextupoles(pv_name, value): return
+        if self.set_pv_rf(pv_name, value): return
         if self.set_pv_fake(pv_name, value): return
+
+    def set_pv_rf(self, pv_name, value):
+        if 'RF-VOLTAGE' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            prev_value = self._accelerator[idx[0]].voltage
+            if value != prev_value:
+                self._accelerator[idx[0]].voltage = value
+                self._state_deprecated = True
+            return True
+        elif 'RF-FREQUENCY' in pv_names:
+            idx = self._get_elements_indices(pv_name)
+            prev_value = self._accelerator[idx[0]].frequency
+            if value != prev_value:
+                self._accelerator[idx[0]].frequency = value
+                self._state_deprecated = True
+            return True
+        return False
 
     def set_pv_fake(self, pv_name, value):
         if 'FK-RESET' in pv_name:
@@ -407,6 +428,7 @@ class RingModel(Model):
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
+            self._calc_lifetimes()
             self._state_deprecated = False
 
     def _calc_closed_orbit(self):
@@ -451,8 +473,67 @@ class RingModel(Model):
                                          transfer_matrices=self._transfer_matrices,
                                          closed_orbit=self._closed_orbit)
         except:
-            raise Exception('problem')
+            self.beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
+    def _calc_lifetimes(self):
+        if self._summary is None: return
+        #try:
+        self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
+
+        spos, *betas = pyaccel.optics.gettwiss(self._twiss, ('spos', 'betax','betay'))
+        alphax, etaxl, *etas = pyaccel.optics.gettwiss(self._twiss, ('alphax', 'etaxl','etax','etay'))
+        energy = self._accelerator.energy
+        e0 = self._summary['natural_emittance']
+        k = self._model_module.global_coupling
+        sigmae = self._summary['natural_energy_spread']
+        sigmal = self._summary['bunchlength']
+        Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
+        rad_damping_times = self._summary['damping_times']
+        avg_pressure = self._model_module.average_pressure
+        # acceptances
+        eaccep = self._summary['rf_energy_acceptance']
+        accepx, accepy, *_ = pyaccel.optics.gettransverseacceptance(
+                                                self._accelerator,
+                                                twiss=self._twiss, energy_offset=0.0)
+        taccep = [min(accepx), min(accepy)]
+
+        lifetimes = self._beam_charge.get_lifetime()
+        thetax = numpy.sqrt(taccep[0]/betas[0])
+        thetay = numpy.sqrt(taccep[1]/betas[1])
+        R = thetay / thetax
+        e_rate_spos = mathphys.beam_lifetime.calc_elastic_loss_rate(energy,R,taccep,avg_pressure,betas)
+        t_rate_spos = mathphys.beam_lifetime.calc_touschek_loss_rate(energy,sigmae,e0,Ne1C,
+                sigmal, k, (-eaccep,eaccep), betas, etas, alphax, etaxl)
+
+        e_rate  = numpy.trapz(e_rate_spos,spos)/(spos[-1]-spos[0])
+        i_rate  = mathphys.beam_lifetime.calc_inelastic_loss_rate(eaccep, pressure=avg_pressure)
+        q_rate  = sum(mathphys.beam_lifetime.calc_quantum_loss_rates(e0, k, sigmae, taccep, eaccep, rad_damping_times))
+        t_coeff = numpy.trapz(t_rate_spos,spos)/(spos[-1]-spos[0])
+
+        e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
+        i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
+        q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
+
+        #print(self._beam_charge.value)
+
+        print('elastic    [h]    : ', e_lifetime/3600.0)
+        print('inelastic  [h]    : ', i_lifetime/3600.0)
+        print('quantum    [h]    : ', q_lifetime/3600.0)
+        print('touschek [1/(sC)] : ', t_coeff)
+
+        self._beam_charge.set_lifetime(elastic=e_lifetime,
+                                       inelastic=i_lifetime,
+                                       quantum=q_lifetime,
+                                       touschek_coefficient=t_coeff)
+
+        #print(self._beam_charge.lifetime)
+
+        #except:
+        #    self.beam_dump('panic', 'BEAM LOST: unable to calc beam lifetimes', c='red')
+
+            #calc_quantum_loss_rates(natural_emittance, coupling, energy_spread, transverse_acceptances, energy_acceptance,
+            #radiation_damping_times)
+            #quantum_lf = mathphys.beam_lifetime.
 
     def _init_families_str(self):
         rnames = self._record_names
@@ -512,14 +593,15 @@ class TLineModel(Model):
         return self._beam_charge.total_value
 
     def _calc_beam_size(self):
-        if len(self._accelerator) == 0:
-            self._sigma_x = 0
-        else:
-            self._twiss = pyaccel.optics.calctwiss(self._accelerator, twiss_in = self._twiss_in)[0]
-            sigma_x = []
-            for i in range(len(self._twiss)):
-                sigma_x.append(math.sqrt(self._twiss[i].betax*self._emittance + (self._twiss[i].etax*self._sigma_e)**2))
-            self._sigma_x = sigma_x
+        pass
+        # if len(self._accelerator) == 0:
+        #     self._sigma_x = 0
+        # else:
+        #     self._twiss = pyaccel.optics.calctwiss(self._accelerator, twiss_in = self._twiss_in)[0]
+        #     sigma_x = []
+        #     for i in range(len(self._twiss)):
+        #         sigma_x.append(math.sqrt(self._twiss[i].betax*self._emittance + (self._twiss[i].etax*self._sigma_e)**2))
+        #     self._sigma_x = sigma_x
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -796,6 +878,7 @@ class TimingModel(Model):
         self._driver.setParam('TI-DELAY-BO2SI-INC', self._delay_bo2si_inc)
         self._driver.setParam('TI-DELAY-BO2SI', self._delay_bo2si)
         #self.notify_driver()
+
     def set_pv(self, pv_name, value):
         if 'CYCLE' in pv_name:
             self._cycle = value
@@ -820,6 +903,9 @@ class LiModel(TLineModel):
         self._single_bunch_mode   = True
         self._pulse_duration      = sirius.li.pulse_duration_interval[1]
 
+        self._state_deprecated = True
+        self.notify_driver()
+
     def notify_driver(self):
         if self._driver: self._driver.li_deprecated = True
 
@@ -829,6 +915,9 @@ class TbModel(TLineModel):
 
         super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
 
+        self._state_deprecated = True
+        self.notify_driver()
+
     def notify_driver(self):
         if self._driver: self._driver.tb_deprecated = True
 
@@ -837,6 +926,9 @@ class TsModel(TLineModel):
     def __init__(self, all_pvs=None, log_func=utils.log):
 
         super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
+
+        self._state_deprecated = True
+        self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.ts_deprecated = True
@@ -850,13 +942,10 @@ class SiModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number,
-                                             elastic_lifetime=40.0*_u.hour,
-                                             inelastic_lifetime=87.0*_u.hour,
-                                             quantum_lifetime=float("inf"),
-                                             touschek_coefficient=1.0*3.7e4)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
+        self._calc_lifetimes()
 
     def notify_driver(self):
         if self._driver: self._driver.si_deprecated = True
@@ -870,13 +959,10 @@ class BoModel(RingModel):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
 
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number,
-                                             elastic_lifetime=1.1*_u.minute,
-                                             inelastic_lifetime=6.5*_u.hour,
-                                             quantum_lifetime=float("inf"),
-                                             touschek_coefficient=0.0)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
+        self._calc_lifetimes()
 
     def notify_driver(self):
         if self._driver: self._driver.bo_deprecated = True
@@ -887,6 +973,9 @@ class TiModel(TimingModel):
 
         super().__init__(sirius.ti, all_pvs=all_pvs, log_func=log_func)
         self._delta_delay_bo2si = 0.0
+
+        self._state_deprecated = True
+        self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.ti_deprecated = True

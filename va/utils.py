@@ -66,28 +66,37 @@ class BeamCharge:
         self._timestamp = time.time()
 
 
-    def set_lifetime(elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
+    def get_lifetime(self):
+        return [self._elastic_lifetime, self._inelastic_lifetime, self._quantum_lifetime, self._touschek_coefficient]
+
+    def set_lifetime(self, elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
         self.value # updates values
-        if elastic: self._elastic_lifetime = elastic_lifetime
-        if inelastic: self._inelastic_lifetime = inelastic_lifetime
-        if quantum: self._quantum_lifetime = quantum_lifetime
-        if touschek_coefficient: self._touschek_coefficient = touschek_coefficient
+        if elastic is not None: self._elastic_lifetime = elastic
+        if inelastic is not None: self._inelastic_lifetime = inelastic
+        if quantum is not None: self._quantum_lifetime = quantum
+        if touschek_coefficient is not None: self._touschek_coefficient = touschek_coefficient
+
+    @property
+    def loss_rate(self):
+        self.value # updates values
+        current_loss_rate = [self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1) + self._touschek_coefficient * charge for charge in self._charge]
+        return current_loss_rate
 
     @property
     def lifetime(self):
-        self.value # updates values
+        self.value
         n = len(self._charge)
-        scattering_rate = [self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1) + self._touschek_coefficient * charge for charge in self._charge]
-        b_lifetime  = [float("inf") if bunch_scattering_rate==0.0 else bunch_scattering_rate**(-1) for bunch_scattering_rate in scattering_rate]
+        current_loss_rate = self.loss_rate
+        b_lifetime  = [float("inf") if bunch_loss_rate==0.0 else bunch_loss_rate**(-1) for bunch_loss_rate in current_loss_rate]
         return b_lifetime
 
     @property
     def value(self):
-        single_particle_scatt_ratio = self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1)
-        if single_particle_scatt_ratio == 0:
+        single_particle_loss_rate = self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1)
+        if single_particle_loss_rate == 0:
             single_particle_lifetime = float('inf')
         else:
-            single_particle_lifetime = 1.0 / single_particle_scatt_ratio
+            single_particle_lifetime = 1.0 / single_particle_loss_rate
         # updates bunch charges
         t0, t1 = self._timestamp, time.time()
         for i in range(len(self._charge)):
