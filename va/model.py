@@ -907,7 +907,7 @@ class LiModel(TLineModel):
         self.notify_driver()
 
     def notify_driver(self):
-        if self._driver: self._driver.li_deprecated = True
+        if self._driver: self._driver.li_changed = True
 
 class TbModel(TLineModel):
 
@@ -919,7 +919,7 @@ class TbModel(TLineModel):
         self.notify_driver()
 
     def notify_driver(self):
-        if self._driver: self._driver.tb_deprecated = True
+        if self._driver: self._driver.tb_changed = True
 
 class TsModel(TLineModel):
 
@@ -931,7 +931,7 @@ class TsModel(TLineModel):
         self.notify_driver()
 
     def notify_driver(self):
-        if self._driver: self._driver.ts_deprecated = True
+        if self._driver: self._driver.ts_changed = True
 
 class SiModel(RingModel):
 
@@ -948,7 +948,7 @@ class SiModel(RingModel):
         self._calc_lifetimes()
 
     def notify_driver(self):
-        if self._driver: self._driver.si_deprecated = True
+        if self._driver: self._driver.si_changed = True
 
 class BoModel(RingModel):
 
@@ -965,7 +965,7 @@ class BoModel(RingModel):
         self._calc_lifetimes()
 
     def notify_driver(self):
-        if self._driver: self._driver.bo_deprecated = True
+        if self._driver: self._driver.bo_changed = True
 
 class TiModel(TimingModel):
 
@@ -978,4 +978,11 @@ class TiModel(TimingModel):
         self.notify_driver()
 
     def notify_driver(self):
-        if self._driver: self._driver.ti_deprecated = True
+        if self._driver: self._driver.ti_changed = True
+
+
+class PowerSupplyModel(Model):
+    # def __init__(self, model_module, all_pvs=None, log_func=utils.log):
+        # super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
+    #     self.reset('start')
+    pass
