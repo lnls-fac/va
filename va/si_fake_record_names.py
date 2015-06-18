@@ -1,3 +1,4 @@
+
 import sirius
 
 
@@ -32,6 +33,14 @@ def get_record_names(family_name = None):
                 _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORX-')] = {quad_name:value}
                 _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORY-')] = {quad_name:value}
                 _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORR-')] = {quad_name:value}
+        # adds fake SEXT pvs for errors
+        for sext_name in sirius.si.record_names.families_sextupoles():
+            cfrn = sirius.si.record_names.get_record_names(sext_name)
+            for key in cfrn.keys():
+                value = cfrn[key][sext_name]
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORX-')] = {sext_name:value}
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORY-')] = {sext_name:value}
+                _dict[str.replace(key, 'SIPS-', 'SIFK-ERRORR-')] = {sext_name:value}
         return _dict
 
     else:

@@ -91,6 +91,7 @@ def run(prefix):
                                    )
 
     driver_thread = DriverThread(driver, stop_event)
+
     driver_thread.start()
 
     signal.signal(signal.SIGINT, handle_signal)

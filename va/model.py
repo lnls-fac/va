@@ -17,18 +17,19 @@ import lnls.utils
 import datetime
 import mathphys
 
-TRACK6D = False
-VCHAMBER = False
-UNDEF_VALUE = 0.0 #float('nan')
 
+TRACK6D     = False
+VCHAMBER    = False
+UNDEF_VALUE = 0.0
 
 _u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
 
 
+#--- general model classes ---#
+
 class Model(object):
 
     def __init__(self, model_module=None, all_pvs=None, log_func=utils.log):
-
         # stored model state parameters
         self._driver = None # this will be set latter by Driver
         self._model_module = model_module
@@ -53,8 +54,10 @@ class Model(object):
 
     def get_pv_dynamic(self, pv_name):
         return None
+
     def get_pv_static(self, pv_name):
         return None
+
     def get_pv_fake(self, pv_name):
         return None
 
@@ -65,7 +68,6 @@ class Model(object):
 class RingModel(Model):
 
     def __init__(self, model_module, all_pvs=None, log_func=utils.log):
-
         # stored model state parameters
         super().__init__(model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start', model_module.lattice_version)
@@ -97,7 +99,6 @@ class RingModel(Model):
         self._m66 = None
         self._transfer_matrices = None
         self._summary = None
-
 
     def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
         if message1:
@@ -302,7 +303,6 @@ class RingModel(Model):
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
                 self._state_deprecated = True
-
 
     def set_pv_quadrupoles_skew(self, pv_name, value):
         if 'PS-Q' in pv_name:
@@ -704,7 +704,6 @@ class TLineModel(Model):
         if self.set_pv_bends(pv_name, value): return
         if self.set_pv_fake(pv_name, value): return
 
-
     def set_pv_fake(self, pv_name, value):
         if 'FK-RESET' in pv_name:
             self.reset(message1='reset',message2=self._model_module.lattice_version)
@@ -895,6 +894,8 @@ class TimingModel(Model):
         return None
 
 
+#--- sirius-specific model classes ---#
+
 class LiModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
@@ -908,6 +909,7 @@ class LiModel(TLineModel):
 
     def notify_driver(self):
         if self._driver: self._driver.li_changed = True
+
 
 class TbModel(TLineModel):
 
@@ -924,6 +926,7 @@ class TbModel(TLineModel):
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
 
+
 class TsModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
@@ -938,6 +941,7 @@ class TsModel(TLineModel):
 
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
+
 
 class SiModel(RingModel):
 
@@ -956,6 +960,7 @@ class SiModel(RingModel):
     def notify_driver(self):
         if self._driver: self._driver.si_changed = True
 
+
 class BoModel(RingModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
@@ -972,6 +977,7 @@ class BoModel(RingModel):
 
     def notify_driver(self):
         if self._driver: self._driver.bo_changed = True
+
 
 class TiModel(TimingModel):
 
