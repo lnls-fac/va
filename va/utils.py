@@ -66,10 +66,10 @@ class BeamCharge:
         self._timestamp = time.time()
 
 
-    def get_lifetime(self):
+    def get_lifetimes(self):
         return [self._elastic_lifetime, self._inelastic_lifetime, self._quantum_lifetime, self._touschek_coefficient]
 
-    def set_lifetime(self, elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
+    def set_lifetimes(self, elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
         self.value # updates values
         if elastic is not None: self._elastic_lifetime = elastic
         if inelastic is not None: self._inelastic_lifetime = inelastic
@@ -78,17 +78,27 @@ class BeamCharge:
 
     @property
     def loss_rate(self):
-        self.value # updates values
+        charge = self.value # updates values
         current_loss_rate = [self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1) + self._touschek_coefficient * charge for charge in self._charge]
-        return current_loss_rate
+        return current_loss_rate, charge
 
     @property
     def lifetime(self):
         self.value
         n = len(self._charge)
-        current_loss_rate = self.loss_rate
+        current_loss_rate, *_ = self.loss_rate
         b_lifetime  = [float("inf") if bunch_loss_rate==0.0 else bunch_loss_rate**(-1) for bunch_loss_rate in current_loss_rate]
         return b_lifetime
+
+    @property
+    def total_lifetime(self):
+        w, q = self.loss_rate
+        q_total = sum(q)
+        if q_total != 0.0:
+            w_avg = sum([w[i]*q[i] for i in range(len(q))])/sum(q)
+        else:
+            w_avg = sum(w)/len(w)
+        return 1.0/w_avg
 
     @property
     def value(self):
@@ -115,6 +125,7 @@ class BeamCharge:
     def total_value(self):
         current_charge = self.value
         return sum(current_charge)
+
 
     def current(self, time_interval):
         charges = self.value

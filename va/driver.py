@@ -75,7 +75,7 @@ class PCASDriver(Driver):
         else:
             utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
             self.queue.put((reason, value))
-            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint  
+            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint
 
     def update_pvs(self):
         """Update model PVs, recalculate changed parameters and read them back.
@@ -121,6 +121,14 @@ class PCASDriver(Driver):
             self.ti_model.set_pv(pv_name, value)
         else:
             raise Exception('subsystem not found')
+
+    def signal_all_models_set(self):
+        self.li_model.signal_all_models_set()
+        self.tb_model.signal_all_models_set()
+        self.bo_model.signal_all_models_set()
+        self.ts_model.signal_all_models_set()
+        self.si_model.signal_all_models_set()
+        self.ti_model.signal_all_models_set()
 
     def update_model_state(self):
         self.li_model.update_state()
