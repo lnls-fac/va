@@ -75,7 +75,7 @@ class PCASDriver(Driver):
         else:
             utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
             self.queue.put((reason, value))
-            self.setParam(reason, value)
+            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint  
 
     def update_pvs(self):
         """Update model PVs, recalculate changed parameters and read them back.
@@ -89,7 +89,7 @@ class PCASDriver(Driver):
         # then update model states and epics memory
         self.update_model_state()
         self.update_epics_from_model()
-        self.updatePVs()
+        self.updatePVs()  # internal PCASPY routine signaling update of parameters
 
         self.li_changed = False
         self.tb_changed = False

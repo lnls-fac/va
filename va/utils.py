@@ -110,6 +110,7 @@ class BeamCharge:
         self._timestamp = t1
         return self._charge
 
+
     @property
     def total_value(self):
         current_charge = self.value
