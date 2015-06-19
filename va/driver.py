@@ -1,6 +1,5 @@
 
 import queue
-import numpy
 from pcaspy import Driver
 import va.li_pvs as li_pvs
 import va.tb_pvs as tb_pvs
@@ -19,7 +18,6 @@ class PCASDriver(Driver):
                         ts_model = None,
                         si_model = None,
                         ti_model = None):
-
         super().__init__()
 
         # subsystems
@@ -75,7 +73,7 @@ class PCASDriver(Driver):
         else:
             utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
             self.queue.put((reason, value))
-            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint  
+            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint
 
     def update_pvs(self):
         """Update model PVs, recalculate changed parameters and read them back.
@@ -131,7 +129,6 @@ class PCASDriver(Driver):
         self.ti_model.update_state()
 
     def update_epics_from_model(self):
-
         # linac
         if self.li_changed:
             for pv in li_pvs.read_only_pvs:

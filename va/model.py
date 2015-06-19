@@ -991,10 +991,3 @@ class TiModel(TimingModel):
 
     def notify_driver(self):
         if self._driver: self._driver.ti_changed = True
-
-
-class PowerSupplyModel(Model):
-    # def __init__(self, model_module, all_pvs=None, log_func=utils.log):
-        # super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
-    #     self.reset('start')
-    pass
