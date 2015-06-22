@@ -90,6 +90,9 @@ def run(prefix):
                                    ti_model = ti,
                                    )
 
+    driver.signal_all_models_set() # so that models can set its parameters that
+                                   # are dependent on other models
+                                   
     driver_thread = DriverThread(driver, stop_event)
 
     driver_thread.start()

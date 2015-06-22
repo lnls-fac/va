@@ -121,6 +121,14 @@ class PCASDriver(Driver):
         else:
             raise Exception('subsystem not found')
 
+    def signal_all_models_set(self):
+        self.li_model.signal_all_models_set()
+        self.tb_model.signal_all_models_set()
+        self.bo_model.signal_all_models_set()
+        self.ts_model.signal_all_models_set()
+        self.si_model.signal_all_models_set()
+        self.ti_model.signal_all_models_set()
+
     def update_model_state(self):
         self.li_model.update_state()
         self.tb_model.update_state()
