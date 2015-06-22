@@ -13,7 +13,6 @@ import sirius
 import va.utils as utils
 import numpy
 import math
-import lnls.utils
 import datetime
 import mathphys
 
@@ -128,7 +127,7 @@ class RingModel(Model):
         data = self._record_names[pv_name]
         indices = []
         for key in data.keys():
-            idx = lnls.utils.flatten(data[key])
+            idx = mathphys.utils.flatten(data[key])
             indices.extend(idx)
         return indices
 
@@ -605,7 +604,7 @@ class TLineModel(Model):
         data = self._record_names[pv_name]
         indices = []
         for key in data.keys():
-            idx = lnls.utils.flatten(data[key])
+            idx = mathphys.utils.flatten(data[key])
             indices.extend(idx)
         return indices
 
