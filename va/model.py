@@ -21,7 +21,7 @@ TRACK6D     = False
 VCHAMBER    = False
 UNDEF_VALUE = 0.0
 
-_u, _Tp = mathphys.units, pyaccel.optics.getrevolutionperiod
+_u, _Tp = mathphys.units, pyaccel.optics.get_revolution_period
 
 
 #--- general model classes ---#
@@ -150,12 +150,12 @@ class RingModel(Model):
 
     def get_pv_dynamic(self, pv_name):
         if 'DI-CURRENT' in pv_name:
-            time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
+            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
         elif 'DI-BCURRENT' in pv_name:
-            time_interval = pyaccel.optics.getrevolutionperiod(self._accelerator)
+            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
@@ -195,13 +195,13 @@ class RingModel(Model):
         elif 'PS-CH' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
             value = sum(kicks)
             return value
         elif 'PS-CV' in pv_name:
             idx = self._get_elements_indices(pv_name)
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
             value = sum(kicks)
             return value
         elif 'PS-Q' in pv_name:
@@ -239,7 +239,7 @@ class RingModel(Model):
             value = self._accelerator[idx].polynom_a[1]
             return value
         elif 'RF-FREQUENCY' in pv_name:
-            return pyaccel.optics.getrffrequency(self._accelerator)
+            return pyaccel.optics.get_rf_frequency(self._accelerator)
         elif 'RF-VOLTAGE' in pv_name:
             idx = self._get_elements_indices(pv_name)
             return self._accelerator[idx[0]].voltage
@@ -309,7 +309,7 @@ class RingModel(Model):
     def set_pv_quadrupoles_skew(self, pv_name, value):
         if 'PS-Q' in pv_name:
             indices = self._get_elements_indices(pv_name)
-            prev_Ks = pyaccel.lattice.getattributelat(self._accelerator, 'polynom_a', indices, m=1)
+            prev_Ks = pyaccel.lattice.get_attribute(self._accelerator, 'polynom_a', indices, m=1)
             if value != prev_Ks[0]:
                 for idx in indices:
                     self._accelerator[idx].polynom_a[1] = value
@@ -452,7 +452,7 @@ class RingModel(Model):
             # optics
             self._log('calc', 'linear optics for '+self._model_module.lattice_version)
             self._twiss, self._m66, self._transfer_matrices, self._closed_orbit = \
-                pyaccel.optics.calctwiss(self._accelerator, fixed_point=self._closed_orbit[:,0])
+                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._closed_orbit[:,0])
         except numpy.linalg.linalg.LinAlgError:
             # beam is lost
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
@@ -467,7 +467,7 @@ class RingModel(Model):
         if self._m66 is None: return
         try:
             self._log('calc', 'equilibrium parameters for '+self._model_module.lattice_version)
-            self._summary, *_ = pyaccel.optics.getequilibriumparameters(\
+            self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
                                          accelerator=self._accelerator,
                                          twiss=self._twiss,
                                          m66=self._m66,
@@ -481,19 +481,19 @@ class RingModel(Model):
 
         self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
 
-        spos, *betas = pyaccel.optics.gettwiss(self._twiss, ('spos', 'betax','betay'))
-        alphax, etaxl, *etas = pyaccel.optics.gettwiss(self._twiss, ('alphax', 'etaxl','etax','etay'))
+        spos, *betas = pyaccel.optics.get_twiss(self._twiss, ('spos', 'betax','betay'))
+        alphax, etapx, *etas = pyaccel.optics.get_twiss(self._twiss, ('alphax', 'etapx','etax','etay'))
         energy = self._accelerator.energy
         e0 = self._summary['natural_emittance']
         k = self._model_module.global_coupling
         sigmae = self._summary['natural_energy_spread']
-        sigmal = self._summary['bunchlength']
+        sigmal = self._summary['bunch_length']
         Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
         rad_damping_times = self._summary['damping_times']
         avg_pressure = self._model_module.average_pressure
         # acceptances
         eaccep = self._summary['rf_energy_acceptance']
-        accepx, accepy, *_ = pyaccel.optics.gettransverseacceptance(
+        accepx, accepy, *_ = pyaccel.optics.get_transverse_acceptance(
                                                 self._accelerator,
                                                 twiss=self._twiss, energy_offset=0.0)
         taccep = [min(accepx), min(accepy)]
@@ -504,7 +504,7 @@ class RingModel(Model):
         R = thetay / thetax
         e_rate_spos = mathphys.beam_lifetime.calc_elastic_loss_rate(energy,R,taccep,avg_pressure,betas)
         t_rate_spos = mathphys.beam_lifetime.calc_touschek_loss_rate(energy,sigmae,e0,Ne1C,
-                sigmal, k, (-eaccep,eaccep), betas, etas, alphax, etaxl)
+                sigmal, k, (-eaccep,eaccep), betas, etas, alphax, etapx)
 
         e_rate  = numpy.trapz(e_rate_spos,spos)/(spos[-1]-spos[0])
         i_rate  = mathphys.beam_lifetime.calc_inelastic_loss_rate(eaccep, pressure=avg_pressure)
@@ -616,7 +616,7 @@ class TLineModel(Model):
         if init_twiss is None: return
         try:
             self._log('calc', 'linear optics for '+self._model_module.lattice_version)
-            self._twiss, *_ = pyaccel.optics.calctwiss(self._accelerator, init_twiss=init_twiss)
+            self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss)
         except pyaccel.tracking.TrackingException:
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
@@ -698,13 +698,13 @@ class TLineModel(Model):
         elif 'PS-CH' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
             value = sum(kicks)
             return value
         elif 'PS-CV' in pv_name:
             idx = self._get_elements_indices(pv_name)
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            kicks = pyaccel.lattice.getattributelat(self._accelerator, kickfield, idx)
+            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
             value = sum(kicks)
             return value
         elif 'PS-Q' in pv_name:
@@ -838,7 +838,7 @@ class TimingModel(Model):
         self._driver.setParam('TI-BO-KICKEX-DELAY', self._bo_kickex_delay)
 
     def _incoming_bunch_injected_in_si(self, charge):
-            rffrequency = pyaccel.optics.getrffrequency(self._driver.si_model._accelerator)
+            rffrequency = pyaccel.optics.get_rf_frequency(self._driver.si_model._accelerator)
             bunch_offset = round(self._bo_kickex_delay * rffrequency)
             harmonic_number = self._driver.si_model._accelerator.harmonic_number
             bunch_charge = [0.0] * harmonic_number
@@ -1014,7 +1014,7 @@ class TsModel(TLineModel):
         if self._driver: self._driver.ts_changed = True
 
     def get_init_twiss(self):
-        idx = pyaccel.lattice.findcells(self._driver.bo_model._accelerator, 'fam_name', 'sept_ex')
+        idx = pyaccel.lattice.find_indices(self._driver.bo_model._accelerator, 'fam_name', 'sept_ex')
         twiss_at_boseptex = self._driver.bo_model._twiss[idx[0]]
         return twiss_at_boseptex
 
