@@ -526,6 +526,16 @@ class RingModel(Model):
                                         quantum=q_lifetime,
                                         touschek_coefficient=t_coeff)
 
+    def _get_twiss(self, index):
+        self.update_state()
+        if isinstance(index, str):
+            if index == 'last':
+                return self._twiss[-1]
+            elif index == 'first':
+                return self._twiss[0]
+        else:
+            return self._twiss[index]
+
     def _init_families_str(self):
         rnames = self._record_names
         for pv_name in rnames.keys():
@@ -558,6 +568,8 @@ class TLineModel(Model):
             self._record_names = self._all_pvs
         self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = utils.BeamCharge()
+        self._orbit = None
+        self._twiss = None
         if not message2:
             message2 = self._model_module.lattice_version
         if message1 or message2:
@@ -566,6 +578,9 @@ class TLineModel(Model):
 
     def update_state(self, force=False):
         if force or self._state_deprecated:
+            init_twiss = self.get_init_twiss()
+            self._calc_orbit(init_twiss)
+            self._calc_linear_optics(init_twiss)
             self._calc_beam_size()
             self._state_deprecated = False
 
@@ -584,16 +599,30 @@ class TLineModel(Model):
     def beam_charge(self):
         return self._beam_charge.total_value
 
+    def get_init_twiss(self):
+        """Return initial Twiss parameters to be tracked"""
+        return None
+
+    def _calc_orbit(self, init_twiss):
+        if init_twiss is None: return
+        init_pos = init_twiss.fixed_point
+        try:
+            self._log('calc', 'orbit for '+self._model_module.lattice_version)
+            self._orbit, *_ = pyaccel.tracking.linepass(self._accelerator, init_pos, indices = 'closed')
+        except pyaccel.tracking.TrackingException:
+            # beam is lost
+            self.beam_dump('panic', 'BEAM LOST: orbit does not exist', c='red')
+
+    def _calc_linear_optics(self, init_twiss):
+        if init_twiss is None: return
+        try:
+            self._log('calc', 'linear optics for '+self._model_module.lattice_version)
+            self._twiss, *_ = pyaccel.optics.calctwiss(self._accelerator, init_twiss=init_twiss)
+        except pyaccel.tracking.TrackingException:
+            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+
     def _calc_beam_size(self):
         pass
-        # if len(self._accelerator) == 0:
-        #     self._sigma_x = 0
-        # else:
-        #     self._twiss = pyaccel.optics.calctwiss(self._accelerator, twiss_in = self._twiss_in)[0]
-        #     sigma_x = []
-        #     for i in range(len(self._twiss)):
-        #         sigma_x.append(math.sqrt(self._twiss[i].betax*self._emittance + (self._twiss[i].etax*self._sigma_e)**2))
-        #     self._sigma_x = sigma_x
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -796,22 +825,22 @@ class TimingModel(Model):
         self._bo_kickin_delay = 0
         self._bo_kickex_on = 1
         self._bo_kickex_delay = 0
+        self._bo_kickex_inc = 0
         self._si_kickin_on = 1
         self._si_kickin_delay = 0
-        self._si_kickin_inc = 0
 
     def signal_all_models_set(self):
         if self._driver:
             si_rfrequency = self._driver.si_model.get_pv('RF-FREQUENCY')
-            self._si_kickin_inc = 1.0 / si_rfrequency
+            self._bo_kickex_inc = 1.0 / si_rfrequency
 
     def _set_delay_next_cycle(self):
-        self._si_kickin_delay += self._si_kickin_inc
-        self._driver.setParam('TI-SI-KICKIN-DELAY', self._si_kickin_delay)
+        self._bo_kickex_delay += self._bo_kickex_inc
+        self._driver.setParam('TI-BO-KICKEX-DELAY', self._bo_kickex_delay)
 
     def _incoming_bunch_injected_in_si(self, charge):
             rffrequency = pyaccel.optics.getrffrequency(self._driver.si_model._accelerator)
-            bunch_offset = round(self._si_kickin_delay * rffrequency)
+            bunch_offset = round(self._bo_kickex_delay * rffrequency)
             harmonic_number = self._driver.si_model._accelerator.harmonic_number
             bunch_charge = [0.0] * harmonic_number
             for i in range(len(charge)):
@@ -875,7 +904,6 @@ class TimingModel(Model):
         # prepares internal data for next cycle
         self._set_delay_next_cycle()
 
-
     def get_pv_static(self, pv_name):
         if 'CYCLE' in pv_name:
             return self._cycle
@@ -887,6 +915,8 @@ class TimingModel(Model):
             return self._bo_kickex_on
         elif 'BO-KICKEX-DELAY' in pv_name:
             return self._bo_kickex_delay
+        elif 'BO-KICKEX-INC' in pv_name:
+            return self._bo_kickex_inc
         elif 'SI-KICKIN-ON' in pv_name:
             return self._si_kickin_on
         elif 'SI-KICKIN-DELAY' in pv_name:
@@ -961,13 +991,14 @@ class TbModel(TLineModel):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
-
         self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
 
+    def get_init_twiss(self):
+        return sirius.tb.initial_twiss
 
 class TsModel(TLineModel):
 
@@ -977,13 +1008,16 @@ class TsModel(TLineModel):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
-
         self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
 
+    def get_init_twiss(self):
+        idx = pyaccel.lattice.findcells(self._driver.bo_model._accelerator, 'fam_name', 'sept_ex')
+        twiss_at_boseptex = self._driver.bo_model._twiss[idx[0]]
+        return twiss_at_boseptex
 
 class SiModel(RingModel):
 
