@@ -38,11 +38,6 @@ for record_name in record_names:
     else:
         print('Parameter', record_name, 'not found!')
 
-read_only_pvs  = di_bpms + pa + di
-read_write_pvs = ps + ps_ch + ps_cv + fk + pu
-dynamic_pvs = [#subsys('DI-CURRENT'),
-              ]
-
 ps = ps + ps_ch + ps_cv + pu
 di = di + di_bpms
 
@@ -64,3 +59,7 @@ for p in pa:
         database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in fk:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+
+read_only_pvs  = pa + di_bpms
+read_write_pvs = ps + ps_ch + ps_cv + fk + pu
+dynamic_pvs = di

@@ -141,7 +141,7 @@ class PCASDriver(Driver):
 
         # linac
         if self.li_changed:
-            for pv in li_pvs.read_only_pvs:
+            for pv in li_pvs.read_only_pvs + li_pvs.dynamic_pvs:
                 value = self.li_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
@@ -151,7 +151,7 @@ class PCASDriver(Driver):
 
         # linac-to-booster transport line
         if self.tb_changed:
-            for pv in tb_pvs.read_only_pvs:
+            for pv in tb_pvs.read_only_pvs + tb_pvs.dynamic_pvs:
                 value = self.tb_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
@@ -161,7 +161,7 @@ class PCASDriver(Driver):
 
         # booster
         if self.bo_changed:
-            for pv in bo_pvs.read_only_pvs:
+            for pv in bo_pvs.read_only_pvs + bo_pvs.dynamic_pvs:
                 value = self.bo_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
@@ -171,7 +171,7 @@ class PCASDriver(Driver):
 
         # booster-to-storage ring transport line
         if self.ts_changed:
-            for pv in ts_pvs.read_only_pvs:
+            for pv in ts_pvs.read_only_pvs + ts_pvs.dynamic_pvs:
                 value = self.ts_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
@@ -181,7 +181,7 @@ class PCASDriver(Driver):
 
         # sirius
         if self.si_changed:
-            for pv in si_pvs.read_only_pvs:
+            for pv in si_pvs.read_only_pvs + si_pvs.dynamic_pvs:
                 value = self.si_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
@@ -191,7 +191,7 @@ class PCASDriver(Driver):
 
         # timing
         if self.ti_changed:
-            for pv in ti_pvs.read_only_pvs:
+            for pv in ti_pvs.read_only_pvs + ti_pvs.dynamic_pvs:
                 value = self.ti_model.get_pv(pv)
                 self.setParam(pv, value)
         else:

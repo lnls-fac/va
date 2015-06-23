@@ -21,15 +21,13 @@ for record_name in record_names:
     else:
         pa.append(record_name)
 
-read_only_pvs  = []
-read_write_pvs = pa + fk
-dynamic_pvs = [#subsys('DI-CURRENT'),
-               #subsys('DI-BCURRENT'),
-              ]
-
 database = {}
 
 for p in pa:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in fk:
     database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+
+read_only_pvs  = []
+read_write_pvs = pa + fk
+dynamic_pvs = []
