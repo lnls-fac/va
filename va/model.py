@@ -66,6 +66,15 @@ class Model(object):
     def update_state(self):
         pass
 
+    def _transform_to_local_coordinates(self, old_pos, delta_rx, angle, delta_dl=0.0):
+        C, S = math.cos(angle), math.sin(angle)
+        old_angle = math.atan(old_pos.px)
+        new_pos = [p for p in old_pos]
+        new_pos[0] =  C * old_pos[0] + S * old_pos[5]
+        new_pos[5] = -S * old_pos[0] + C * old_pos[5]
+        new_pos[1] = math.tan(angle + old_angle)
+        return new_pos
+
 
 class RingModel(Model):
 
@@ -528,12 +537,19 @@ class RingModel(Model):
     def _get_twiss(self, index):
         self.update_state()
         if isinstance(index, str):
-            if index == 'last':
+            if index == 'end':
                 return self._twiss[-1]
-            elif index == 'first':
+            elif index == 'begin':
                 return self._twiss[0]
         else:
             return self._twiss[index]
+
+    def _set_energy(energy):
+        # need to update RF voltage !!!
+        self._accelerator.energy = energy
+
+    def get_equilibrium_at_maximum_energy(self):
+        return None
 
     def _init_families_str(self):
         rnames = self._record_names
@@ -576,11 +592,14 @@ class TLineModel(Model):
         self._state_deprecated = False
 
     def update_state(self, force=False):
-        if force or self._state_deprecated:
-            init_twiss = self.get_init_twiss()
-            self._calc_orbit(init_twiss)
-            self._calc_linear_optics(init_twiss)
-            self._calc_beam_size()
+        if force or self._state_deprecated:  # we need to check deprecation of other models on which tline depends
+            #print('update_state: ',self._model_module.lattice_version)
+            parms = self.get_parameters_from_upstream_accelerator()
+            if parms is not None:
+                init_twiss, natural_emittance, natural_energy_spread, coupling = parms[:4]
+                self._calc_orbit(init_twiss)
+                self._calc_linear_optics(init_twiss)
+                self._calc_beam_size(natural_emittance, natural_energy_spread, coupling)
             self._state_deprecated = False
 
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
@@ -598,7 +617,7 @@ class TLineModel(Model):
     def beam_charge(self):
         return self._beam_charge.total_value
 
-    def get_init_twiss(self):
+    def get_parameters_from_upstream_accelerator(self):
         """Return initial Twiss parameters to be tracked"""
         return None
 
@@ -620,8 +639,13 @@ class TLineModel(Model):
         except pyaccel.tracking.TrackingException:
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
-    def _calc_beam_size(self):
-        pass
+    def _calc_beam_size(self, natural_emittance, natural_energy_spread, coupling):
+        if self._twiss is None: return
+        betax, etax, betay, etay = pyaccel.optics.get_twiss(self._twiss, ('betax','etax','betay','etay'))
+        emitx = natural_emittance * 1 / (1 + coupling)
+        emity = natural_emittance * coupling / (1 + coupling)
+        self._sigmax = numpy.sqrt(betax * emitx + (etax * natural_energy_spread)**2)
+        self._sigmay = numpy.sqrt(betay * emity + (etax * natural_energy_spread)**2)
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -868,7 +892,7 @@ class TimingModel(Model):
         # transport through linac-to-booster transport line
         self._log(message1 = 'cycle', message2 = 'injection in TB, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
         charge = self._driver.tb_model.beam_transport(charge)
-        self._driver.tb_model.notify_driver()
+        #self._driver.tb_model.notify_driver()
         self._log(message1 = 'cycle', message2 = 'ejection from TB, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
 
         # injection into booster
@@ -981,6 +1005,20 @@ class LiModel(TLineModel):
     def notify_driver(self):
         if self._driver: self._driver.li_changed = True
 
+    def _get_twiss(self, index):
+        self.update_state()
+        if isinstance(index, str):
+            if index == 'end':
+                return sirius.tb.initial_twiss
+            elif index == 'begin':
+                Exception('index in _get_twiss invalid for LI')
+        else:
+            Exception('index in _get_twiss invalid for LI')
+
+    def get_equilibrium_at_maximum_energy(self):
+        natural_emittance =  sirius.li.emittance     # FIX ME! : hardcoded value
+        natural_energy_spread = 0.005                # FIX ME! : hardcoded value
+        return natural_emittance, natural_energy_spread
 
 class TbModel(TLineModel):
 
@@ -996,8 +1034,13 @@ class TbModel(TLineModel):
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
 
-    def get_init_twiss(self):
-        return sirius.tb.initial_twiss
+    def get_parameters_from_upstream_accelerator(self):
+        li = self._driver.li_model
+        li.update_state()
+        twiss_at_li_exit = li._get_twiss('end')
+        natural_emittance, natural_energy_spread  = li.get_equilibrium_at_maximum_energy()
+        coupling = li._model_module.global_coupling
+        return twiss_at_li_exit, natural_emittance, natural_energy_spread, coupling
 
 class TsModel(TLineModel):
 
@@ -1013,10 +1056,16 @@ class TsModel(TLineModel):
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
 
-    def get_init_twiss(self):
-        idx = pyaccel.lattice.find_indices(self._driver.bo_model._accelerator, 'fam_name', 'sept_ex')
-        twiss_at_boseptex = self._driver.bo_model._twiss[idx[0]]
-        return twiss_at_boseptex
+    def get_parameters_from_upstream_accelerator(self):
+        bo = self._driver.bo_model
+        bo.update_state()
+        natural_emittance, natural_energy_spread  = bo.get_equilibrium_at_maximum_energy()
+        idx = pyaccel.lattice.find_indices(bo._accelerator, 'fam_name', 'sept_ex')
+        twiss_at_bo_exit = bo._get_twiss(idx[0])
+        natural_emittance, natural_energy_spread = bo.get_equilibrium_at_maximum_energy()
+        coupling = bo._model_module.global_coupling
+        return twiss_at_bo_exit, natural_emittance, natural_energy_spread, coupling
+
 
 class SiModel(RingModel):
 
@@ -1050,6 +1099,11 @@ class BoModel(RingModel):
 
     def notify_driver(self):
         if self._driver: self._driver.bo_changed = True
+
+    def get_equilibrium_at_maximum_energy(self):
+        natural_emittance =  3.4749e-09     # FIX ME! : hardcoded value
+        natural_energy_spread = 8.7427e-04  # FIX ME! : hardcoded value
+        return natural_emittance, natural_energy_spread
 
 
 class TiModel(TimingModel):
