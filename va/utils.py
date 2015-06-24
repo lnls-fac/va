@@ -118,7 +118,7 @@ class BeamCharge:
                 self._charge[i] = new_value
         # updates timestamp
         self._timestamp = t1
-        return self._charge
+        return self._charge[:]
 
 
     @property
@@ -133,12 +133,11 @@ class BeamCharge:
         return currents
 
     def inject(self, delta_charge):
-        #if isinstance(delta_charge, (int, float)):
-        #    delta_charge = [delta_charge/len(self._charge)] * len(self._charge)
         current_charge = self.value
-        #print('len:',len(delta_charge),len(self._charge))
+        nr_bunches = len(current_charge)
         for i in range(len(delta_charge)):
-            self._charge[i] += delta_charge[i]
+            idx = i % nr_bunches
+            self._charge[idx] += delta_charge[i]
 
     def dump(self):
         self._charge = [0] * len(self._charge)
