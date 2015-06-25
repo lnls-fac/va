@@ -57,19 +57,29 @@ class Model(object):
     def get_pv_fake(self, pv_name):
         return None
 
-    def set_pv_fake(self, pv_name):
+    def set_pv_fake(self, pv_name, value):
         if '-ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
                 self._state_deprecated = True
+            return True
         elif '-ERRORY' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            prev_errorx = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
-            if value != prev_errorx:
+            prev_errory = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            if value != prev_errory:
                 pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
                 self._state_deprecated = True
+            return True
+        elif '-ERRORR' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            prev_errorr = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
+            if value != prev_errorr:
+                pyaccel.lattice.set_error_rotation_roll(self._accelerator, idx, value)
+                self._state_deprecated = True
+            return True
+        return False
 
     # --- methods that help updating the model state
 
