@@ -44,7 +44,6 @@ def handle_signal(signum, frame):
     stop_event.set()
     driver_thread.join()
 
-
 def run(prefix):
     global stop_event, driver_thread
 
