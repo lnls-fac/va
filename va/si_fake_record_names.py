@@ -40,5 +40,7 @@ def get_record_names(family_name = None):
         _dict.update(get_element_names('sext', prefix = 'SIFK-ERRORY-'))
         _dict.update(get_element_names('sext', prefix = 'SIFK-ERRORR-'))
 
+        return _dict        
+
     else:
         raise Exception('Family name %s not found'%family_name)
