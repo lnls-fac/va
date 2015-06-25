@@ -255,7 +255,7 @@ class RingModel(Model):
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
-                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
                 self._state_deprecated = True
             return True
 
@@ -265,7 +265,7 @@ class RingModel(Model):
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
-                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
                 self._state_deprecated = True
             return True
 

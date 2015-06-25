@@ -44,10 +44,13 @@ di = di + di_bpms
 database = {}
 
 for p in di:
-    if any([substring in p for substring in ('BCURRENT',)]):
-        database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
     if 'DI-BPM' in p:
-        database[p] = {'type' : 'float', 'count': 2}
+        if 'FAM-X' in p:
+            database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-X')]['bpm'])}
+        elif 'FAM-Y' in p:
+            database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-Y')]['bpm'])}
+        else:
+            database[p] = {'type' : 'float', 'count': 2}
     else:
         database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 for p in ps:
