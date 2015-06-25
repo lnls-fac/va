@@ -43,16 +43,14 @@ di = di + di_bpms
 
 database = {}
 
-bpm_rnames = model.record_names.get_record_names('bpm-fam')
-
 for p in di:
     if any([substring in p for substring in ('BCURRENT',)]):
         database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
     elif 'DI-BPM' in p:
         if 'FAM-X' in p:
-            database[p] = {'type' : 'float', 'count': len(bpm_rnames[subsys('DI-BPM-FAM-X')]['bpm'])}
+            database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-X')]['bpm'])}
         if 'FAM-Y' in p:
-            database[p] = {'type' : 'float', 'count': len(bpm_rnames[subsys('DI-BPM-FAM-Y')]['bpm'])}
+            database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-Y')]['bpm'])}
         else:
             database[p] = {'type' : 'float', 'count': 2}
     else:
