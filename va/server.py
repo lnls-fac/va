@@ -5,7 +5,8 @@ import signal
 import threading
 from pcaspy import SimpleServer
 import va.driver as pcasdriver
-import va.model as models
+#import va.model as models
+import va.sirius_models as models
 import va.li_pvs as li_pvs
 import va.tb_pvs as tb_pvs
 import va.bo_pvs as bo_pvs
@@ -90,9 +91,9 @@ def run(prefix):
                                    ti_model = ti,
                                    )
 
-    driver.signal_all_models_set() # so that models can set its parameters that
-                                   # are dependent on other models
-                                   
+    driver.all_models_defined_ack() # so that models can set its parameters that
+                                    # are dependent on other models
+
     driver_thread = DriverThread(driver, stop_event)
 
     driver_thread.start()
