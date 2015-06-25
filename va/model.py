@@ -111,26 +111,40 @@ class RingModel(Model):
         self._transfer_matrices = None
         self._summary = None
 
-    def beam_inject(self, charge, message1='inject', message2 = '', c='white', a=None):
-        if message1:
+    def beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
+        if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
         if self._summary is None: return
-        self._beam_charge.inject(charge)
-        self.update_state()
-        return self._beam_charge.value
+        init_charge = self._beam_charge.value
+        self._beam_charge.inject(delta_charge)
+        final_charge = self._beam_charge.value
+        #print(sum(init_charge))
+        #print(sum(final_charge))
+        #print(sum(delta_charge))
+        efficiency = (sum(final_charge) - sum(init_charge))/sum(delta_charge)
+        if message1 == 'cycle':
+            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        #self.update_state()
+        return final_charge
 
     def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
-        if message1:
+        if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
-        charge = self._beam_charge.value
+        init_charge = self._beam_charge.value
+        final_charge = self._beam_charge.value
         self._beam_charge.dump()
-        return charge
+        efficiency = sum(final_charge)/sum(init_charge)
+        if message1 == 'cycle':
+            self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        return final_charge
 
     def beam_charge(self):
         self.update_state()
         return self._beam_charge.total_value
 
     def beam_accelerate(self):
+        efficiency = 1.0
+        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
         charge = self._beam_charge.value
         return charge
 
@@ -490,16 +504,18 @@ class RingModel(Model):
 
         self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
 
+        spos, pressure = self._model_module.accelerator_data['pressure_profile']
+        avg_pressure = numpy.trapz(pressure,spos)/(spos[-1]-spos[0])
         spos, *betas = pyaccel.optics.get_twiss(self._twiss, ('spos', 'betax','betay'))
         alphax, etapx, *etas = pyaccel.optics.get_twiss(self._twiss, ('alphax', 'etapx','etax','etay'))
         energy = self._accelerator.energy
         e0 = self._summary['natural_emittance']
-        k = self._model_module.global_coupling
+        k = self._model_module.accelerator_data['global_coupling']
         sigmae = self._summary['natural_energy_spread']
         sigmal = self._summary['bunch_length']
         Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
         rad_damping_times = self._summary['damping_times']
-        avg_pressure = self._model_module.average_pressure
+
         # acceptances
         eaccep = self._summary['rf_energy_acceptance']
         accepx, accepy, *_ = pyaccel.optics.get_transverse_acceptance(
@@ -524,10 +540,10 @@ class RingModel(Model):
         i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
         q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
 
-        #print('elastic     [h]:', e_lifetime/3600)
-        #print('inelastic   [h]:', i_lifetime/3600)
-        #print('quantum     [h]:', q_lifetime/3600)
-        #print('touschek [1/sC]:', t_coeff)
+        # print('elastic     [h]:', e_lifetime/3600)
+        # print('inelastic   [h]:', i_lifetime/3600)
+        # print('quantum     [h]:', q_lifetime/3600)
+        # print('touschek [1/sC]:', t_coeff)
 
         self._beam_charge.set_lifetimes(elastic=e_lifetime,
                                         inelastic=i_lifetime,
@@ -613,6 +629,7 @@ class TLineModel(Model):
         if message1:
             self._log(message1, message2, c=c, a=a)
         self._beam_charge.inject(charge)
+        return self._beam_charge.value
 
     def beam_charge(self):
         return self._beam_charge.total_value
@@ -636,6 +653,16 @@ class TLineModel(Model):
         try:
             self._log('calc', 'linear optics for '+self._model_module.lattice_version)
             self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss)
+
+            # propagates Twiss till the end of last element.
+            # This expedient is temporary. It should be removed once calc_twiss is augmented to
+            # include 'indices' argument with possible 'closed' value.
+            aux_acc = self._accelerator[-2:-1]
+            aux_acc.append(pyaccel.elements.marker(''))
+            twiss, *_ = pyaccel.optics.calc_twiss(aux_acc, init_twiss=self._twiss[-1])
+            self._twiss.append(twiss[-1])
+
+
         except pyaccel.tracking.TrackingException:
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
@@ -657,19 +684,14 @@ class TLineModel(Model):
         return indices
 
     def beam_transport(self, charge):
-
-        self.update_state(force = True)
-        # self._orbit = pyaccel.tracking.linepass(self._accelerator, self._rin, indices = 'open')[0]
-        # try:
-        #     self._rout = [i for i in self._orbit[:,(len(self._accelerator)-1)]]
-        # except IndexError:
-        #     self._rout = [0,0,0,0,0,0]
-        # self.coordinate_transformation()
-        # new_charge = charge*self._calc_loss_charge()
-        loss_factor = self._calc_loss_charge()
-        new_charge = [charge_bunch * loss_factor for charge_bunch in charge]
-        self._beam_charge.inject(new_charge)
-        return new_charge
+        self.update_state()
+        charge = self.beam_inject(charge, message1='')
+        loss_factor = self._calc_loss_fraction()
+        efficiency = 1.0 - loss_factor
+        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
+        charge = [charge_bunch * efficiency for charge_bunch in charge]
+        self._beam_charge.dump()
+        return charge
 
     def coordinate_transformation(self):
         r = [i for i in self._rout]
@@ -677,18 +699,88 @@ class TLineModel(Model):
         self._rout[1] = r[1] + self._xl_out
         self._rout[5] = r[5]*math.cos(self._xl_out) - r[0]*math.sin(self._xl_out)
 
-    def _calc_loss_charge(self):
-        return 1.0 # !!! TEST
-        try:
-            orbit = [math.fabs(i) for i in self._orbit[0,:]]
-            xmax = numpy.amax(orbit)
-            ind_xmax = numpy.argmax(orbit)
-            hmax = self._accelerator[ind_xmax].hmax
-        except:
-            return 1
-        sigma_x = self._sigma_x[ind_xmax]
-        frac = (1.0/2.0)*(math.erf((hmax+xmax)/(math.sqrt(2.0)*sigma_x))-math.erf((-hmax+xmax)/(math.sqrt(2.0)*sigma_x)))
-        return frac
+    def _calc_loss_fraction(self):
+        if self._orbit is None: return 0.0
+        n = len(self._accelerator)
+        hmax, hmin = numpy.zeros((2,n+1))
+        vmax, vmin = numpy.zeros((2,n+1))
+        for i in range(n):
+            hmax[i] = self._accelerator._accelerator.lattice[i].hmax
+            vmax[i] = self._accelerator._accelerator.lattice[i].vmax
+            hmin[i] = -hmax[i]
+            vmin[i] = -vmax[i]
+            fam_name = self._accelerator._accelerator.lattice[i].fam_name
+            if fam_name == 'esep':
+                hmax[i] = 0.0075 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
+            elif fam_name == 'sseb':
+                hmax[i] = 0.0015 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
+            elif fam_name == 'esef':
+                hmax[i] = 0.0015 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
+        hmax[-1], hmin[-1] = hmax[-2], hmin[-2]
+        vmax[-1], vmin[-1] = vmax[-2], vmin[-2]
+        #print(self._model_module.lattice_version)
+        rx, ry = self._orbit[[0,2],:]
+        xlim_inf, xlim_sup = rx - hmin, hmax - rx
+        ylim_inf, ylim_sup = ry - vmin, vmax - ry
+        xlim_inf[xlim_inf < 0] = 0
+        xlim_sup[xlim_sup < 0] = 0
+        ylim_inf[ylim_inf < 0] = 0
+        ylim_sup[ylim_sup < 0] = 0
+
+        min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
+        min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
+        min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
+        min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
+
+        #print('min_xfrac_inf:', min_xfrac_inf)
+        #print('min_xfrac_sup:', min_xfrac_sup)
+        #print('min_yfrac_inf:', min_yfrac_inf)
+        #print('min_yfrac_sup:', min_yfrac_sup)
+
+        sqrt2 = math.sqrt(2)
+        x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
+                               0.5*math.erf(min_xfrac_sup/sqrt2)
+        y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2) + \
+                               0.5*math.erf(min_yfrac_sup/sqrt2)
+        surviving_fraction = x_surviving_fraction * y_surviving_fraction
+        #print(surviving_fraction)
+
+        return 1.0 - surviving_fraction
+
+    def _calc_loss_fraction_prev(self):
+
+        limits_p, limits_n = [], []
+        frac_lost_p, frac_lost_n = [], []
+        for i in range(len(self._accelerator)):
+            if  self._accelerator[i].fam_name == 'esep':
+                hmax_p = 0.0075
+                hmax_n = self._accelerator[i].hmax
+            elif self._accelerator[i].fam_name == 'sseb':
+                hmax_p = self._accelerator[i].hmax
+                hmax_n = 0.0015
+            elif self._accelerator[i].fam_name == 'esef':
+                hmax_p = 0.0015
+                hmax_n = self._accelerator[i].hmax
+            else:
+                hmax_p = self._accelerator[i].hmax
+                hmax_n = self._accelerator[i].hmax
+            if self._orbit[0,i] >= 0:
+                limits_n.append(hmax_n + self._orbit[0,i])
+                if math.fabs(self._orbit[0,i]) >= hmax_p:
+                    limits_p.append(0.0)
+                else:
+                    limits_p.append(hmax_p - self._orbit[0,i])
+            else:
+                limits_p.append(hmax_p - self._orbit[0,i])
+                if math.fabs(self._orbit[0,i]) >= hmax_n:
+                    limits_n.append(0.0)
+                else:
+                    limits_n.append(hmax_n + self._orbit[0,i])
+            frac_lost_p.append( 0.5*(1 - math.erf(limits_p[i]/(math.sqrt(2)*self._beam_size[i]))))
+            frac_lost_n.append( 0.5*(1 - math.erf(limits_n[i]/(math.sqrt(2)*self._beam_size[i]))))
+
+        frac_lost = 1-(numpy.amax(frac_lost_p)+numpy.amax(frac_lost_n))
+        return frac_lost
 
     def get_pv_fake(self, pv_name):
         if '-ERRORX' in pv_name:
@@ -872,60 +964,114 @@ class TimingModel(Model):
             return bunch_charge
 
     def beam_inject(self):
+
+        def add_time(t):
+            t.append(time.time())
+        def get_time(t):
+            return 1000*(t[-1]-t[-2])
+        def get_total_time(t):
+            return 1000*(t[-1]-t[0])
+
         if not self._cycle: return
 
+        t = []
+        add_time(t)
         self._log(message1 = 'cycle', message2 = 'TI starting injection')
 
-        # create charge from electron gun
-        if self._driver.li_model._single_bunch_mode:
-            charge = [self._driver.li_model._model_module.single_bunch_charge]
+        # LI
+        # ==
+        model = self._driver.li_model
+        self._log(message1 = 'cycle', message2 = '-- LI --', c='white')
+        #   create charge from electron gun
+        if model._single_bunch_mode:
+            charge = [model._model_module.single_bunch_charge]
         else:
             raise Exception('multi-bunch mode not implemented')
-        self._log(message1 = 'cycle', message2 = 'electron gun providing ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
+        #   transport through linac
+        add_time(t)
+        charge = model.beam_transport(charge)
+        model.notify_driver()
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
-        # transport through linac
-        self._log(message1 = 'cycle', message2 = 'injection in LI, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
-        charge = self._driver.li_model.beam_transport(charge)
-        self._driver.li_model.notify_driver()
-        self._log(message1 = 'cycle', message2 = 'ejection from LI, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
-
-        # transport through linac-to-booster transport line
-        self._log(message1 = 'cycle', message2 = 'injection in TB, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        # TB
+        # ==
+        model = self._driver.tb_model
+        self._log(message1 = 'cycle', message2 = '-- TB --', c='white')
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
         charge = self._driver.tb_model.beam_transport(charge)
         #self._driver.tb_model.notify_driver()
-        self._log(message1 = 'cycle', message2 = 'ejection from TB, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
-        # injection into booster
-        self._log(message1 = 'cycle', message2 = 'injection in BO, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        # BO
+        # ==
+        model = self._driver.bo_model
+        self._log(message1 = 'cycle', message2 = '-- BO --', c='white')
+        #   injection into booster
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
         if self._bo_kickin_on:
-            charge = self._driver.bo_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(sum(charge)*1e9) + ' nC', c='white', a=None)
+            charge = model.beam_inject(delta_charge = charge, message1='cycle')
         else:
             charge = [0]
-
-        # acceleration through booster
-        self._log(message1 = 'cycle', message2 = 'acceleration through BO, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        #   acceleration through booster
+        charge = model._beam_charge.value
+        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
         charge = self._driver.bo_model.beam_accelerate()
-        # ejection from booster
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        #   ejection from booster
+        self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
         if self._bo_kickex_on:
-            charge = self._driver.bo_model.beam_eject(message1='')
+            charge = self._driver.bo_model.beam_eject(message1='cycle')
         else:
             charge = [0]
-        self._log(message1 = 'cycle', message2 = 'ejection from BO, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+            self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
         self._driver.bo_model.notify_driver()
 
-        # transport through booster-to-storage ring transport line
-        self._log(message1 = 'cycle', message2 = 'injection in TS, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        # TS
+        # ==
+        model = self._driver.ts_model
+        self._log(message1 = 'cycle', message2 = '-- TS --', c='white')
+        charge = self._incoming_bunch_injected_in_si(charge) # adds delay
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
         charge = self._driver.ts_model.beam_transport(charge)
-        self._driver.ts_model.notify_driver()
-        self._log(message1 = 'cycle', message2 = 'ejection from TS, ' + str(sum(charge)*1e9) + ' nC of charge', c='white')
+        #self._driver.ts_model.notify_driver()
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
-        # inject at storage ring
-        charge = self._incoming_bunch_injected_in_si(charge)
-        self._driver.si_model.beam_inject(charge = charge, message1='cycle', message2 = 'injection into SI, ' + str(sum(charge)*1e9) + ' nC', c='white', a=None)
+        # SI
+        # ==
+        model = self._driver.si_model
+        self._log(message1 = 'cycle', message2 = '-- SI --', c='white')
+        #   injection into sirius
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        add_time(t)
+        if self._si_kickin_on:
+            charge = model.beam_inject(delta_charge = charge, message1='cycle')
+        else:
+            charge = [0]
+            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
         self._driver.si_model.notify_driver()
 
         # prepares internal data for next cycle
         self._set_delay_next_cycle()
+
+        add_time(t)
+        self._log(message1 = 'cycle', message2 = 'TI end injection, total {0:.0f} ms'.format(get_total_time(t)))
 
     def get_pv_static(self, pv_name):
         if 'CYCLE' in pv_name:
@@ -1039,7 +1185,7 @@ class TbModel(TLineModel):
         li.update_state()
         twiss_at_li_exit = li._get_twiss('end')
         natural_emittance, natural_energy_spread  = li.get_equilibrium_at_maximum_energy()
-        coupling = li._model_module.global_coupling
+        coupling = li._model_module.accelerator_data['global_coupling']
         return twiss_at_li_exit, natural_emittance, natural_energy_spread, coupling
 
 class TsModel(TLineModel):
@@ -1063,7 +1209,7 @@ class TsModel(TLineModel):
         idx = pyaccel.lattice.find_indices(bo._accelerator, 'fam_name', 'sept_ex')
         twiss_at_bo_exit = bo._get_twiss(idx[0])
         natural_emittance, natural_energy_spread = bo.get_equilibrium_at_maximum_energy()
-        coupling = bo._model_module.global_coupling
+        coupling = bo._model_module.accelerator_data['global_coupling']
         return twiss_at_bo_exit, natural_emittance, natural_energy_spread, coupling
 
 
