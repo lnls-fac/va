@@ -192,6 +192,7 @@ class TimingModel(Model):
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
         if self._si_kickin_on:
+            self._incoming_bunch_injected_in_si(charge)
             charge = model.beam_inject(delta_charge = charge, message1='cycle')
         else:
             charge = [0]
@@ -205,6 +206,10 @@ class TimingModel(Model):
 
         add_time(t)
         self._log(message1 = 'cycle', message2 = 'TI end injection, total {0:.0f} ms'.format(get_total_time(t)))
+
+    def all_models_defined_ack(self):
+        rfrequency = self._driver.si_model.get_pv('SIRF-FREQUENCY')
+        self._bo_kickex_inc = 1.0 / rfrequency
 
     # --- auxilliary methods
 
