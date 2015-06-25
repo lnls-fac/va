@@ -145,6 +145,10 @@ class RingModel(Model):
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             return error
+        if '-ERRORR' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
+            return error
         elif 'FK-' in pv_name:
             return 0.0
         else:
@@ -275,7 +279,7 @@ class RingModel(Model):
                 self._accelerator[idx[0]].voltage = value
                 self._state_deprecated = True
             return True
-        elif 'RF-FREQUENCY' in pv_names:
+        elif 'RF-FREQUENCY' in pv_name:
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].frequency
             if value != prev_value:
