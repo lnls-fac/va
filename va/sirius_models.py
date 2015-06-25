@@ -1,8 +1,8 @@
 
 from va.model import TRACK6D, VCHAMBER
-from va.tline_model import TLineModel
-from va.ring_model import RingModel
-from va.timing_model import TimingModel
+from va.model_tline import TLineModel
+from va.model_ring import RingModel
+from va.model_timing import TimingModel
 import va.utils as utils
 import sirius
 import pyaccel

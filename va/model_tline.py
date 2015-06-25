@@ -163,6 +163,7 @@ class TLineModel(Model):
         self._beam_charge  = utils.BeamCharge()
         self._orbit = None
         self._twiss = None
+        self._loss_fraction = 0.0
         if not message2:
             message2 = self._model_module.lattice_version
         if message1 or message2:
@@ -185,7 +186,7 @@ class TLineModel(Model):
     def beam_transport(self, charge):
         self.update_state()
         charge = self.beam_inject(charge, message1='')
-        efficiency = 1.0 - self._loss_factor
+        efficiency = 1.0 - self._loss_fraction
         self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
         charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
