@@ -1,6 +1,7 @@
 import time
 import math
 import datetime
+import numpy
 from termcolor import colored
 import va
 
@@ -142,3 +143,50 @@ class BeamCharge:
     def dump(self):
         self._charge = [0] * len(self._charge)
         self._timestamp = time.time()
+
+
+class Magnet(object):
+    def __init__(self, excitation_curve_filename, value=0.0):
+        self._power_supplies = set()
+        self._value = value
+
+        try:
+            data = numpy.loadtxt(excitation_curve_filename)
+        except FileNotFoundError:
+            # Default conversion table: y = x
+            data = numpy.array([[-1000, 1000], [-1000, 1000]]).transpose()
+
+        self._i = data[:, 0]
+        self._f = data[:, 1]
+
+    def add_power_supply(self, power_supply):
+        self._power_supplies.add(power_supply)
+
+    @property
+    def value(self):
+        return self._value
+
+    def process(self):
+        current = 0.0
+        for ps in self._power_supplies:
+            current += ps.current
+        self._value = numpy.interp(current, self._i, self._f)
+
+
+class PowerSupply(object):
+    def __init__(self, magnets, current=0.0):
+        self._magnets = magnets
+        self._current = current
+
+        for magnet in magnets:
+            magnet.add_power_supply(self)
+
+    @property
+    def current(self):
+        return self._current
+
+    @current.setter
+    def current(self, value):
+        self._current = value
+        for magnet in self._magnets:
+            magnet.process()
