@@ -89,7 +89,6 @@ class Model(object):
     def all_models_defined_ack(self):
         self.update_state(force=True)
 
-
     # --- auxilliary methods
 
     def _transform_to_local_coordinates(self, old_pos, delta_rx, angle, delta_dl=0.0):
