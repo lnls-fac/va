@@ -65,4 +65,4 @@ for p in fk:
 
 read_only_pvs  = pa + di_bpms
 read_write_pvs = ps + ps_ch + ps_cv + fk + pu
-dynamic_pvs = di
+dynamic_pvs = []

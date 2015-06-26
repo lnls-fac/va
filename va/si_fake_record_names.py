@@ -13,9 +13,9 @@ def get_record_names(family_name = None):
 
     if family_name.lower() == 'sifk':
         _dict = {
-                'SIFK-RESET':{},
-                'SIFK-INJECT':{},
-                'SIFK-DUMP':{},
+                # 'SIFK-RESET':{},
+                # 'SIFK-INJECT':{},
+                # 'SIFK-DUMP':{},
         }
 
         get_element_names = sirius.si.record_names.get_element_names
@@ -40,7 +40,7 @@ def get_record_names(family_name = None):
         _dict.update(get_element_names('sext', prefix = 'SIFK-ERRORY-'))
         _dict.update(get_element_names('sext', prefix = 'SIFK-ERRORR-'))
 
-        return _dict        
+        return _dict
 
     else:
         raise Exception('Family name %s not found'%family_name)

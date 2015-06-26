@@ -14,19 +14,7 @@ class TLineModel(Model):
         super().__init__(model_module=model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start')
 
-    # --- methods implementing response of model to get and set requests
-
-    def set_pv(self, pv_name, value):
-        if self.set_pv_correctors(pv_name, value): return
-        if self.set_pv_quadrupoles(pv_name, value): return
-        if self.set_pv_bends(pv_name, value): return
-        if self.set_pv_fake(pv_name, value): return
-
-    def get_pv_dynamic(self, pv_name):
-        if 'DI-CURRENT' in pv_name:
-            return 0
-        else:
-            return None
+    # --- methods implementing response of model to get requests
 
     def get_pv_static(self, pv_name):
         # process global parameters
@@ -67,34 +55,13 @@ class TLineModel(Model):
         else:
             return None
 
-    def get_pv_fake(self, pv_name):
-        if '-ERRORX' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
-            return error
-        if '-ERRORY' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
-            return error
-        elif 'FK-' in pv_name:
-            return 0.0
-        else:
-            return None
+    # --- methods implementing response of model to set requests
 
-    def set_pv_quadrupoles(self, pv_name, value):
-        if 'PS-Q' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            idx2 = idx
-            while not isinstance(idx2,int):
-                idx2 = idx2[0]
-            prev_value = self._accelerator[idx2].polynom_b[1]
-            if value != prev_quad_value:
-                if isinstance(idx,int): idx = [idx]
-                for i in idx:
-                    self._accelerator[i].polynom_b[1] = value
-                self._state_deprecated = True
-            return True
-        return False # [pv is not a quadrupole]
+    def set_pv(self, pv_name, value):
+        if self.set_pv_correctors(pv_name, value): return
+        if self.set_pv_quadrupoles(pv_name, value): return
+        if self.set_pv_bends(pv_name, value): return
+        if self.set_pv_fake(pv_name, value): return
 
     def set_pv_correctors(self, pv_name, value):
         if 'PS-CH' in pv_name:
@@ -118,6 +85,21 @@ class TLineModel(Model):
             return True
         return False  # [pv is not a corrector]
 
+    def set_pv_quadrupoles(self, pv_name, value):
+        if 'PS-Q' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            idx2 = idx
+            while not isinstance(idx2,int):
+                idx2 = idx2[0]
+            prev_value = self._accelerator[idx2].polynom_b[1]
+            if value != prev_value:
+                if isinstance(idx,int): idx = [idx]
+                for i in idx:
+                    self._accelerator[i].polynom_b[1] = value
+                self._state_deprecated = True
+            return True
+        return False # [pv is not a quadrupole]
+
     def set_pv_bends(self, pv_name, value):
         if 'PS-BEND-' in pv_name or 'PU-SEP' in pv_name:
             idx = self._get_elements_indices(pv_name)
@@ -133,16 +115,6 @@ class TLineModel(Model):
                 self._state_deprecated = True
             return True
         return False
-
-    def set_pv_fake(self, pv_name, value):
-        if super().set_pv_fake(pv_name, value): return
-        if 'FK-RESET' in pv_name:
-            self.reset(message1='reset',message2=self._model_module.lattice_version)
-        if 'FK-INJECT' in pv_name:
-            charge = value * _u.mA * _Tp(self._accelerator)
-            self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
-        elif 'FK-DUMP' in pv_name:
-            self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
 
     # --- methods that help updating the model state
 
