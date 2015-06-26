@@ -1,4 +1,7 @@
 
+import sirius
+
+
 def get_record_names(family_name = None):
 
     if family_name == None:
@@ -14,6 +17,26 @@ def get_record_names(family_name = None):
                 'TSFK-INJECT':{},
                 'TSFK-DUMP':{},
         }
+
+        get_element_names = sirius.ts.record_names.get_element_names
+
+        # adds fake Corrector pvs for errors
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORR-'))
+        # adds fake BEND pvs for errors
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORR-'))
+        # adds fake SEP pvs for errors
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORR-'))
+        #adds fake QUAD pvs for errors
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORR-'))
+
         return _dict
 
     else:

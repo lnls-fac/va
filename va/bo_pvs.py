@@ -49,7 +49,7 @@ for p in di:
     elif 'DI-BPM' in p:
         if 'FAM-X' in p:
             database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-X')]['bpm'])}
-        if 'FAM-Y' in p:
+        elif 'FAM-Y' in p:
             database[p] = {'type' : 'float', 'count': len(all_record_names[subsys('DI-BPM-FAM-Y')]['bpm'])}
         else:
             database[p] = {'type' : 'float', 'count': 2}

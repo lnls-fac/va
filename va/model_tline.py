@@ -31,12 +31,16 @@ class TLineModel(Model):
     def get_pv_static(self, pv_name):
         # process global parameters
         if '-BPM-' in pv_name:
+            charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            try:
-                pos = self._orbit[[0,2],idx[0]]
-            except:
-                pos = UNDEF_VALUE, UNDEF_VALUE
-            return pos
+            if 'FAM-X' in pv_name:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                return self._orbit[0,idx]
+            elif 'FAM-Y' in pv_name:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                return self._orbit[2,idx]
+            else:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
         elif 'PS-CH' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
@@ -99,7 +103,7 @@ class TLineModel(Model):
             kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
-                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
                 self._state_deprecated = True
             return True
 
@@ -109,7 +113,7 @@ class TLineModel(Model):
             kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
             prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
             if value != prev_value:
-                pyaccel.lattice.setattributelat(self._accelerator, kickfield, idx, value/nr_segs)
+                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
                 self._state_deprecated = True
             return True
         return False  # [pv is not a corrector]
