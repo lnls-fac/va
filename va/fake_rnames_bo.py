@@ -13,9 +13,9 @@ def get_record_names(family_name = None):
 
     if family_name.lower() == 'bofk':
         _dict = {
-                'BOFK-RESET':{},
-                'BOFK-INJECT':{},
-                'BOFK-DUMP':{},
+                # 'BOFK-RESET':{},
+                # 'BOFK-INJECT':{},
+                # 'BOFK-DUMP':{},
         }
 
         get_element_names = sirius.bo.record_names.get_element_names

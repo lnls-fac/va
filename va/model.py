@@ -30,7 +30,7 @@ class Model(object):
         self._log = log_func
         self._all_pvs = all_pvs
 
-    # --- methods implementing response of model to get and set requests
+    # --- methods implementing response of model to get requests
 
     def get_pv(self, pv_name):
         value = self.get_pv_dynamic(pv_name)
@@ -45,9 +45,6 @@ class Model(object):
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
 
-    def set_pv(self, pv_name, value):
-        return None
-
     def get_pv_dynamic(self, pv_name):
         return None
 
@@ -55,6 +52,24 @@ class Model(object):
         return None
 
     def get_pv_fake(self, pv_name):
+        if '-ERRORX' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            return error
+        if '-ERRORY' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            return error
+        if '-ERRORR' in pv_name:
+            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+            error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
+            return error
+        else:
+            return None
+
+    # --- methods implementing response of model to set requests
+
+    def set_pv(self, pv_name, value):
         return None
 
     def set_pv_fake(self, pv_name, value):

@@ -13,9 +13,9 @@ def get_record_names(family_name = None):
 
     if family_name.lower() == 'tbfk':
         _dict = {
-                'TBFK-RESET':{},
-                'TBFK-INJECT':{},
-                'TBFK-DUMP':{},
+                # 'TBFK-RESET':{},
+                # 'TBFK-INJECT':{},
+                # 'TBFK-DUMP':{},
         }
 
         get_element_names = sirius.tb.record_names.get_element_names

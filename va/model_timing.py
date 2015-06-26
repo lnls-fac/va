@@ -12,7 +12,7 @@ class TimingModel(Model):
         super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
         self.reset('start')
 
-    # --- methods implementing response of model to get and set requests
+    # --- methods implementing response of model to get requests
 
     def get_pv_static(self, pv_name):
         if 'CYCLE' in pv_name:
@@ -45,6 +45,8 @@ class TimingModel(Model):
         #     return self._delay_bo2si
         else:
             return None
+
+    # --- methods implementing response of model to set requests
 
     def set_pv(self, pv_name, value):
         if 'CYCLE' in pv_name:
