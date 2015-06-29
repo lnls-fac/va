@@ -341,6 +341,9 @@ class RingModel(Model):
         if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
         if self._summary is None: return
+
+        loss_fraction = self._calc_first_turns_loss_fraction()
+
         init_charge = self._beam_charge.value
         self._beam_charge.inject(delta_charge)
         final_charge = self._beam_charge.value
@@ -492,6 +495,10 @@ class RingModel(Model):
 
     def _get_equilibrium_at_maximum_energy(self):
         return None
+
+    def _calc_first_turns_loss_fraction(self):
+        twiss_at_tb_exit, natural_emittance, natural_energy_spread, coupling = self._get_parameters_from_upstream_accelerator()
+        return 0.0
 
     def _init_families_str(self):
         rnames = self._record_names

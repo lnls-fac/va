@@ -123,10 +123,14 @@ class TLineModel(Model):
             #print('tline update_state: ',self._model_module.lattice_version)
             parms = self._get_parameters_from_upstream_accelerator()
             if parms is not None:
-                init_twiss, natural_emittance, natural_energy_spread, coupling = parms[:4]
+                #print(parms)
+                init_twiss = parms['twiss_at_entrance']
+                emittance = parms['emittance']
+                energy_spread = parms['energy_spread']
+                global_coupling = parms['global_coupling']
                 self._calc_orbit(init_twiss)
                 self._calc_linear_optics(init_twiss)
-                self._calc_beam_size(natural_emittance, natural_energy_spread, coupling)
+                self._calc_beam_size(emittance, energy_spread, global_coupling)
                 self._calc_loss_fraction()
             self._state_deprecated = False
 
@@ -169,6 +173,16 @@ class TLineModel(Model):
         return charge
 
     # --- auxilliary methods
+
+    def _get_twiss(self, index):
+        self.update_state()
+        if isinstance(index, str):
+            if index == 'end':
+                return self._twiss[-1]
+            elif index == 'begin':
+                return self._twiss[0]
+        else:
+            return self._twiss[index]
 
     def _get_parameters_from_upstream_accelerator(self):
         """Return initial Twiss parameters to be tracked"""
