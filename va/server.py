@@ -7,12 +7,12 @@ from pcaspy import SimpleServer
 import va.driver as pcasdriver
 #import va.model as models
 import va.sirius_models as models
-import va.li_pvs as li_pvs
-import va.tb_pvs as tb_pvs
-import va.bo_pvs as bo_pvs
-import va.ts_pvs as ts_pvs
-import va.si_pvs as si_pvs
-import va.ti_pvs as ti_pvs
+import va.pvs_li as pvs_li
+import va.pvs_tb as pvs_tb
+import va.pvs_bo as pvs_bo
+import va.pvs_ts as pvs_ts
+import va.pvs_si as pvs_si
+import va.pvs_ti as pvs_ti
 import va.utils as utils
 import va
 
@@ -44,16 +44,15 @@ def handle_signal(signum, frame):
     stop_event.set()
     driver_thread.join()
 
-
 def run(prefix):
     global stop_event, driver_thread
 
-    li_pv_names = list(li_pvs.database.keys())
-    tb_pv_names = list(tb_pvs.database.keys())
-    bo_pv_names = list(bo_pvs.database.keys())
-    ts_pv_names = list(ts_pvs.database.keys())
-    si_pv_names = list(si_pvs.database.keys())
-    ti_pv_names = list(ti_pvs.database.keys())
+    li_pv_names = list(pvs_li.get_database().keys())
+    tb_pv_names = list(pvs_tb.get_database().keys())
+    bo_pv_names = list(pvs_bo.get_database().keys())
+    ts_pv_names = list(pvs_ts.get_database().keys())
+    si_pv_names = list(pvs_si.get_database().keys())
+    ti_pv_names = list(pvs_ti.get_database().keys())
 
     utils.print_banner(prefix,
                       li_pv_names = li_pv_names,
@@ -63,22 +62,22 @@ def run(prefix):
                       si_pv_names = si_pv_names,
                       ti_pv_names = ti_pv_names)
 
-    li = models.LiModel(all_pvs=li_pvs.all_record_names)
-    tb = models.TbModel(all_pvs=tb_pvs.all_record_names)
-    bo = models.BoModel(all_pvs=bo_pvs.all_record_names)
-    ts = models.TsModel(all_pvs=ts_pvs.all_record_names)
-    si = models.SiModel(all_pvs=si_pvs.all_record_names)
-    ti = models.TiModel(all_pvs=ti_pvs.all_record_names)
+    li = models.LiModel(all_pvs=pvs_li.get_all_record_names())
+    tb = models.TbModel(all_pvs=pvs_tb.get_all_record_names())
+    bo = models.BoModel(all_pvs=pvs_bo.get_all_record_names())
+    ts = models.TsModel(all_pvs=pvs_ts.get_all_record_names())
+    si = models.SiModel(all_pvs=pvs_si.get_all_record_names())
+    ti = models.TiModel(all_pvs=pvs_ti.get_all_record_names())
 
     stop_event = threading.Event()
 
     pvs_database = {}
-    pvs_database.update(li_pvs.database)
-    pvs_database.update(tb_pvs.database)
-    pvs_database.update(bo_pvs.database)
-    pvs_database.update(ts_pvs.database)
-    pvs_database.update(si_pvs.database)
-    pvs_database.update(ti_pvs.database)
+    pvs_database.update(pvs_li.get_database())
+    pvs_database.update(pvs_tb.get_database())
+    pvs_database.update(pvs_bo.get_database())
+    pvs_database.update(pvs_ts.get_database())
+    pvs_database.update(pvs_si.get_database())
+    pvs_database.update(pvs_ti.get_database())
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)

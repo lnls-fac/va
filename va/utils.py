@@ -34,8 +34,6 @@ def print_banner(prefix, li_pv_names=None,
         print(c(r"                  ",'white') + " | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
     print(r"")
 
-
-
 def log(message1='', message2='', c='white', a=None):
     t0 = time.time()
     st = datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
@@ -47,6 +45,7 @@ def log(message1='', message2='', c='white', a=None):
     strt = strt + ': ' + str1 + ' ' + str2
     print(strt)
     #return strt + ': ' + str1 + ' ' + str2
+
 
 class BeamCharge:
 
@@ -65,7 +64,6 @@ class BeamCharge:
         self._touschek_coefficient = touschek_coefficient
         self._timestamp = time.time()
         self._accumulated_value = 0.0
-
 
     def get_lifetimes(self):
         return [self._elastic_lifetime, self._inelastic_lifetime, self._quantum_lifetime, self._touschek_coefficient]
@@ -123,7 +121,6 @@ class BeamCharge:
         # updates timestamp
         self._timestamp = t1
         return self._charge[:]
-
 
     @property
     def total_value(self):

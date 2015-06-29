@@ -1,12 +1,12 @@
 
 import queue
 from pcaspy import Driver
-import va.li_pvs as li_pvs
-import va.tb_pvs as tb_pvs
-import va.bo_pvs as bo_pvs
-import va.ts_pvs as ts_pvs
-import va.si_pvs as si_pvs
-import va.ti_pvs as ti_pvs
+import va.pvs_li as pvs_li
+import va.pvs_tb as pvs_tb
+import va.pvs_bo as pvs_bo
+import va.pvs_ts as pvs_ts
+import va.pvs_si as pvs_si
+import va.pvs_ti as pvs_ti
 import va.utils as utils
 
 
@@ -45,24 +45,24 @@ class PCASDriver(Driver):
         if self.si_model: self.si_model._driver = self
         if self.ti_model: self.ti_model._driver = self
 
-        self.read_only_pvs  = li_pvs.read_only_pvs + \
-                              tb_pvs.read_only_pvs +\
-                              bo_pvs.read_only_pvs + \
-                              ts_pvs.read_only_pvs + \
-                              si_pvs.read_only_pvs + \
-                              ti_pvs.read_only_pvs
-        self.read_write_pvs = li_pvs.read_write_pvs + \
-                              tb_pvs.read_write_pvs + \
-                              bo_pvs.read_write_pvs + \
-                              ts_pvs.read_write_pvs + \
-                              si_pvs.read_write_pvs + \
-                              ti_pvs.read_write_pvs
-        self.dynamic_pvs    = li_pvs.dynamic_pvs + \
-                              tb_pvs.dynamic_pvs + \
-                              bo_pvs.dynamic_pvs + \
-                              ts_pvs.dynamic_pvs + \
-                              si_pvs.dynamic_pvs + \
-                              ti_pvs.dynamic_pvs
+        self.read_only_pvs  = pvs_li.get_read_only_pvs() + \
+                              pvs_tb.get_read_only_pvs() +\
+                              pvs_bo.get_read_only_pvs() + \
+                              pvs_ts.get_read_only_pvs() + \
+                              pvs_si.get_read_only_pvs() + \
+                              pvs_ti.get_read_only_pvs()
+        self.read_write_pvs = pvs_li.get_read_write_pvs() + \
+                              pvs_tb.get_read_write_pvs() + \
+                              pvs_bo.get_read_write_pvs() + \
+                              pvs_ts.get_read_write_pvs() + \
+                              pvs_si.get_read_write_pvs() + \
+                              pvs_ti.get_read_write_pvs()
+        self.dynamic_pvs    = pvs_li.get_dynamical_pvs() + \
+                              pvs_tb.get_dynamical_pvs() + \
+                              pvs_bo.get_dynamical_pvs() + \
+                              pvs_ts.get_dynamical_pvs() + \
+                              pvs_si.get_dynamical_pvs() + \
+                              pvs_ti.get_dynamical_pvs()
 
     def read(self, reason):
         utils.log('read',reason,c='yellow')
@@ -142,91 +142,91 @@ class PCASDriver(Driver):
 
         # linac
         if self.li_changed:
-            for pv in li_pvs.read_only_pvs + li_pvs.dynamic_pvs:
+            for pv in pvs_li.get_read_only_pvs() + pvs_li.get_dynamical_pvs():
                 value = self.li_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in li_pvs.dynamic_pvs:
+            for pv in pvs_li.get_dynamical_pvs():
                 value = self.li_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # linac-to-booster transport line
         if self.tb_changed:
-            for pv in tb_pvs.read_only_pvs + tb_pvs.dynamic_pvs:
+            for pv in pvs_tb.get_read_only_pvs() + pvs_tb.get_dynamical_pvs():
                 value = self.tb_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in tb_pvs.dynamic_pvs:
+            for pv in pvs_tb.get_dynamical_pvs():
                 value = self.tb_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # booster
         if self.bo_changed:
-            for pv in bo_pvs.read_only_pvs + bo_pvs.dynamic_pvs:
+            for pv in pvs_bo.get_read_only_pvs() + pvs_bo.get_dynamical_pvs():
                 value = self.bo_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in bo_pvs.dynamic_pvs:
+            for pv in pvs_bo.get_dynamical_pvs():
                 value = self.bo_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # booster-to-storage ring transport line
         if self.ts_changed:
-            for pv in ts_pvs.read_only_pvs + ts_pvs.dynamic_pvs:
+            for pv in pvs_ts.get_read_only_pvs() + pvs_ts.get_dynamical_pvs():
                 value = self.ts_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in ts_pvs.dynamic_pvs:
+            for pv in pvs_ts.get_dynamical_pvs():
                 value = self.ts_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # sirius
         if self.si_changed:
-            for pv in si_pvs.read_only_pvs + si_pvs.dynamic_pvs:
+            for pv in pvs_si.get_read_only_pvs() + pvs_si.get_dynamical_pvs():
                 value = self.si_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in si_pvs.dynamic_pvs:
+            for pv in pvs_si.get_dynamical_pvs():
                 value = self.si_model.get_pv(pv)
                 self.setParam(pv, value)
 
         # timing
         if self.ti_changed:
-            for pv in ti_pvs.read_only_pvs + ti_pvs.dynamic_pvs:
+            for pv in pvs_ti.get_read_only_pvs() + pvs_ti.get_dynamical_pvs():
                 value = self.ti_model.get_pv(pv)
                 self.setParam(pv, value)
         else:
-            for pv in ti_pvs.dynamic_pvs:
+            for pv in pvs_ti.get_dynamical_pvs():
                 value = self.ti_model.get_pv(pv)
                 self.setParam(pv, value)
 
     def init_sp_pv_values(self):
         utils.log('init', 'epics sp memory for LI pvs')
-        for pv in li_pvs.read_write_pvs:
+        for pv in pvs_li.get_read_write_pvs():
             value = self.li_model.get_pv(pv)
             self.setParam(pv, value)
 
         utils.log('init', 'epics sp memory for TB pvs')
-        for pv in tb_pvs.read_write_pvs:
+        for pv in pvs_tb.get_read_write_pvs():
             value = self.tb_model.get_pv(pv)
             self.setParam(pv, value)
 
         utils.log('init', 'epics sp memory for BO pvs')
-        for pv in bo_pvs.read_write_pvs:
+        for pv in pvs_bo.get_read_write_pvs():
             value = self.bo_model.get_pv(pv)
             self.setParam(pv, value)
 
         utils.log('init', 'epics sp memory for TS pvs')
-        for pv in ts_pvs.read_write_pvs:
+        for pv in pvs_ts.get_read_write_pvs():
             value = self.ts_model.get_pv(pv)
             self.setParam(pv, value)
 
         utils.log('init', 'epics sp memory for SI pvs')
-        for pv in si_pvs.read_write_pvs:
+        for pv in pvs_si.get_read_write_pvs():
             value = self.si_model.get_pv(pv)
             self.setParam(pv, value)
 
         utils.log('init', 'epics sp memory for TI pvs')
-        for pv in ti_pvs.read_write_pvs:
+        for pv in pvs_ti.get_read_write_pvs():
             value = self.ti_model.get_pv(pv)
             self.setParam(pv, value)
