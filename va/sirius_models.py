@@ -95,6 +95,7 @@ class SiModel(RingModel):
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._init_families_str()
+        self._init_magnets_and_power_supplies()
         self._calc_lifetimes()
 
     def notify_driver(self):

@@ -234,6 +234,10 @@ class SextupoleMagnet(Magnet):
 
 class CorrectorMagnet(Magnet):
 
+    def __init__(self, accelerator, indices, exc_curve_filename, value=0.0):
+        super().__init__(accelerator, indices, exc_curve_filename, value)
+        self._pass_method = self._accelerator[indices[0]].pass_method
+
     @property
     def value(self):
         """Get integrated field [T·m]"""
@@ -274,7 +278,6 @@ class HorizontalCorrectorMagnet(CorrectorMagnet):
         super().__init__(accelerator, indices, exc_curve_filename, value)
         self._kick = 'hkick'
         self._polynom = 'polynom_b'
-        self._pass_method = self._accelerator[indices[0]].pass_method
 
 
 class VerticalCorrectorMagnet(CorrectorMagnet):
@@ -283,7 +286,6 @@ class VerticalCorrectorMagnet(CorrectorMagnet):
         super().__init__(accelerator, indices, exc_curve_filename, value)
         self._kick = 'vkick'
         self._polynom = 'polynom_a'
-        self._pass_method = self._accelerator[indices[0]].pass_method
 
 
 class PowerSupply(object):

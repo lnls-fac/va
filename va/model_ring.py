@@ -1,10 +1,11 @@
 
-from va.model import Model, TRACK6D, VCHAMBER, UNDEF_VALUE, _u
-import va.utils as utils
-import pyaccel
-import numpy
-import mathphys
+import os
 import math
+import numpy
+import pyaccel
+import mathphys
+import va.utils as utils
+from va.model import Model, TRACK6D, VCHAMBER, UNDEF_VALUE, _u
 
 
 class RingModel(Model):
@@ -508,3 +509,44 @@ class RingModel(Model):
                         print(idx)
                         raise Exception('problem!')
                     self._sext_families_str[pv_name] = value
+
+    def _init_magnets_and_power_supplies(self):
+        accelerator = self._accelerator
+        accelerator_data = self._model_module.accelerator_data
+        magnet_names = self._model_module.record_names.get_magnet_names()
+        family_mapping = self._model_module.family_mapping
+        excitation_curve_mapping = self._model_module.excitation_curves.get_excitation_curve_mapping()
+        _, ps2magnet = self._model_module.power_supplies.get_magnet_mapping()
+
+        self._magnets = dict()
+        for magnet_name in magnet_names.keys():
+            excitation_curve = excitation_curve_mapping[magnet_name]
+            try:
+                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], excitation_curve)
+            except:
+                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found') # Fix
+
+            family, indices = magnet_names[magnet_name].popitem()
+            family_type = family_mapping[family]
+            if family_type == 'quadrupole':
+                magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
+            elif family_type == 'sextupole':
+                magnet = utils.SextupoleMagnet(accelerator, indices, filename)
+            elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector'):
+                magnet = utils.HorizontalCorrectorMagnet(accelerator, indices, filename)
+            elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector'):
+                magnet = utils.VerticalCorrectorMagnet(accelerator, indices, filename)
+            else:
+                magnet = None
+            # Add skew and fast corrector
+
+            if magnet is not None:
+                self._magnets[magnet_name] = magnet
+
+        self._power_supplies = dict()
+        for ps_name in ps2magnet.keys():
+            magnets = set()
+            for magnet_name in ps2magnet[ps_name]:
+                if magnet_name in self._magnets:
+                    magnets.add(self._magnets[magnet_name])
+            self._power_supplies[ps_name] = utils.PowerSupply(magnets)
