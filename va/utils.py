@@ -151,9 +151,14 @@ class BeamCharge:
 
 class Magnet(object):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, value=0.0):
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Magnet with power supplies
+
+        Reads current from power supplies and set Accelerator elements fields
+        using value converted using excitation curve."""
         self._power_supplies = set()
         self._accelerator = accelerator
+
         if isinstance(indices, int):
             self._indices = [indices]
         else:
@@ -162,7 +167,7 @@ class Magnet(object):
         for i in self._indices:
             length += self._accelerator[i].length
         self._length = length
-        self._value = value
+
         self._load_excitation_curve(exc_curve_filename)
 
     def add_power_supply(self, power_supply):
@@ -175,11 +180,40 @@ class Magnet(object):
         new_value = numpy.interp(current, self._i, self._f)
         self.value = new_value
 
+    @property
+    def value(self):
+        return self._get_value
+
+    @value.setter
+    def value(self, integrated_field):
+        """Set integrated field
+
+        If element is segmented, all segments are assigned the same polynom
+        value.
+        """
+        self._set_value(integrated_field)
+
+    def _get_value(self):
+        for i in self._indices:
+            polynom = getattr(self._accelerator[i], self._polynom)
+            v += polynom[self._polynom_index]*self._accelerator[i].length
+
+    def _set_value(self, integrated_field):
+        field = integrated_field/(self._length*self._accelerator.brho)
+        for i in self._indices:
+            polynom = getattr(self._accelerator[i], self._polynom)
+            polynom[self._polynom_index] = field
+            print('Class', self.__class__)
+            print('    integrated field', integrated_field)
+            print('    brho', self._accelerator.brho)
+            print('    polynom_b', getattr(self._accelerator[i], self._polynom))
+            print('    length', self._length)
+
     def _load_excitation_curve(self, filename):
         try:
             data = numpy.loadtxt(filename)
         except FileNotFoundError:
-            # Default conversion table: y = x
+            # Default conversion table: F = I/2
             data = numpy.array([[-1000, 1000], [-500, 500]]).transpose()
         self._i = data[:, 0]
         self._f = data[:, 1]
@@ -187,76 +221,41 @@ class Magnet(object):
 
 class QuadrupoleMagnet(Magnet):
 
-    @property
-    def value(self):
-        """Get integrated gradient [T]"""
-        v = 0.0
-        for i in self._indices:
-            v += self._accelerator[i].polynom_b[1]*self._accelerator[i].length
-
-        integrated_gradient = v*self._accelerator.brho
-        return integrated_gradient
-
-    @value.setter
-    def value(self, integrated_gradient):
-        """Set integrated gradient [T]
-
-        If element is segmented, all segments are assigned the same K.
-        """
-        k = integrated_gradient / (self._length*self._accelerator.brho)
-        for i in self._indices:
-            self._accelerator[i].polynom_b[1] = k
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._polynom = 'polynom_b'
+        self._polynom_index = 1
 
 
 class SextupoleMagnet(Magnet):
 
-    @property
-    def value(self):
-        """Get integrated gradient [T/m]
-
-        (SL) = (B''L)/2
-        """
-        v = 0.0
-        for i in self._indices:
-            v += self._accelerator[i].polynom_b[2]*self._accelerator[i].length
-
-        integrated_gradient = v*self._accelerator.brho
-        return integrated_gradient
-
-    @value.setter
-    def value(self, integrated_gradient):
-        """Set integrated gradient [T/m]
-
-        (SL) = (B''L)/2
-
-        If element is segmented, all segments are assigned the same S.
-        """
-        s = integrated_gradient / (self._length*self._accelerator.brho)
-        for i in self._indices:
-            self._accelerator[i].polynom_b[2] = s
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T/m]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._polynom = 'polynom_b'
+        self._polynom_index = 2
 
 
 class CorrectorMagnet(Magnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, value=0.0):
-        super().__init__(accelerator, indices, exc_curve_filename, value)
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T·m]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._polynom_index = 0
         self._pass_method = self._accelerator[indices[0]].pass_method
 
     @property
     def value(self):
         """Get integrated field [T·m]"""
-        v = 0.0
-        if self._pass_method == 'corrector_pass':
+        if self._pass_method != 'corrector_pass':
+            return self._get_value()
+        else:
+            v = 0.0
             for i in self._indices:
                 v += getattr(self._accelerator[i], self._kick)
-        else:
-            for i in self._indices:
-                polynom = getattr(self._accelerator[i], self._polynom)
-                v += polynom[0]*self._accelerator[i].length
-
-        integrated_field = v*self._accelerator.brho
-
-        return integrated_field
+            integrated_field = v*self._accelerator.brho
+            return integrated_field
 
     @value.setter
     def value(self, integrated_field):
@@ -264,60 +263,48 @@ class CorrectorMagnet(Magnet):
 
         If element is segmented, all segments are assigned the same B.
         """
-        if self._pass_method == 'corrector_pass':
+        if self._pass_method != 'corrector_pass':
+            self._set_value(integrated_field)
+        else:
             total_kick = integrated_field/self._accelerator.brho
             for i in self._indices:
                 kick = total_kick*self._accelerator[i].length/self._length
                 setattr(self._accelerator[i], self._kick, kick)
-        else:
-            field = integrated_field/(self._length*self._accelerator.brho)
-            for i in self._indices:
-                polynom = getattr(self._accelerator[i], self._polynom)
-                polynom[0] = field
 
 
 class HorizontalCorrectorMagnet(CorrectorMagnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, value=0.0):
-        super().__init__(accelerator, indices, exc_curve_filename, value)
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T·m]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
         self._kick = 'hkick'
         self._polynom = 'polynom_b'
 
 
 class VerticalCorrectorMagnet(CorrectorMagnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, value=0.0):
-        super().__init__(accelerator, indices, exc_curve_filename, value)
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T·m]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
         self._kick = 'vkick'
         self._polynom = 'polynom_a'
 
 
 class SkewQuadrupoleMagnet(Magnet):
 
-    @property
-    def value(self):
-        """Get integrated gradient [T]"""
-        v = 0.0
-        for i in self._indices:
-            v += self._accelerator[i].polynom_a[1]*self._accelerator[i].length
-
-        integrated_gradient = v*self._accelerator.brho
-        return integrated_gradient
-
-    @value.setter
-    def value(self, integrated_gradient):
-        """Set integrated gradient [T]
-
-        If element is segmented, all segments are assigned the same K.
-        """
-        k = integrated_gradient / (self._length*self._accelerator.brho)
-        for i in self._indices:
-            self._accelerator[i].polynom_a[1] = k
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._polynom = 'polynom_a'
+        self._polynom_index = 1
 
 
 class PowerSupply(object):
 
     def __init__(self, magnets, current=0.0):
+        """Gets and sets current [A]
+
+        Connected magnets are processed after current is set."""
         self._magnets = magnets
         self._current = current
         for magnet in magnets:
