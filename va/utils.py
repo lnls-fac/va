@@ -182,7 +182,7 @@ class Magnet(object):
 
     @property
     def value(self):
-        return self._get_value
+        return self._get_value()
 
     @value.setter
     def value(self, integrated_field):
@@ -193,10 +193,18 @@ class Magnet(object):
         """
         self._set_value(integrated_field)
 
+    @property
+    def current(self):
+        return numpy.interp(self.value, self._f, self._i)
+
     def _get_value(self):
+        v = 0.0
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
             v += polynom[self._polynom_index]*self._accelerator[i].length
+
+        integrated_field = v*self._accelerator.brho
+        return integrated_field
 
     def _set_value(self, integrated_field):
         field = integrated_field/(self._length*self._accelerator.brho)
@@ -208,6 +216,7 @@ class Magnet(object):
             print('    brho', self._accelerator.brho)
             print('    polynom_b', getattr(self._accelerator[i], self._polynom))
             print('    length', self._length)
+            print('    current', self.current)
 
     def _load_excitation_curve(self, filename):
         try:
@@ -243,7 +252,7 @@ class CorrectorMagnet(Magnet):
         """Gets and sets integrated field [T·m]"""
         super().__init__(accelerator, indices, exc_curve_filename)
         self._polynom_index = 0
-        self._pass_method = self._accelerator[indices[0]].pass_method
+        self._pass_method = self._accelerator[self._indices[0]].pass_method
 
     @property
     def value(self):
@@ -301,12 +310,13 @@ class SkewQuadrupoleMagnet(Magnet):
 
 class PowerSupply(object):
 
-    def __init__(self, magnets, current=0.0):
+    def __init__(self, magnets): #, current=0.0):
         """Gets and sets current [A]
 
-        Connected magnets are processed after current is set."""
+        Connected magnets are processed after current is set.
+        """
         self._magnets = magnets
-        self._current = current
+        # self._current = current
         for magnet in magnets:
             magnet.add_power_supply(self)
 
@@ -319,3 +329,26 @@ class PowerSupply(object):
         self._current = value
         for magnet in self._magnets:
             magnet.process()
+
+
+class FamilyPowerSupply(PowerSupply):
+
+    def __init__(self, magnets, current=None):
+        """Initialises current from average integrated field in magnets"""
+        super().__init__(magnets)
+        if (current is None) and (len(magnets) > 0):
+            total_current = 0.0
+            n = 0
+            for magnet in magnets:
+                total_current += magnet.current
+                n += 1
+            self._current = total_current/n
+        else:
+            self._current = 0.0
+
+
+class IndividualPowerSupply(PowerSupply):
+
+    def __init__(self, magnets, current = 0.0):
+        super().__init__(magnets)
+        self._current = 0.0

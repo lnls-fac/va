@@ -62,51 +62,7 @@ class RingModel(Model):
         elif 'DI-TUNES' in pv_name:
             return UNDEF_VALUE
         elif 'PS-' in pv_name:
-            return self._power_supplies[pv_name]
-        # elif 'PS-CH' in pv_name:
-        #     idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-        #     kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-        #     kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-        #     value = sum(kicks)
-        #     return value
-        # elif 'PS-CV' in pv_name:
-        #     idx = self._get_elements_indices(pv_name)
-        #     kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-        #     kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-        #     value = sum(kicks)
-        #     return value
-        # elif 'PS-QS' in pv_name:
-        #     idx = self._get_elements_indices(pv_name)
-        #     while not isinstance(idx, int): idx = idx[0]
-        #     value = self._accelerator[idx].polynom_a[1]
-        #     return value
-        # elif 'PS-Q' in pv_name:
-        #     if '-FAM' in pv_name:
-        #         value = self._quad_families_str[pv_name]
-        #         return value
-        #     else:
-        #         idx = self._get_elements_indices(pv_name)
-        #         pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
-        #         try:
-        #             family_value = self._quad_families_str[pv_fam]
-        #         except:
-        #             family_value = 0.0
-        #         #print(family_value)
-        #         value = self._accelerator[idx[0]].polynom_b[1] - family_value
-        #         return value
-        # elif 'PS-S' in pv_name:
-        #     if '-FAM' in pv_name:
-        #         value = self._sext_families_str[pv_name]
-        #         return value
-        #     else:
-        #         idx = self._get_elements_indices(pv_name)
-        #         pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
-        #         try:
-        #             family_value = self._sext_families_str[pv_fam]
-        #         except:
-        #             family_value = 0.0
-        #         value = self._accelerator[idx[0]].polynom_b[2] - family_value
-        #         return value
+            return self._power_supplies[pv_name].current
         # elif 'PS-BEND' in pv_name:
         #     return self._accelerator.energy
         elif 'RF-FREQUENCY' in pv_name:
@@ -425,6 +381,7 @@ class RingModel(Model):
                 filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found')
 
             family, indices = magnet_names[magnet_name].popitem()
+            indices = indices[0]
             family_type = family_mapping[family]
             if family_type == 'quadrupole':
                 magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
@@ -449,4 +406,8 @@ class RingModel(Model):
             for magnet_name in ps2magnet[ps_name]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            self._power_supplies[ps_name] = utils.PowerSupply(magnets)
+            if '-FAM' in ps_name:
+                power_supply = utils.FamilyPowerSupply(magnets)
+            else:
+                power_supply = utils.IndividualPowerSupply(magnets)
+            self._power_supplies[ps_name] = power_supply
