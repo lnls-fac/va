@@ -61,52 +61,54 @@ class RingModel(Model):
             return tune_value
         elif 'DI-TUNES' in pv_name:
             return UNDEF_VALUE
-        elif 'PS-CH' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-            value = sum(kicks)
-            return value
-        elif 'PS-CV' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-            value = sum(kicks)
-            return value
-        elif 'PS-QS' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            while not isinstance(idx, int): idx = idx[0]
-            value = self._accelerator[idx].polynom_a[1]
-            return value
-        elif 'PS-Q' in pv_name:
-            if '-FAM' in pv_name:
-                value = self._quad_families_str[pv_name]
-                return value
-            else:
-                idx = self._get_elements_indices(pv_name)
-                pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
-                try:
-                    family_value = self._quad_families_str[pv_fam]
-                except:
-                    family_value = 0.0
-                #print(family_value)
-                value = self._accelerator[idx[0]].polynom_b[1] - family_value
-                return value
-        elif 'PS-S' in pv_name:
-            if '-FAM' in pv_name:
-                value = self._sext_families_str[pv_name]
-                return value
-            else:
-                idx = self._get_elements_indices(pv_name)
-                pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
-                try:
-                    family_value = self._sext_families_str[pv_fam]
-                except:
-                    family_value = 0.0
-                value = self._accelerator[idx[0]].polynom_b[2] - family_value
-                return value
-        elif 'PS-BEND' in pv_name:
-            return self._accelerator.energy
+        elif 'PS-' in pv_name:
+            return self._power_supplies[pv_name]
+        # elif 'PS-CH' in pv_name:
+        #     idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
+        #     kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
+        #     kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
+        #     value = sum(kicks)
+        #     return value
+        # elif 'PS-CV' in pv_name:
+        #     idx = self._get_elements_indices(pv_name)
+        #     kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
+        #     kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
+        #     value = sum(kicks)
+        #     return value
+        # elif 'PS-QS' in pv_name:
+        #     idx = self._get_elements_indices(pv_name)
+        #     while not isinstance(idx, int): idx = idx[0]
+        #     value = self._accelerator[idx].polynom_a[1]
+        #     return value
+        # elif 'PS-Q' in pv_name:
+        #     if '-FAM' in pv_name:
+        #         value = self._quad_families_str[pv_name]
+        #         return value
+        #     else:
+        #         idx = self._get_elements_indices(pv_name)
+        #         pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
+        #         try:
+        #             family_value = self._quad_families_str[pv_fam]
+        #         except:
+        #             family_value = 0.0
+        #         #print(family_value)
+        #         value = self._accelerator[idx[0]].polynom_b[1] - family_value
+        #         return value
+        # elif 'PS-S' in pv_name:
+        #     if '-FAM' in pv_name:
+        #         value = self._sext_families_str[pv_name]
+        #         return value
+        #     else:
+        #         idx = self._get_elements_indices(pv_name)
+        #         pv_fam = '-'.join(pv_name.split('-')[:-1]) + '-FAM'
+        #         try:
+        #             family_value = self._sext_families_str[pv_fam]
+        #         except:
+        #             family_value = 0.0
+        #         value = self._accelerator[idx[0]].polynom_b[2] - family_value
+        #         return value
+        # elif 'PS-BEND' in pv_name:
+        #     return self._accelerator.energy
         elif 'RF-FREQUENCY' in pv_name:
             return pyaccel.optics.get_rf_frequency(self._accelerator)
         elif 'RF-VOLTAGE' in pv_name:
@@ -142,129 +144,17 @@ class RingModel(Model):
     # --- methods implementing response of model to set requests
 
     def set_pv(self, pv_name, value):
-        if self.set_pv_correctors(pv_name, value): return
-        if self.set_pv_quadrupoles_skew(pv_name, value): return  # has to be before quadrupoles
-        if self.set_pv_quadrupoles(pv_name, value): return
-        if self.set_pv_sextupoles(pv_name, value): return
+        if self.set_pv_magnets(pv_name, value): return
         if self.set_pv_rf(pv_name, value): return
         if self.set_pv_fake(pv_name, value): return
 
-    def set_pv_correctors(self, pv_name, value):
-
-        if 'PS-CH' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            nr_segs = len(idx)
-            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
-            if value != prev_value:
-                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
-                self._state_deprecated = True
-            return True
-
-        if 'PS-CV' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            nr_segs = len(idx)
-            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
-            if value != prev_value:
-                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
-                self._state_deprecated = True
-            return True
-
-        return False  # [pv is not a corrector]
-
-    def set_pv_quadrupoles_skew(self, pv_name, value):
-        if 'PS-QS' in pv_name:
-            indices = self._get_elements_indices(pv_name)
-            prev_Ks = pyaccel.lattice.get_attribute(self._accelerator, 'polynom_a', indices, m=1)
-            if value != prev_Ks[0]:
-                for idx in indices:
-                    self._accelerator[idx].polynom_a[1] = value
-                self._state_deprecated = True
-            return True
-        return False
-
-    def set_pv_quadrupoles(self, pv_name, value):
-
-        if 'PS-Q' in pv_name:
-            if '-FAM' in pv_name:
-                # family PV
-                prev_family_value = self._quad_families_str[pv_name]
-                if value != prev_family_value:
-                    self._quad_families_str[pv_name] = value
-                    data = self._record_names[pv_name]
-                    for fam_name in data.keys():
-                        indices = data[fam_name]
-                        for idx in indices:
-                            if isinstance(idx,int): idx = [idx]
-                            for idx2 in idx:
-                                prev_total_value = self._accelerator[idx2].polynom_b[1]
-                                prev_quad_value = prev_total_value - prev_family_value
-                                new_total_value = value + prev_quad_value
-                                self._accelerator[idx2].polynom_b[1] = new_total_value
-                    self._state_deprecated = True
-            else:
-                # individual quad PV
-                idx = self._get_elements_indices(pv_name)
-                idx2 = idx
-                while not isinstance(idx2,int):
-                    idx2 = idx2[0]
-                try:
-                    fam_pv = '-'.join(pv_name.split('-')[:-1])+'-FAM'
-                    family_value = self._sext_families_str[fam_pv]
-                except:
-                    family_value = 0.0
-                prev_total_value = self._accelerator[idx2].polynom_b[1]
-                prev_quad_value = prev_total_value - family_value
-                if value != prev_quad_value:
-                    if isinstance(idx,int): idx = [idx]
-                    for i in idx:
-                        self._accelerator[i].polynom_b[1] = value + family_value
-                    self._state_deprecated = True
-            return True
-
-        return False # [pv is not a quadrupole]
-
-    def set_pv_sextupoles(self, pv_name, value):
-
-        if 'PS-S' in pv_name:
-            if '-FAM' in pv_name:
-                # family PV
-                prev_family_value = self._sext_families_str[pv_name]
-                if value != prev_family_value:
-                    self._sext_families_str[pv_name] = value
-                    data = self._record_names[pv_name]
-                    for fam_name in data.keys():
-                        indices = data[fam_name]
-                        for idx in indices:
-                            if isinstance(idx,int): idx = [idx]
-                            for idx2 in idx:
-                                prev_total_value = self._accelerator[idx2].polynom_b[2]
-                                prev_sext_value = prev_total_value - prev_family_value
-                                new_total_value = value + prev_sext_value
-                                self._accelerator[idx2].polynom_b[2] = new_total_value
-                    self._state_deprecated = True
-            else:
-                # individual sext PV
-                idx = self._get_elements_indices(pv_name)
-                idx2 = idx
-                while not isinstance(idx2,int):
-                    idx2 = idx2[0]
-                try:
-                    fam_pv = '-'.join(pv_name.split('-')[:-1])+'-FAM'
-                    family_value = self._sext_families_str[fam_pv]
-                except:
-                    family_value = 0.0
-                prev_total_value = self._accelerator[idx2].polynom_b[2]
-                prev_sext_value = prev_total_value - family_value
-                if value != prev_sext_value:
-                    if isinstance(idx,int): idx = [idx]
-                    for i in idx:
-                        self._accelerator[i].polynom_b[2] = value + family_value
-                    self._state_deprecated = True
-            return True
-
-        return False # [pv is not a sextupole]
+    def set_pv_magnets(self, pv_name, value):
+        ps = self._power_supplies[pv_name]
+        prev_value = ps.current
+        if value != prev_value:
+            ps.current = value
+            self._state_deprecated = True
+        return True
 
     def set_pv_rf(self, pv_name, value):
         if 'RF-VOLTAGE' in pv_name:
@@ -532,7 +422,7 @@ class RingModel(Model):
             try:
                 filename = os.path.join(accelerator_data['dirs']['excitation_curves'], excitation_curve)
             except:
-                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found') # Fix
+                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found')
 
             family, indices = magnet_names[magnet_name].popitem()
             family_type = family_mapping[family]
@@ -544,13 +434,15 @@ class RingModel(Model):
                 magnet = utils.HorizontalCorrectorMagnet(accelerator, indices, filename)
             elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector'):
                 magnet = utils.VerticalCorrectorMagnet(accelerator, indices, filename)
+            elif family_type == 'skew_quadrupole':
+                magnet = utils.SkewQuadrupoleMagnet(accelerator, indices, filename)
             else:
                 magnet = None
-            # Add skew and fast corrector
 
             if magnet is not None:
                 self._magnets[magnet_name] = magnet
 
+        # Set initial current values
         self._power_supplies = dict()
         for ps_name in ps2magnet.keys():
             magnets = set()

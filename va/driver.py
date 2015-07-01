@@ -79,7 +79,6 @@ class PCASDriver(Driver):
     def update_pvs(self):
         """Update model PVs, recalculate changed parameters and read them back.
         """
-
         # first process all write requests
         for i in range(self.queue.qsize()):
             pv_name, value = self.queue.get()
@@ -99,7 +98,6 @@ class PCASDriver(Driver):
 
     def set_model_parameter(self, pv_name, value):
         """Set model parameter in physical units."""
-
         if pv_name.startswith('LI'):
             self.li_changed = True
             self.li_model.set_pv(pv_name, value)
@@ -139,7 +137,6 @@ class PCASDriver(Driver):
         self.ti_model.update_state()
 
     def update_epics_from_model(self):
-
         # linac
         if self.li_changed:
             for pv in pvs_li.get_read_only_pvs() + pvs_li.get_dynamical_pvs():

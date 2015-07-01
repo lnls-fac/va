@@ -180,7 +180,7 @@ class Magnet(object):
             data = numpy.loadtxt(filename)
         except FileNotFoundError:
             # Default conversion table: y = x
-            data = numpy.array([[-1000, 1000], [-1000, 1000]]).transpose()
+            data = numpy.array([[-1000, 1000], [-500, 500]]).transpose()
         self._i = data[:, 0]
         self._f = data[:, 1]
 
@@ -265,12 +265,12 @@ class CorrectorMagnet(Magnet):
         If element is segmented, all segments are assigned the same B.
         """
         if self._pass_method == 'corrector_pass':
-            total_kick = integrated_field*self._accelerator.brho
+            total_kick = integrated_field/self._accelerator.brho
             for i in self._indices:
                 kick = total_kick*self._accelerator[i].length/self._length
                 setattr(self._accelerator[i], self._kick, kick)
         else:
-            field = integrated_field/self._length
+            field = integrated_field/(self._length*self._accelerator.brho)
             for i in self._indices:
                 polynom = getattr(self._accelerator[i], self._polynom)
                 polynom[0] = field
@@ -290,6 +290,29 @@ class VerticalCorrectorMagnet(CorrectorMagnet):
         super().__init__(accelerator, indices, exc_curve_filename, value)
         self._kick = 'vkick'
         self._polynom = 'polynom_a'
+
+
+class SkewQuadrupoleMagnet(Magnet):
+
+    @property
+    def value(self):
+        """Get integrated gradient [T]"""
+        v = 0.0
+        for i in self._indices:
+            v += self._accelerator[i].polynom_a[1]*self._accelerator[i].length
+
+        integrated_gradient = v*self._accelerator.brho
+        return integrated_gradient
+
+    @value.setter
+    def value(self, integrated_gradient):
+        """Set integrated gradient [T]
+
+        If element is segmented, all segments are assigned the same K.
+        """
+        k = integrated_gradient / (self._length*self._accelerator.brho)
+        for i in self._indices:
+            self._accelerator[i].polynom_a[1] = k
 
 
 class PowerSupply(object):

@@ -84,6 +84,7 @@ class BoModel(RingModel):
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         #self._beam_charge.inject(0.0) # [coulomb]
         self._init_families_str()
+        self._init_magnets_and_power_supplies() # Move to RingModel
         self._calc_lifetimes()
 
     def notify_driver(self):
@@ -136,14 +137,13 @@ class TsModel(TLineModel):
 class SiModel(RingModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
-
         super().__init__(sirius.si, all_pvs=all_pvs, log_func=log_func)
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._init_families_str()
-        self._init_magnets_and_power_supplies()
+        self._init_magnets_and_power_supplies() # Move to RingModel
         self._calc_lifetimes()
 
     def notify_driver(self):
