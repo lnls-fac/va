@@ -83,8 +83,7 @@ class BoModel(RingModel):
 
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         #self._beam_charge.inject(0.0) # [coulomb]
-        self._init_families_str()
-        self._init_magnets_and_power_supplies() # Move to RingModel
+        # self._init_families_str()
         self._calc_lifetimes()
 
     def notify_driver(self):
@@ -142,8 +141,7 @@ class SiModel(RingModel):
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
-        self._init_families_str()
-        self._init_magnets_and_power_supplies() # Move to RingModel
+        # self._init_families_str()
         self._calc_lifetimes()
 
     def notify_driver(self):

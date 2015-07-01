@@ -14,6 +14,7 @@ class RingModel(Model):
         # stored model state parameters
         super().__init__(model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start', model_module.lattice_version)
+        self._init_magnets_and_power_supplies() # Move to RingModel
 
     # --- methods implementing response of model to get requests
 
@@ -387,9 +388,9 @@ class RingModel(Model):
                 magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
             elif family_type == 'sextupole':
                 magnet = utils.SextupoleMagnet(accelerator, indices, filename)
-            elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector'):
+            elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
                 magnet = utils.HorizontalCorrectorMagnet(accelerator, indices, filename)
-            elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector'):
+            elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
                 magnet = utils.VerticalCorrectorMagnet(accelerator, indices, filename)
             elif family_type == 'skew_quadrupole':
                 magnet = utils.SkewQuadrupoleMagnet(accelerator, indices, filename)
