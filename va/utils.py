@@ -212,9 +212,10 @@ class Magnet(object):
             polynom = getattr(self._accelerator[i], self._polynom)
             polynom[self._polynom_index] = field
             print('Class', self.__class__)
+            print('    index', i)
             print('    integrated field', integrated_field)
             print('    brho', self._accelerator.brho)
-            print('    polynom_b', getattr(self._accelerator[i], self._polynom))
+            print('    ' + self._polynom, getattr(self._accelerator[i], self._polynom))
             print('    length', self._length)
             print('    current', self.current)
 
