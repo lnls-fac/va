@@ -64,8 +64,6 @@ class RingModel(Model):
             return UNDEF_VALUE
         elif 'PS-' in pv_name:
             return self._power_supplies[pv_name].current
-        # elif 'PS-BEND' in pv_name:
-        #     return self._accelerator.energy
         elif 'RF-FREQUENCY' in pv_name:
             return pyaccel.optics.get_rf_frequency(self._accelerator)
         elif 'RF-VOLTAGE' in pv_name:
@@ -384,7 +382,9 @@ class RingModel(Model):
             family, indices = magnet_names[magnet_name].popitem()
             indices = indices[0]
             family_type = family_mapping[family]
-            if family_type == 'quadrupole':
+            if family_type == 'dipole':
+                magnet = utils.DipoleMagnet(accelerator, indices, filename)
+            elif family_type == 'quadrupole':
                 magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
             elif family_type == 'sextupole':
                 magnet = utils.SextupoleMagnet(accelerator, indices, filename)

@@ -229,6 +229,33 @@ class Magnet(object):
         self._f = data[:, 1]
 
 
+class DipoleMagnet(Magnet):
+
+    """Gets and sets beam energy [eV]"""
+
+    @property
+    def value(self):
+        """Get beam energy [eV]"""
+        return self._accelerator.energy
+
+    @value.setter
+    def value(self, energy):
+        """Get beam energy [T·m]"""
+        self._accelerator.energy = energy
+
+    def process(self):
+        current = 0.0
+        n = len(self._power_supplies)
+        if n > 0:
+            for ps in self._power_supplies:
+                current += ps.current
+            new_value = numpy.interp(current/n, self._i, self._f)
+        else:
+            new_value = 0.0
+
+        self.value = new_value
+
+
 class QuadrupoleMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
