@@ -7,6 +7,7 @@ recalculates necessary parameters, controlling concurrent accesses coming from
 the server.
 """
 
+import math
 import pyaccel
 import va.utils as utils
 import mathphys
@@ -35,11 +36,8 @@ class Model(object):
     def get_pv(self, pv_name):
         value = self.get_pv_dynamic(pv_name)
         if value is None:
-            #print('try static: ' + pv_name + ' ', end='')
             value = self.get_pv_static(pv_name)
-            #print(value)
         if value is None:
-            #print('try fake: ' + pv_name)
             value = self.get_pv_fake(pv_name)
         if value is None:
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
@@ -108,9 +106,10 @@ class Model(object):
 
     def _transform_to_local_coordinates(self, old_pos, delta_rx, angle, delta_dl=0.0):
         C, S = math.cos(angle), math.sin(angle)
-        old_angle = math.atan(old_pos.px)
+        # old_angle = math.atan(old_pos.px)
+        old_angle = 0.0
         new_pos = [p for p in old_pos]
-        new_pos[0] =  C * old_pos[0] + S * old_pos[5]
+        new_pos[0] =  C * old_pos[0] + S * old_pos[5] + delta_rx
         new_pos[5] = -S * old_pos[0] + C * old_pos[5]
         new_pos[1] = math.tan(angle + old_angle)
         return new_pos
