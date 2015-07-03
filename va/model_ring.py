@@ -1,4 +1,5 @@
 
+import time
 import os
 import math
 import numpy
@@ -14,7 +15,7 @@ class RingModel(Model):
         # stored model state parameters
         super().__init__(model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start', model_module.lattice_version)
-        self._init_magnets_and_power_supplies() # Move to RingModel
+        self._init_magnets_and_power_supplies()
 
     # --- methods implementing response of model to get requests
 
@@ -64,8 +65,6 @@ class RingModel(Model):
             return UNDEF_VALUE
         elif 'PS-' in pv_name:
             return self._power_supplies[pv_name].current
-        # elif 'PS-BEND' in pv_name:
-        #     return self._accelerator.energy
         elif 'RF-FREQUENCY' in pv_name:
             return pyaccel.optics.get_rf_frequency(self._accelerator)
         elif 'RF-VOLTAGE' in pv_name:
@@ -87,16 +86,6 @@ class RingModel(Model):
             return UNDEF_VALUE
         else:
             return None
-
-    # def get_pv_fake(self, pv_name):
-    #     if 'FK-RESET' in pv_name:
-    #         return 0.0
-    #     elif 'FK-INJECT' in pv_name:
-    #         return 0.0
-    #     elif 'FK-DUMP' in pv_name:
-    #         return 0.0
-    #     else:
-    #         return super().get_pv_fake(pv_name)
 
     # --- methods implementing response of model to set requests
 
@@ -130,23 +119,6 @@ class RingModel(Model):
             return True
         return False
 
-    # def set_pv_fake(self, pv_name, value):
-    #     if super().set_pv_fake(pv_name, value): return
-    #     if 'FK-RESET' in pv_name:
-    #         print('set fk reset')
-    #         self.reset(message1='reset',message2=self._model_module.lattice_version)
-    #         return True
-    #     elif 'FK-INJECT' in pv_name:
-    #         print('set fk inject')
-    #         charge = value * _u.mA * _Tp(self._accelerator)
-    #         self.beam_inject(charge, message1='inject', message2 = str(value)+' mA', c='green')
-    #         return True
-    #     elif 'FK-DUMP' in pv_name:
-    #         print('set fk dump')
-    #         self.beam_dump(message1='dump',message2='beam at ' + self._model_module.lattice_version)
-    #         return True
-    #     return False
-
     # --- methods that help updating the model state
 
     def update_state(self, force=False):
@@ -157,6 +129,35 @@ class RingModel(Model):
             self._calc_lifetimes()
             self._state_deprecated = False
 
+        if force and self._model_module.lattice_version.startswith('BO'):
+            # we need to check deprecation of other models on which booster depends
+
+            # injection
+            inj_parms = self._get_parameters_from_upstream_accelerator()
+            inj_emittance = inj_parms['emittance']
+            inj_energy_spread = inj_parms['energy_spread']
+            inj_init_twiss = inj_parms['twiss_at_entrance']
+
+            self._kickin_on()
+            self._calc_injection_loss_fraction(inj_emittance, inj_energy_spread, inj_init_twiss)
+            self._kickin_off()
+
+            # acceleration
+            self._calc_acceleration_loss_fraction()
+
+            # ejection
+            ext_parms = self._get_equilibrium_at_maximum_energy()
+            ext_emittance = ext_parms['emittance']
+            ext_energy_spread = ext_parms['energy_spread']
+            ext_coupling = ext_parms['global_coupling']
+            ext_init_twiss = self._twiss[self._kickex_idx[0]]
+
+            self._kickex_on()
+            self._calc_ejection_twiss(ext_init_twiss)
+            self._calc_ejection_beam_size(ext_emittance, ext_energy_spread, ext_coupling)
+            self._calc_ejection_loss_fraction()
+            self._kickex_off()
+
     def reset(self, message1='reset', message2='', c='white', a=None):
         if self._all_pvs is None:
             self._record_names = self._model_module.record_names.get_record_names()
@@ -164,10 +165,7 @@ class RingModel(Model):
             self._record_names = self._all_pvs
         self._accelerator = self._model_module.create_accelerator()
         self._beam_charge  = None #utils.BeamCharge()
-        self._quad_families_str = {}
-        self._sext_families_str = {}
         self.beam_dump(message1,message2,c,a)
-        #self.update_state(force=True)
 
     def beam_init(self, message1='init', message2=None, c='white', a=None):
         if not message2:
@@ -189,37 +187,39 @@ class RingModel(Model):
         if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
         if self._summary is None: return
-
-        loss_fraction = self._calc_first_turns_loss_fraction()
-
-        init_charge = self._beam_charge.value
+        if self._model_module.lattice_version.startswith('BO'):
+            efficiency = 1.0 - self._injection_loss_fraction
+        else:
+            efficiency = 1.0
+        delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
         self._beam_charge.inject(delta_charge)
         final_charge = self._beam_charge.value
-        #print(sum(init_charge))
-        #print(sum(final_charge))
-        #print(sum(delta_charge))
-        efficiency = (sum(final_charge) - sum(init_charge))/sum(delta_charge)
         if message1 == 'cycle':
             self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-        #self.update_state()
         return final_charge
 
     def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
         if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
-        init_charge = self._beam_charge.value
-        final_charge = self._beam_charge.value
+        if self._model_module.lattice_version.startswith('BO'):
+            efficiency = 1.0 - self._ejection_loss_fraction
+        else:
+            efficiency = 1.0
+        charge = self._beam_charge.value
+        final_charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        efficiency = sum(final_charge)/sum(init_charge)
         if message1 == 'cycle':
             self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
         return final_charge
 
     def beam_accelerate(self):
-        efficiency = 1.0
+        if self._model_module.lattice_version.startswith('BO'):
+            efficiency = 1.0 - self._acceleration_loss_fraction
+        else:
+            efficiency = 1.0
+        final_charge = self._beam_charge.value
         self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
-        charge = self._beam_charge.value
-        return charge
+        return final_charge
 
     # --- auxilliary methods
 
@@ -317,53 +317,10 @@ class RingModel(Model):
         i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
         q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
 
-        # print('elastic     [h]:', e_lifetime/3600)
-        # print('inelastic   [h]:', i_lifetime/3600)
-        # print('quantum     [h]:', q_lifetime/3600)
-        # print('touschek [1/sC]:', t_coeff)
-
         self._beam_charge.set_lifetimes(elastic=e_lifetime,
                                         inelastic=i_lifetime,
                                         quantum=q_lifetime,
                                         touschek_coefficient=t_coeff)
-
-    def _get_twiss(self, index):
-        self.update_state()
-        if isinstance(index, str):
-            if index == 'end':
-                return self._twiss[-1]
-            elif index == 'begin':
-                return self._twiss[0]
-        else:
-            return self._twiss[index]
-
-    def _set_energy(energy):
-        # need to update RF voltage !!!
-        self._accelerator.energy = energy
-
-    def _get_equilibrium_at_maximum_energy(self):
-        return None
-
-    def _calc_first_turns_loss_fraction(self):
-        twiss_at_tb_exit, natural_emittance, natural_energy_spread, coupling = self._get_parameters_from_upstream_accelerator()
-        return 0.0
-
-    def _init_families_str(self):
-        rnames = self._record_names
-        for pv_name in rnames.keys():
-            if '-FAM' in pv_name:
-                if 'PS-Q' in pv_name:
-                    idx = self._get_elements_indices(pv_name)
-                    value = self._accelerator[idx[0]].polynom_b[1]
-                    self._quad_families_str[pv_name] = value
-                if 'PS-S' in pv_name:
-                    idx = self._get_elements_indices(pv_name)
-                    try:
-                        value = self._accelerator[idx[0]].polynom_b[2]
-                    except:
-                        # print(idx)
-                        raise Exception('problem!')
-                    self._sext_families_str[pv_name] = value
 
     def _init_magnets_and_power_supplies(self):
         accelerator = self._accelerator
@@ -384,7 +341,9 @@ class RingModel(Model):
             family, indices = magnet_names[magnet_name].popitem()
             indices = indices[0]
             family_type = family_mapping[family]
-            if family_type == 'quadrupole':
+            if family_type == 'dipole':
+                magnet = utils.DipoleMagnet(accelerator, indices, filename)
+            elif family_type == 'quadrupole':
                 magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
             elif family_type == 'sextupole':
                 magnet = utils.SextupoleMagnet(accelerator, indices, filename)
@@ -412,3 +371,131 @@ class RingModel(Model):
             else:
                 power_supply = utils.IndividualPowerSupply(magnets)
             self._power_supplies[ps_name] = power_supply
+
+    def _get_twiss(self, index):
+        self.update_state()
+        if isinstance(index, str):
+            if index == 'end':
+                return self._twiss[-1]
+            elif index == 'begin':
+                return self._twiss[0]
+        else:
+            return self._twiss[index]
+
+    def _set_energy(energy):
+        # need to update RF voltage !!!
+        self._accelerator.energy = energy
+
+    def _get_equilibrium_at_maximum_energy(self):
+        return None
+
+    def _kickin_on(self):
+        for idx in self._kickin_idx:
+            self._accelerator[idx].hkick_polynom = self._kickin_angle
+
+    def _kickin_off(self):
+        for idx in self._kickin_idx:
+            self._accelerator[idx].hkick_polynom = 0.0
+
+    def _kickex_on(self):
+        for idx in self._kickex_idx:
+            self._accelerator[idx].hkick_polynom = self._kickex_angle
+
+    def _kickex_off(self):
+        for idx in self._kickex_idx:
+            self._accelerator[idx].hkick_polynom = 0.0
+
+    def _calc_injection_loss_fraction(self, emittance, energy_spread, init_twiss):
+        if init_twiss is None: return
+
+        twiss,*_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss = init_twiss)
+        betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+        init_pos = init_twiss.fixed_point
+
+        if math.isnan(betax[-1]):
+            self._injection_loss_fraction = 1.0
+            return
+
+        de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 11)
+        de_probability = numpy.zeros(len(de))
+        lost_fraction = numpy.zeros(len(de))
+        total_lost_fraction = 0
+
+        for i in range(len(de)):
+            de_probability[i] = math.exp(-(de[i]**2)/(2*(energy_spread**2)))/(math.sqrt(2*math.pi)*energy_spread)
+            pos = [p for p in init_pos]
+            pos[4] += de[i]
+            orbit, *_ = pyaccel.tracking.linepass(self._accelerator, pos, indices = 'open')
+
+            if math.isnan(orbit[0,-1]):
+                lost_fraction[i] = 1.0
+                total_lost_fraction += de_probability[i]*lost_fraction[i]
+                continue
+
+            rx, ry = orbit[[0,2],:]
+            xlim_inf, xlim_sup = rx - self._hmin, self._hmax - rx
+            ylim_inf, ylim_sup = ry - self._vmin, self._vmax - ry
+            xlim_inf[xlim_inf < 0] = 0
+            xlim_sup[xlim_sup < 0] = 0
+            ylim_inf[ylim_inf < 0] = 0
+            ylim_sup[ylim_sup < 0] = 0
+            emit_x_inf = (xlim_inf**2  - (etax*energy_spread)**2)/betax
+            emit_x_sup = (xlim_sup**2  - (etax*energy_spread)**2)/betax
+            emit_y_inf = (ylim_inf**2  - (etay*energy_spread)**2)/betay
+            emit_y_sup = (ylim_sup**2  - (etay*energy_spread)**2)/betay
+            emit_x_inf[emit_x_inf < 0] = 0.0
+            emit_x_sup[emit_x_sup < 0] = 0.0
+            emit_y_inf[emit_y_inf < 0] = 0.0
+            emit_y_sup[emit_y_sup < 0] = 0.0
+            min_emit_x = numpy.amin([emit_x_inf, emit_x_sup])
+            min_emit_y = numpy.amin([emit_y_inf, emit_y_sup])
+            min_emit = min_emit_x + min_emit_y if min_emit_x*min_emit_y !=0 else 0.0
+            lf = math.exp(- min_emit/emittance)
+            lost_fraction[i] = lf if lf <1 else 1.0
+            total_lost_fraction += de_probability[i]*lost_fraction[i]
+
+        total_lost_fraction = total_lost_fraction/numpy.sum(de_probability)
+        self._injection_loss_fraction = total_lost_fraction if total_lost_fraction < 1.0 else 1.0
+
+    def _calc_acceleration_loss_fraction(self):
+        self._acceleration_loss_fraction = 0.0
+
+    def _calc_ejection_twiss(self, init_twiss):
+        if init_twiss is None: return
+        self._ejection_twiss, *_ = \
+            pyaccel.optics.calc_twiss(self._accelerator[self._kickex_idx[0]:self._ext_point+1], init_twiss = init_twiss)
+
+    def _calc_ejection_beam_size(self, emittance, energy_spread, coupling):
+        if self._ejection_twiss is None: return
+        betax, etax, betay, etay = pyaccel.optics.get_twiss(self._ejection_twiss, ('betax','etax','betay','etay'))
+        emitx = emittance * 1 / (1 + coupling)
+        emity = emittance * coupling / (1 + coupling)
+        self._sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
+        self._sigmay = numpy.sqrt(betay * emity + (etax * energy_spread)**2)
+
+    def _calc_ejection_loss_fraction(self):
+        if self._ejection_twiss is None: return
+
+        hmin = self._hmin[self._kickex_idx[0]:self._ext_point+1]
+        hmax = self._hmax[self._kickex_idx[0]:self._ext_point+1]
+        vmin = self._vmin[self._kickex_idx[0]:self._ext_point+1]
+        vmax = self._vmax[self._kickex_idx[0]:self._ext_point+1]
+
+        rx, ry = pyaccel.optics.get_twiss(self._ejection_twiss, ('rx','ry'))
+        xlim_inf, xlim_sup = rx - hmin, hmax - rx
+        ylim_inf, ylim_sup = ry - vmin, vmax - ry
+        xlim_inf[xlim_inf < 0] = 0
+        xlim_sup[xlim_sup < 0] = 0
+        ylim_inf[ylim_inf < 0] = 0
+        ylim_sup[ylim_sup < 0] = 0
+        min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
+        min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
+        min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
+        min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
+        sqrt2 = math.sqrt(2)
+        x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
+                               0.5*math.erf(min_xfrac_sup/sqrt2)
+        y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2) + \
+                               0.5*math.erf(min_yfrac_sup/sqrt2)
+        surviving_fraction = x_surviving_fraction * y_surviving_fraction
+        self._ejection_loss_fraction = 1.0 - surviving_fraction

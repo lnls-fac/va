@@ -120,10 +120,8 @@ class TLineModel(Model):
 
     def update_state(self, force=False):
         if force or self._state_deprecated:  # we need to check deprecation of other models on which tline depends
-            #print('tline update_state: ',self._model_module.lattice_version)
             parms = self._get_parameters_from_upstream_accelerator()
             if parms is not None:
-                #print(parms)
                 init_twiss = parms['twiss_at_entrance']
                 emittance = parms['emittance']
                 energy_spread = parms['energy_spread']
@@ -203,15 +201,13 @@ class TLineModel(Model):
         try:
             self._log('calc', 'linear optics for '+self._model_module.lattice_version)
             self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss)
-
             # propagates Twiss till the end of last element.
             # This expedient is temporary. It should be removed once calc_twiss is augmented to
             # include 'indices' argument with possible 'closed' value.
-            aux_acc = self._accelerator[-2:-1]
+            aux_acc = self._accelerator[-1:]
             aux_acc.append(pyaccel.elements.marker(''))
             twiss, *_ = pyaccel.optics.calc_twiss(aux_acc, init_twiss=self._twiss[-1])
             self._twiss.append(twiss[-1])
-
 
         except pyaccel.tracking.TrackingException:
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
@@ -236,27 +232,9 @@ class TLineModel(Model):
     def _calc_loss_fraction(self):
         if self._orbit is None: return 0.0
         self._log('calc', 'loss fraction for '+self._model_module.lattice_version)
-        n = len(self._accelerator)
-        hmax, hmin = numpy.zeros((2,n+1))
-        vmax, vmin = numpy.zeros((2,n+1))
-        for i in range(n):
-            hmax[i] = self._accelerator._accelerator.lattice[i].hmax
-            vmax[i] = self._accelerator._accelerator.lattice[i].vmax
-            hmin[i] = -hmax[i]
-            vmin[i] = -vmax[i]
-            fam_name = self._accelerator._accelerator.lattice[i].fam_name
-            if fam_name == 'esep':
-                hmax[i] = 0.0075 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
-            elif fam_name == 'sseb':
-                hmax[i] = 0.0015 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
-            elif fam_name == 'esef':
-                hmax[i] = 0.0015 # FIX ME! : extend trackcpp to allow for hmax and hmin?!
-        hmax[-1], hmin[-1] = hmax[-2], hmin[-2]
-        vmax[-1], vmin[-1] = vmax[-2], vmin[-2]
-        #print(self._model_module.lattice_version)
         rx, ry = self._orbit[[0,2],:]
-        xlim_inf, xlim_sup = rx - hmin, hmax - rx
-        ylim_inf, ylim_sup = ry - vmin, vmax - ry
+        xlim_inf, xlim_sup = rx - self._hmin, self._hmax - rx
+        ylim_inf, ylim_sup = ry - self._vmin, self._vmax - ry
         xlim_inf[xlim_inf < 0] = 0
         xlim_sup[xlim_sup < 0] = 0
         ylim_inf[ylim_inf < 0] = 0
@@ -267,17 +245,11 @@ class TLineModel(Model):
         min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
         min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
 
-        #print('min_xfrac_inf:', min_xfrac_inf)
-        #print('min_xfrac_sup:', min_xfrac_sup)
-        #print('min_yfrac_inf:', min_yfrac_inf)
-        #print('min_yfrac_sup:', min_yfrac_sup)
-
         sqrt2 = math.sqrt(2)
         x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
                                0.5*math.erf(min_xfrac_sup/sqrt2)
         y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2) + \
                                0.5*math.erf(min_yfrac_sup/sqrt2)
         surviving_fraction = x_surviving_fraction * y_surviving_fraction
-        #print(surviving_fraction)
+
         self._loss_fraction = 1.0 - surviving_fraction
-        #return 1.0 - surviving_fraction

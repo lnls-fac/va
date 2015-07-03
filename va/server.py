@@ -19,31 +19,12 @@ import va
 WAIT_TIMEOUT = 0.1
 
 
-class DriverThread(threading.Thread):
-
-    def __init__(self, driver, stop_event):
-        self._driver = driver
-        self._stop_event = stop_event
-        super().__init__(target=self._main)
-        self._driver.init_sp_pv_values() # inits SP fields from model
-
-    def _main(self):
-        while True:
-            t0 = time.time()
-            self._driver.update_pvs()
-            delta = time.time() - t0
-            if self._stop_event.wait(WAIT_TIMEOUT - delta):
-                break
-
-
-def handle_signal(signum, frame):
-    global stop_event, driver_thread
-    print('Received signal', signum)
-    print('Active thread count:', threading.active_count())
-    stop_event.set()
-    driver_thread.join()
-
 def run(prefix):
+    """Start virtual accelerator with given PV prefix
+
+    Keyword arguments:
+    prefix -- prefix to be added to PVs
+    """
     global stop_event, driver_thread
 
     li_pv_names = list(pvs_li.get_database().keys())
@@ -68,8 +49,6 @@ def run(prefix):
     si = models.SiModel(all_pvs=pvs_si.get_all_record_names())
     ti = models.TiModel(all_pvs=pvs_ti.get_all_record_names())
 
-    stop_event = threading.Event()
-
     pvs_database = {}
     pvs_database.update(pvs_li.get_database())
     pvs_database.update(pvs_tb.get_database())
@@ -92,11 +71,36 @@ def run(prefix):
     driver.all_models_defined_ack() # so that models can set its parameters that
                                     # are dependent on other models
 
+    stop_event = threading.Event()
     driver_thread = DriverThread(driver, stop_event)
-
     driver_thread.start()
 
     signal.signal(signal.SIGINT, handle_signal)
 
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
+
+
+class DriverThread(threading.Thread):
+
+    def __init__(self, driver, stop_event):
+        self._driver = driver
+        self._stop_event = stop_event
+        super().__init__(target=self._main)
+        self._driver.init_sp_pv_values() # initialise SP fields from model
+
+    def _main(self):
+        while True:
+            t0 = time.time()
+            self._driver.update_pvs()
+            delta = time.time() - t0
+            if self._stop_event.wait(WAIT_TIMEOUT - delta):
+                break
+
+
+def handle_signal(signum, frame):
+    global stop_event, driver_thread
+    print('Received signal', signum)
+    print('Active thread count:', threading.active_count())
+    stop_event.set()
+    driver_thread.join()
