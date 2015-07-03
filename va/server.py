@@ -5,7 +5,6 @@ import signal
 import threading
 from pcaspy import SimpleServer
 import va.driver as pcasdriver
-#import va.model as models
 import va.sirius_models as models
 import va.pvs_li as pvs_li
 import va.pvs_tb as pvs_tb
