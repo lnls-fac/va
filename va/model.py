@@ -8,9 +8,9 @@ the server.
 """
 
 import math
+import mathphys
 import pyaccel
 import va.utils as utils
-import mathphys
 
 
 TRACK6D     = False
