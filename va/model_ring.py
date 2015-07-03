@@ -1,4 +1,5 @@
 
+import time
 import os
 import math
 import numpy
@@ -438,15 +439,16 @@ class RingModel(Model):
             xlim_sup[xlim_sup < 0] = 0
             ylim_inf[ylim_inf < 0] = 0
             ylim_sup[ylim_sup < 0] = 0
-            xlim = numpy.amin([xlim_inf,xlim_sup],0)
-            ylim = numpy.amin([ylim_inf,ylim_sup],0)
-            emit_x, emit_y = numpy.zeros((2,len(self._accelerator)))
-            emit_x = (xlim**2  - (etax*energy_spread)**2)/betax
-            emit_y = (ylim**2  - (etay*energy_spread)**2)/betay
-            emit_x[emit_x < 0] = 0.0
-            emit_y[emit_y < 0] = 0.0
-            min_emit_x = numpy.amin(emit_x)
-            min_emit_y = numpy.amin(emit_y)
+            emit_x_inf = (xlim_inf**2  - (etax*energy_spread)**2)/betax
+            emit_x_sup = (xlim_sup**2  - (etax*energy_spread)**2)/betax
+            emit_y_inf = (ylim_inf**2  - (etay*energy_spread)**2)/betay
+            emit_y_sup = (ylim_sup**2  - (etay*energy_spread)**2)/betay
+            emit_x_inf[emit_x_inf < 0] = 0.0
+            emit_x_sup[emit_x_sup < 0] = 0.0
+            emit_y_inf[emit_y_inf < 0] = 0.0
+            emit_y_sup[emit_y_sup < 0] = 0.0
+            min_emit_x = numpy.amin([emit_x_inf, emit_x_sup])
+            min_emit_y = numpy.amin([emit_y_inf, emit_y_sup])
             min_emit = min_emit_x + min_emit_y if min_emit_x*min_emit_y !=0 else 0.0
             lf = math.exp(- min_emit/emittance)
             lost_fraction[i] = lf if lf <1 else 1.0

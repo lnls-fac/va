@@ -7,7 +7,7 @@ recalculates necessary parameters, controlling concurrent accesses coming from
 the server.
 """
 
-import math
+import numpy
 import mathphys
 import pyaccel
 import va.utils as utils
@@ -104,12 +104,20 @@ class Model(object):
 
     # --- auxilliary methods
 
-    def _transform_to_local_coordinates(self, old_pos, delta_rx, angle, delta_dl=0.0):
-        C, S = math.cos(angle), math.sin(angle)
-        # old_angle = math.atan(old_pos.px)
-        old_angle = 0.0
-        new_pos = [p for p in old_pos]
-        new_pos[0] =  C * old_pos[0] + S * old_pos[5] + delta_rx
-        new_pos[5] = -S * old_pos[0] + C * old_pos[5]
-        new_pos[1] = math.tan(angle + old_angle)
-        return new_pos
+    def _set_vacuum_chamber(self, indices = 'open'):
+        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
+        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
+        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
+        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
+        if indices == 'open':
+            self._hmin = hmin
+            self._hmax = hmax
+            self._vmin = vmin
+            self._vmax = vmax
+        elif indices == 'closed':
+            self._hmin = numpy.append(hmin, hmin[-1])
+            self._hmax = numpy.append(hmax, hmax[-1])
+            self._vmin = numpy.append(vmin, vmin[-1])
+            self._vmax = numpy.append(vmax, vmax[-1])
+        else:
+            raise Exception("invalid value for indices")

@@ -6,7 +6,7 @@ from va.model_timing import TimingModel
 import va.utils as utils
 import sirius
 import pyaccel
-import numpy
+import math
 
 
 #--- sirius-specific model classes ---#
@@ -18,18 +18,12 @@ class LiModel(TLineModel):
         super().__init__(sirius.li, all_pvs=all_pvs, log_func=log_func)
         self._single_bunch_mode   = True
         self._pulse_duration      = sirius.li.pulse_duration_interval[1]
+        self._frequency           = sirius.li.frequency
+        self._nr_bunches          = int(self._frequency*self._pulse_duration/6)
+        self._beam_charge         = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._state_deprecated = True
+        self._set_vacuum_chamber(indices='closed')
         self.notify_driver()
-
-        # vacuum chamber
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        self._hmin = numpy.append(self._hmin, self._hmin[-1])
-        self._hmax = numpy.append(self._hmax, self._hmax[-1])
-        self._vmin = numpy.append(self._vmin, self._vmin[-1])
-        self._vmax = numpy.append(self._vmax, self._vmax[-1])
 
     def notify_driver(self):
         if self._driver: self._driver.li_changed = True
@@ -39,8 +33,6 @@ class LiModel(TLineModel):
         if isinstance(index, str):
             if index == 'end':
                 return sirius.tb.initial_twiss
-            elif index == 'begin':
-                Exception('index in _get_twiss invalid for LI')
         else:
             Exception('index in _get_twiss invalid for LI')
 
@@ -63,17 +55,8 @@ class TbModel(TLineModel):
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
         self._state_deprecated = True
+        self._set_vacuum_chamber(indices='closed')
         self.notify_driver()
-
-        # vacuum chamber
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        self._hmin = numpy.append(self._hmin, self._hmin[-1])
-        self._hmax = numpy.append(self._hmax, self._hmax[-1])
-        self._vmin = numpy.append(self._vmin, self._vmin[-1])
-        self._vmax = numpy.append(self._vmax, self._vmax[-1])
 
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
@@ -100,15 +83,9 @@ class BoModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-
-        # vacuum chamber
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._calc_lifetimes()
+        self._set_vacuum_chamber(indices='open')
 
     def notify_driver(self):
         if self._driver: self._driver.bo_changed = True
@@ -117,7 +94,7 @@ class BoModel(RingModel):
         super().reset(message1=message1, message2=message2, c=c, a=a)
         injection_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
         self._accelerator = pyaccel.lattice.shift(self._accelerator, start = injection_point)
-        self._record_names = shift_record_names(self._accelerator, self._record_names)
+        self._record_names = _shift_record_names(self._accelerator, self._record_names)
 
         self._ext_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
@@ -138,9 +115,7 @@ class BoModel(RingModel):
         tb.update_state()
         eq = tb._get_equilibrium_at_maximum_energy()
         init_twiss = tb._get_twiss('end')
-        init_pos = init_twiss.fixed_point
-        init_pos = self._transform_to_local_coordinates(init_pos, -0.03, 0.0143) #FIX ME! : hardcoded value
-        init_twiss.fixed_point = init_pos
+        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.03, 0.0143) #FIX ME! : hardcoded value
         eq['twiss_at_entrance'] =  init_twiss
         return eq
 
@@ -154,16 +129,7 @@ class TsModel(TLineModel):
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
         self._state_deprecated = True
         self.notify_driver()
-
-        # vacuum chamber
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        self._hmin = numpy.append(self._hmin, self._hmin[-1])
-        self._hmax = numpy.append(self._hmax, self._hmax[-1])
-        self._vmin = numpy.append(self._vmin, self._vmin[-1])
-        self._vmax = numpy.append(self._vmax, self._vmax[-1])
+        self._set_vacuum_chamber(indices='closed')
 
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
@@ -179,7 +145,7 @@ class TsModel(TLineModel):
         bo.update_state()
         eq = bo._get_equilibrium_at_maximum_energy()
         init_twiss = bo._ejection_twiss[-1]
-        init_twiss.fixed_point = self._transform_to_local_coordinates(init_twiss.fixed_point, -0.022, -0.005) #FIX ME! : hardcoded value
+        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.022, -0.005) #FIX ME! : hardcoded value
         eq['twiss_at_entrance'] =  init_twiss
         return eq
 
@@ -193,12 +159,7 @@ class SiModel(RingModel):
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._calc_lifetimes()
-
-        # vacuum chamber
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
+        self._set_vacuum_chamber(indices='open')
 
     def notify_driver(self):
         if self._driver: self._driver.si_changed = True
@@ -208,7 +169,7 @@ class SiModel(RingModel):
         ts.update_state()
         eq = ts._get_equilibrium_at_maximum_energy()
         init_twiss = ts._get_twiss('end')
-        init_twiss.fixed_point = self._transform_to_local_coordinates(init_twiss.fixed_point, -0.0165 , 0.00219 ) #FIX ME! : hardcoded value
+        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.0165 , 0.00219 ) #FIX ME! : hardcoded value
         eq['twiss_at_entrance'] = init_twiss
         return eq
 
@@ -226,7 +187,7 @@ class TiModel(TimingModel):
 
 # --- auxilliary methods
 
-def shift_record_names(accelerator, record_names_dict):
+def _shift_record_names(accelerator, record_names_dict):
     new_dict = {}
     for key in record_names_dict.keys():
         new_dict[key] = {}
@@ -237,19 +198,29 @@ def shift_record_names(accelerator, record_names_dict):
     for value in new_dict.values():
         for key in value.keys():
             indices = value[key]
-            new_indices = shift_indices(indices, length, start)
+            new_indices = _shift_indices(indices, length, start)
             value[key] = new_indices
     return new_dict
 
-def shift_indices(indices, length, start):
+def _shift_indices(indices, length, start):
     try:
         new_indices = indices[:]
         for i in range(len(new_indices)):
             if isinstance(new_indices[i], int):
                 new_indices[i] = (new_indices[i] + start)%(length)
             else:
-                new_indices[i] = shift_indices(new_indices[i], length, start)
+                new_indices[i] = _shift_indices(new_indices[i], length, start)
         return new_indices
     except:
         new_indices = (indices+start)%(length)
         return new_indices
+
+
+def _transform_to_local_coordinates(old_pos, delta_rx, angle, delta_dl=0.0):
+    C, S = math.cos(angle), math.sin(angle)
+    old_angle = math.atan(old_pos[1])
+    new_pos = [p for p in old_pos]
+    new_pos[0] =  C * old_pos[0] + S * old_pos[5] + delta_rx
+    new_pos[5] = -S * old_pos[0] + C * old_pos[5] + delta_dl
+    new_pos[1] = math.tan(angle + old_angle)
+    return new_pos
