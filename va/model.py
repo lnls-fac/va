@@ -7,9 +7,9 @@ recalculates necessary parameters, controlling concurrent accesses coming from
 the server.
 """
 
+import mathphys
 import pyaccel
 import va.utils as utils
-import mathphys
 
 
 TRACK6D     = False

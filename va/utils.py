@@ -1,3 +1,4 @@
+
 import time
 import math
 import datetime
@@ -154,8 +155,8 @@ class Magnet(object):
     def __init__(self, accelerator, indices, exc_curve_filename):
         """Magnet with power supplies
 
-        Reads current from power supplies and set Accelerator elements fields
-        using value converted using excitation curve."""
+        Reads current from power supplies and sets Accelerator elements fields
+        using value converted with excitation curve."""
         self._power_supplies = set()
         self._accelerator = accelerator
 
@@ -163,6 +164,7 @@ class Magnet(object):
             self._indices = [indices]
         else:
             self._indices = indices
+
         length = 0.0
         for i in self._indices:
             length += self._accelerator[i].length
@@ -211,13 +213,13 @@ class Magnet(object):
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
             polynom[self._polynom_index] = field
-            print('Class', self.__class__)
-            print('    index', i)
-            print('    integrated field', integrated_field)
-            print('    brho', self._accelerator.brho)
-            print('    ' + self._polynom, getattr(self._accelerator[i], self._polynom))
-            print('    length', self._length)
-            print('    current', self.current)
+            # print('Class', self.__class__)
+            # print('    index', i)
+            # print('    integrated field', integrated_field)
+            # print('    brho', self._accelerator.brho)
+            # print('    ' + self._polynom, getattr(self._accelerator[i], self._polynom))
+            # print('    length', self._length)
+            # print('    current', self.current)
 
     def _load_excitation_curve(self, filename):
         try:
@@ -231,7 +233,11 @@ class Magnet(object):
 
 class DipoleMagnet(Magnet):
 
-    """Gets and sets beam energy [eV]"""
+    """Gets and sets beam energy [eV]
+
+    DipoleMagnet is processed differently from other Magnet objects: it
+    averages the current over the set of power supplies.
+    """
 
     @property
     def value(self):
@@ -338,7 +344,7 @@ class SkewQuadrupoleMagnet(Magnet):
 
 class PowerSupply(object):
 
-    def __init__(self, magnets): #, current=0.0):
+    def __init__(self, magnets):
         """Gets and sets current [A]
 
         Connected magnets are processed after current is set.

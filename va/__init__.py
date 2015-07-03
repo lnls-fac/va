@@ -1,5 +1,6 @@
+"""Virtual Accelerator with Channel Access Server"""
 
-from . import model
+import os as _os
 from . import pvs_li
 from . import pvs_tb
 from . import pvs_bo
@@ -13,6 +14,6 @@ from . import fake_rnames_ts
 from . import fake_rnames_si
 from . import fake_rnames_ti
 
-import os as _os
+
 with open(_os.path.join(__path__[0], 'VERSION'), 'r') as _f:
     __version__ = _f.read().strip()
