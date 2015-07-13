@@ -4,6 +4,7 @@ import math
 import datetime
 import numpy
 from termcolor import colored
+import mathphys
 import va
 
 def print_banner(prefix, li_pv_names=None,
@@ -213,13 +214,6 @@ class Magnet(object):
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
             polynom[self._polynom_index] = field
-            # print('Class', self.__class__)
-            # print('    index', i)
-            # print('    integrated field', integrated_field)
-            # print('    brho', self._accelerator.brho)
-            # print('    ' + self._polynom, getattr(self._accelerator[i], self._polynom))
-            # print('    length', self._length)
-            # print('    current', self.current)
 
     def _load_excitation_curve(self, filename):
         try:
@@ -262,6 +256,32 @@ class DipoleMagnet(Magnet):
         self.value = new_value
 
 
+class SeptumMagnet(Magnet):
+
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets integrated field [T]"""
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._polynom = 'polynom_b'
+        self._polynom_index = 0
+
+        angle = 0.0
+        for i in self._indices:
+            angle += self._accelerator[i].angle
+        self._angle = angle
+
+    def _get_value(self):
+        v = 0.0
+        for i in self._indices:
+            polynom = getattr(self._accelerator[i], self._polynom)
+            v += polynom[self._polynom_index]*self._accelerator[i].length/self._accelerator[i].angle
+        energy = (1.0 + v)*self._accelerator.energy
+        return energy
+
+    def _set_value(self, energy):
+        for i in self._indices:
+            polynom = getattr(self._accelerator[i], self._polynom)
+            polynom[self._polynom_index] = (self._angle/self._length)*(energy/self._accelerator.energy - 1.0)
+
 class QuadrupoleMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
@@ -269,7 +289,6 @@ class QuadrupoleMagnet(Magnet):
         super().__init__(accelerator, indices, exc_curve_filename)
         self._polynom = 'polynom_b'
         self._polynom_index = 1
-
 
 class SextupoleMagnet(Magnet):
 
@@ -383,6 +402,14 @@ class FamilyPowerSupply(PowerSupply):
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, current = 0.0):
+    def __init__(self, magnets, current = None):
         super().__init__(magnets)
-        self._current = 0.0
+        if (current is None) and (len(magnets) > 0):
+            total_current = 0.0
+            n = 0
+            for magnet in magnets:
+                total_current += magnet.current
+                n += 1
+            self._current = total_current/n
+        else:
+            self._current = 0.0

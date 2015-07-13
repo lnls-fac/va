@@ -1,10 +1,11 @@
 
-from va.model import Model, UNDEF_VALUE
-import va.utils as utils
-import mathphys
-import pyaccel
-import numpy
+import os
 import math
+import numpy
+import pyaccel
+import mathphys
+import va.utils as utils
+from va.model import Model, UNDEF_VALUE
 
 
 class TLineModel(Model):
@@ -13,6 +14,7 @@ class TLineModel(Model):
 
         super().__init__(model_module=model_module, all_pvs=all_pvs, log_func=log_func)
         self.reset('start')
+        self._init_magnets_and_power_supplies()
 
     # --- methods implementing response of model to get requests
 
@@ -29,92 +31,26 @@ class TLineModel(Model):
                 return self._orbit[2,idx]
             else:
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
-        elif 'PS-CH' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-            value = sum(kicks)
-            return value
-        elif 'PS-CV' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            kicks = pyaccel.lattice.get_attribute(self._accelerator, kickfield, idx)
-            value = sum(kicks)
-            return value
-        elif 'PS-Q' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            value = self._accelerator[idx[0]].polynom_b[1]
-            return value
-        elif 'PS-BEND-' in pv_name or 'PU-SEP' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            value = 0
-            for i in idx:
-                value += self._accelerator[i].polynom_b[0]*self._accelerator[i].length
-                value += self._accelerator[i].angle
-            return value
+        elif 'PS-' in pv_name:
+            return self._power_supplies[pv_name].current
+        elif 'PU-' in pv_name:
+            return self._power_supplies[pv_name].current
         else:
             return None
 
     # --- methods implementing response of model to set requests
 
     def set_pv(self, pv_name, value):
-        if self.set_pv_correctors(pv_name, value): return
-        if self.set_pv_quadrupoles(pv_name, value): return
-        if self.set_pv_bends(pv_name, value): return
+        if self.set_pv_magnets(pv_name, value): return
         if self.set_pv_fake(pv_name, value): return
 
-    def set_pv_correctors(self, pv_name, value):
-        if 'PS-CH' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            nr_segs = len(idx)
-            kickfield = 'hkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'hkick_polynom'
-            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
-            if value != prev_value:
-                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
-                self._state_deprecated = True
-            return True
-
-        if 'PS-CV' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            nr_segs = len(idx)
-            kickfield = 'vkick' if self._accelerator[idx[0]].pass_method == 'corrector_pass' else 'vkick_polynom'
-            prev_value = nr_segs * getattr(self._accelerator[idx[0]], kickfield)
-            if value != prev_value:
-                pyaccel.lattice.set_attribute(self._accelerator, kickfield, idx, value/nr_segs)
-                self._state_deprecated = True
-            return True
-        return False  # [pv is not a corrector]
-
-    def set_pv_quadrupoles(self, pv_name, value):
-        if 'PS-Q' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            idx2 = idx
-            while not isinstance(idx2,int):
-                idx2 = idx2[0]
-            prev_value = self._accelerator[idx2].polynom_b[1]
-            if value != prev_value:
-                if isinstance(idx,int): idx = [idx]
-                for i in idx:
-                    self._accelerator[i].polynom_b[1] = value
-                self._state_deprecated = True
-            return True
-        return False # [pv is not a quadrupole]
-
-    def set_pv_bends(self, pv_name, value):
-        if 'PS-BEND-' in pv_name or 'PU-SEP' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            prev_value = 0
-            for i in idx:
-                prev_value += self._accelerator[i].polynom_b[0]*self._accelerator[i].length
-                prev_value += self._accelerator[i].angle
-            if value != prev_value:
-                for i in idx:
-                    angle_i = self._accelerator[i].angle
-                    new_angle_i = angle_i *(value/prev_value)
-                    self._accelerator[i].polynom_b[0] = (new_angle_i - angle_i)/self._accelerator[i].length
-                self._state_deprecated = True
-            return True
-        return False
+    def set_pv_magnets(self, pv_name, value):
+        ps = self._power_supplies[pv_name]
+        prev_value = ps.current
+        if value != prev_value:
+            ps.current = value
+            self._state_deprecated = True
+        return True
 
     # --- methods that help updating the model state
 
@@ -200,15 +136,7 @@ class TLineModel(Model):
         if init_twiss is None: return
         try:
             self._log('calc', 'linear optics for '+self._model_module.lattice_version)
-            self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss)
-            # propagates Twiss till the end of last element.
-            # This expedient is temporary. It should be removed once calc_twiss is augmented to
-            # include 'indices' argument with possible 'closed' value.
-            aux_acc = self._accelerator[-1:]
-            aux_acc.append(pyaccel.elements.marker(''))
-            twiss, *_ = pyaccel.optics.calc_twiss(aux_acc, init_twiss=self._twiss[-1])
-            self._twiss.append(twiss[-1])
-
+            self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss, indices='closed')
         except pyaccel.tracking.TrackingException:
             self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
@@ -229,9 +157,65 @@ class TLineModel(Model):
             indices.extend(idx)
         return indices
 
+    def _init_magnets_and_power_supplies(self):
+        accelerator = self._accelerator
+        accelerator_data = self._model_module.accelerator_data
+        magnet_names = self._model_module.record_names.get_magnet_names()
+        magnet_names.update(self._model_module.record_names.get_pulsed_magnet_names())
+        family_mapping = self._model_module.family_mapping
+        excitation_curve_mapping = self._model_module.excitation_curves.get_excitation_curve_mapping()
+        _, ps2magnet = self._model_module.power_supplies.get_magnet_mapping()
+
+        self._magnets = dict()
+        for magnet_name in magnet_names.keys():
+            excitation_curve = excitation_curve_mapping[magnet_name]
+            try:
+                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], excitation_curve)
+            except:
+                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found')
+
+            family, indices = magnet_names[magnet_name].popitem()
+            indices = indices[0]
+            family_type = family_mapping[family]
+            if family_type == 'dipole':
+                magnet = utils.DipoleMagnet(accelerator, indices, filename)
+            elif family_type == 'quadrupole':
+                magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
+            elif family_type == 'sextupole':
+                magnet = utils.SextupoleMagnet(accelerator, indices, filename)
+            elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
+                magnet = utils.HorizontalCorrectorMagnet(accelerator, indices, filename)
+            elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
+                magnet = utils.VerticalCorrectorMagnet(accelerator, indices, filename)
+            elif family_type == 'skew_quadrupole':
+                magnet = utils.SkewQuadrupoleMagnet(accelerator, indices, filename)
+            elif family_type in ('septum'):
+                magnet = utils.SeptumMagnet(accelerator, indices, filename)
+            else:
+                magnet = None
+
+            if magnet is not None:
+                self._magnets[magnet_name] = magnet
+
+        # Set initial current values
+        self._power_supplies = dict()
+        for ps_name in ps2magnet.keys():
+            magnets = set()
+            for magnet_name in ps2magnet[ps_name]:
+                if magnet_name in self._magnets:
+                    magnets.add(self._magnets[magnet_name])
+            if '-FAM' in ps_name:
+                power_supply = utils.FamilyPowerSupply(magnets)
+            else:
+                power_supply = utils.IndividualPowerSupply(magnets)
+            self._power_supplies[ps_name] = power_supply
+
     def _calc_loss_fraction(self):
         if self._orbit is None: return 0.0
         self._log('calc', 'loss fraction for '+self._model_module.lattice_version)
+
+        h_vc = self._hmax - self._hmin
+        v_vc = self._vmax - self._vmin
         rx, ry = self._orbit[[0,2],:]
         xlim_inf, xlim_sup = rx - self._hmin, self._hmax - rx
         ylim_inf, ylim_sup = ry - self._vmin, self._vmax - ry
@@ -239,12 +223,14 @@ class TLineModel(Model):
         xlim_sup[xlim_sup < 0] = 0
         ylim_inf[ylim_inf < 0] = 0
         ylim_sup[ylim_sup < 0] = 0
-
+        xlim_inf[xlim_inf > h_vc] = 0
+        xlim_sup[xlim_sup > h_vc] = 0
+        ylim_inf[ylim_inf > v_vc] = 0
+        ylim_sup[ylim_sup > v_vc] = 0
         min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
         min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
         min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
         min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
-
         sqrt2 = math.sqrt(2)
         x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
                                0.5*math.erf(min_xfrac_sup/sqrt2)

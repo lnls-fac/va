@@ -408,9 +408,9 @@ class RingModel(Model):
     def _calc_injection_loss_fraction(self, emittance, energy_spread, init_twiss):
         if init_twiss is None: return
 
+        init_pos = init_twiss.fixed_point
         twiss,*_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss = init_twiss)
         betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
-        init_pos = init_twiss.fixed_point
 
         if math.isnan(betax[-1]):
             self._injection_loss_fraction = 1.0
@@ -481,6 +481,8 @@ class RingModel(Model):
         vmin = self._vmin[self._kickex_idx[0]:self._ext_point+1]
         vmax = self._vmax[self._kickex_idx[0]:self._ext_point+1]
 
+        h_vc = hmax - hmin
+        v_vc = vmax - vmin
         rx, ry = pyaccel.optics.get_twiss(self._ejection_twiss, ('rx','ry'))
         xlim_inf, xlim_sup = rx - hmin, hmax - rx
         ylim_inf, ylim_sup = ry - vmin, vmax - ry
@@ -488,6 +490,10 @@ class RingModel(Model):
         xlim_sup[xlim_sup < 0] = 0
         ylim_inf[ylim_inf < 0] = 0
         ylim_sup[ylim_sup < 0] = 0
+        xlim_inf[xlim_inf > h_vc] = 0
+        xlim_sup[xlim_sup > h_vc] = 0
+        ylim_inf[ylim_inf > v_vc] = 0
+        ylim_sup[ylim_sup > v_vc] = 0
         min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
         min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
         min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
