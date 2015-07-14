@@ -1,10 +1,11 @@
 
 import sirius as _sirius
-from va import fake_rnames_bo as _model_fake_rnames
+
 
 # kingdom-dependent parameters
 _model = _sirius.bo
-def _subsys(rn): return 'BO'+rn
+def _subsys(rn):
+    return 'BO' + rn
 
 
 class _LocalData:
@@ -18,7 +19,7 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _model_fake_rnames.get_record_names()
+        _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(_model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
@@ -32,6 +33,7 @@ class _LocalData:
         _LocalData.ps_ch = []
         _LocalData.ps_cv = []
         _LocalData.rf = []
+
         for record_name in record_names:
             if 'DI-BPM-' in record_name:
                 _LocalData.di_bpms.append(record_name)
@@ -116,10 +118,49 @@ class _LocalData:
         return _LocalData.dynamical_pvs
 
 
+def _get_fake_record_names(family_name=None):
+    if family_name == None:
+        families = ['bofk']
+        record_names_dict = {}
+        for i in range(len(families)):
+            record_names_dict.update(_get_fake_record_names(families[i]))
+
+        return record_names_dict
+
+    if family_name.lower() == 'bofk':
+        _dict = {
+                # 'BOFK-RESET':{},
+                # 'BOFK-INJECT':{},
+                # 'BOFK-DUMP':{},
+        }
+
+        get_element_names = _sirius.bo.record_names.get_element_names
+
+        # Add fake Corrector pvs for errors
+        _dict.update(get_element_names('corr', prefix='BOFK-ERRORX-'))
+        _dict.update(get_element_names('corr', prefix='BOFK-ERRORY-'))
+        _dict.update(get_element_names('corr', prefix='BOFK-ERRORR-'))
+        # Add fake BEND pvs for errors
+        _dict.update(get_element_names('bend', prefix='BOFK-ERRORX-'))
+        _dict.update(get_element_names('bend', prefix='BOFK-ERRORY-'))
+        _dict.update(get_element_names('bend', prefix='BOFK-ERRORR-'))
+        # Add fake QUAD pvs for errors
+        _dict.update(get_element_names('quad', prefix='BOFK-ERRORX-'))
+        _dict.update(get_element_names('quad', prefix='BOFK-ERRORY-'))
+        _dict.update(get_element_names('quad', prefix='BOFK-ERRORR-'))
+        # Add fake SEXT pvs for errors
+        _dict.update(get_element_names('sext', prefix='BOFK-ERRORX-'))
+        _dict.update(get_element_names('sext', prefix='BOFK-ERRORY-'))
+        _dict.update(get_element_names('sext', prefix='BOFK-ERRORR-'))
+
+        return _dict
+    else:
+        raise Exception('Family name %s not found' % family_name)
+
+
 _LocalData.build_data()
 
 # --- Module API ---
-
 get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs

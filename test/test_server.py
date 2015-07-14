@@ -29,16 +29,6 @@ def tearDownModule():
 
 class TestServer(unittest.TestCase):
 
-    # def setUp(self):
-    #     self.server_process = multiprocessing.Process(
-    #         target=va.server.run,
-    #         kwargs={'prefix': 'TEST-VA-'},
-    #     )
-    #     self.server_process.start()
-    #
-    # def tearDown(self):
-    #     va.server.stop_event.set()
-
     def test_server(self):
         pass
 

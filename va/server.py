@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import time
 import signal
 import multiprocessing
 from pcaspy import SimpleServer
@@ -8,7 +7,6 @@ import sirius
 from . import model
 from . import sirius_models
 from . import driver
-from .pvs import si as pvs_si
 
 
 WAIT_TIMEOUT = 0.1
@@ -27,22 +25,24 @@ def run(prefix):
     global stop_event
     signal.signal(signal.SIGINT, handle_signal)
 
-    si_model = sirius_models.SiModel
+    models = (
+        sirius_models.SiModel,
+        sirius_models.BoModel,
+    )
 
     pvs_database = {}
-    pvs_database.update(si_model.pv_module.get_database())
+    processes = []
+    for m in models:
+        pvs_database.update(m.database)
+        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
+        mp.start()
+        processes.append(mp)
 
     server = SimpleServer()
     server.createPV(prefix, pvs_database)
 
-    processes = []
-    si_process = model.ModelProcess(si_model, WAIT_TIMEOUT, stop_event)
-    processes.append(si_process)
-
-    si_process.start()
-
-    pcas_driver = driver.PCASDriver(stop_event)
-    driver_thread = driver.DriverThread(pcas_driver, stop_event)
+    pcas_driver = driver.PCASDriver(processes)
+    driver_thread = driver.DriverThread(pcas_driver, WAIT_TIMEOUT, stop_event)
     driver_thread.start()
 
     while not stop_event.is_set():

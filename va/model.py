@@ -9,6 +9,7 @@ class ModelProcess(multiprocessing.Process):
     def __init__(self, model, interval, stop_event):
         conn1, conn2 = multiprocessing.Pipe()
         self.pipe = conn1
+        self.model = model
         super().__init__(
             target=start_and_run_model,
             kwargs={
@@ -54,12 +55,14 @@ class Model:
     def _receive_requests(self):
         start_time = time.time()
         while (time.time()-start_time < self._interval) and self._pipe.poll():
-            request = self._pipe.recv()
-            # Handle request
-            # self.set_pv(pv_name, value)
+            pv_name, value = self._pipe.recv()
+            self._set_pv(pv_name, value)
 
     def _update_state(self):
         pass
 
     def _send_responses(self):
+        pass
+
+    def _set_pv(self, name, value):
         pass

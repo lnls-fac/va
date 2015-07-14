@@ -142,7 +142,7 @@ class _LocalData:
         return _LocalData.dynamical_pvs
 
 
-def _get_fake_record_names(family_name = None):
+def _get_fake_record_names(family_name=None):
     if family_name == None:
         families = ['sifk',]
         record_names_dict = dict()

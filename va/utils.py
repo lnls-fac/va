@@ -4,6 +4,7 @@ import math
 import datetime
 import numpy
 from termcolor import colored
+from mathphys import constants
 import va
 
 def print_banner(prefix, li_pv_names=None,
@@ -233,21 +234,33 @@ class Magnet(object):
 
 class DipoleMagnet(Magnet):
 
-    """Gets and sets beam energy [eV]
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets beam energy [eV]
 
-    DipoleMagnet is processed differently from other Magnet objects: it
-    averages the current over the set of power supplies.
-    """
+        DipoleMagnet is processed differently from other Magnet objects: it
+        averages the current over the set of power supplies.
+        """
+        super().__init__(accelerator, indices, exc_curve_filename)
+        e0 = constants.electron_rest_energy*constants._joule_2_eV
+        self._electron_rest_energy_ev = e0
+        self._energy = self._accelerator.energy
 
     @property
     def value(self):
         """Get beam energy [eV]"""
-        return self._accelerator.energy
+        # return self._accelerator.energy
+        return self._energy
 
     @value.setter
     def value(self, energy):
-        """Get beam energy [T·m]"""
-        self._accelerator.energy = energy
+        """Set beam energy [eV]"""
+        # Avoid division by zero and math domain error
+        if energy > self._electron_rest_energy_ev:
+            self._accelerator.energy = energy
+        else:
+            self._accelerator.energy = self._electron_rest_energy_ev + 1 # OK?
+
+        self._energy = energy
 
     def process(self):
         current = 0.0
@@ -260,6 +273,7 @@ class DipoleMagnet(Magnet):
             new_value = 0.0
 
         self.value = new_value
+
 
 
 class QuadrupoleMagnet(Magnet):
@@ -350,7 +364,6 @@ class PowerSupply(object):
         Connected magnets are processed after current is set.
         """
         self._magnets = magnets
-        # self._current = current
         for magnet in magnets:
             magnet.add_power_supply(self)
 
