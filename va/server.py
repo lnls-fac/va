@@ -3,10 +3,9 @@
 import signal
 import multiprocessing
 from pcaspy import SimpleServer
-import sirius
+from . import driver
 from . import model
 from . import sirius_models
-from . import driver
 
 
 WAIT_TIMEOUT = 0.1
@@ -23,35 +22,66 @@ def run(prefix):
     prefix -- prefix to be added to PVs
     """
     global stop_event
-    signal.signal(signal.SIGINT, handle_signal)
 
-    models = (
-        sirius_models.SiModel,
-        sirius_models.BoModel,
-    )
+    set_sigint_handler(handle_signal)
 
-    pvs_database = {}
-    processes = []
-    for m in models:
-        pvs_database.update(m.database)
-        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
-        mp.start()
-        processes.append(mp)
+    models = get_models()
+    pv_database = get_pv_database(models)
+    processes = start_model_processes(models, stop_event)
 
     server = SimpleServer()
-    server.createPV(prefix, pvs_database)
+    server.createPV(prefix, pv_database)
 
-    pcas_driver = driver.PCASDriver(processes)
-    driver_thread = driver.DriverThread(pcas_driver, WAIT_TIMEOUT, stop_event)
-    driver_thread.start()
+    start_driver_thread(processes, stop_event)
 
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
-    for process in processes:
-        process.join(JOIN_TIMEOUT)
+    join_processes(processes)
+
+
+def set_sigint_handler(handler):
+    signal.signal(signal.SIGINT, handle_signal)
 
 
 def handle_signal(signum, frame):
     global stop_event
     stop_event.set()
+
+
+def get_models():
+    models = (
+        sirius_models.SiModel,
+        sirius_models.BoModel,
+    )
+
+    return models
+
+
+def get_pv_database(models):
+    pv_database = {}
+    for m in models:
+        pv_database.update(m.database)
+
+    return pv_database
+
+
+def start_model_processes(models, stop_event):
+    processes = []
+    for m in models:
+        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
+        mp.start()
+        processes.append(mp)
+
+    return processes
+
+
+def start_driver_thread(processes, stop_event):
+    pcas_driver = driver.PCASDriver(processes)
+    driver_thread = driver.DriverThread(pcas_driver, WAIT_TIMEOUT, stop_event)
+    driver_thread.start()
+
+
+def join_processes(processes):
+    for process in processes:
+        process.join(JOIN_TIMEOUT)

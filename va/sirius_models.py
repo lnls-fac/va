@@ -21,6 +21,6 @@ class BoModel(_ring_model.RingModel):
 
     prefix = 'BO'
     model_module = _sirius.bo
-    # pv_module = _pvs_bo
+    pv_module = _pvs_bo
     database = _pvs_bo.get_database()
     _all_pvs = _pvs_bo.get_all_record_names()
