@@ -302,7 +302,7 @@ class QuadrupoleMagnet(Magnet):
         super().__init__(accelerator, indices, exc_curve_filename)
         self._polynom = 'polynom_b'
         self._polynom_index = 1
-        
+
 
 class SextupoleMagnet(Magnet):
 
@@ -426,3 +426,15 @@ class IndividualPowerSupply(PowerSupply):
             self._current = total_current/n
         else:
             self._current = 0.0
+
+
+def process_and_wait_interval(processing_function, interval):
+    start_time = time.time()
+    processing_function()
+    _wait_interval(start_time, interval)
+
+
+def _wait_interval(start_time, interval):
+    delta_t = time.time() - start_time
+    if 0 < delta_t < interval:
+        time.sleep(interval - delta_t)

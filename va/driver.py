@@ -2,6 +2,7 @@
 import time
 import threading
 from pcaspy import Driver
+from . import utils
 
 
 class DriverThread(threading.Thread):
@@ -14,11 +15,8 @@ class DriverThread(threading.Thread):
 
     def _main(self):
         while not self._stop_event.is_set():
-            start_time = time.time()
-            self._driver.process()
-            delta_t = time.time() - start_time
-            if 0 < delta_t < self._interval:
-                time.sleep(self._interval - delta_t)
+            utils.process_and_wait_interval(self._driver.process,
+                self._interval)
 
 
 class PCASDriver(Driver):

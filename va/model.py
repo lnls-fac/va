@@ -32,11 +32,7 @@ def start_and_run_model(model, stop_event, interval, **kwargs):
     """
     m = model(interval=interval, **kwargs)
     while not stop_event.is_set():
-        start_time = time.time()
-        m.process()
-        delta_t = time.time() - start_time
-        if 0 < delta_t < interval:
-            time.sleep(interval - delta_t)
+        utils.process_and_wait_interval(m.process, interval)
 
 
 class Model:
@@ -48,15 +44,20 @@ class Model:
         self._interval = interval/2
 
     def process(self):
-        self._receive_requests()
+        self._process_requests()
         self._update_state()
         self._send_responses()
 
-    def _receive_requests(self):
+    def _process_requests(self):
         start_time = time.time()
-        while (time.time()-start_time < self._interval) and self._pipe.poll():
+        while self._has_remaining_time_and_request(start_time):
             pv_name, value = self._pipe.recv()
             self._set_pv(pv_name, value)
+
+    def _has_remaining_time_and_request(self, start_time):
+        has_remaining_time = (time.time() - start_time) < self._interval
+        has_request = self._pipe.poll()
+        return has_remaining_time and has_request
 
     def _update_state(self):
         pass
