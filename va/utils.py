@@ -116,7 +116,6 @@ class BeamCharge:
         for i in range(len(self._charge)):
             expf = math.exp(-(t1-t0)/single_particle_lifetime)
             touf = self._touschek_coefficient * single_particle_lifetime * self._charge[i] * (1.0 - expf)
-            #print(touf)
             new_value = self._charge[i] * expf / (1.0 + touf)
             if not math.isnan(new_value):
                 self._charge[i] = new_value

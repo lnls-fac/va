@@ -1,4 +1,5 @@
 
+import time
 from . import model
 
 
@@ -7,6 +8,7 @@ class TimingModel(model.Model):
     def __init__(self, pipe, interval):
         super().__init__(pipe, interval)
         self._reset('start', self.model_module.lattice_version)
+        self._init_sp_pv_values()
 
     # --- methods implementing response of model to get requests
 
@@ -37,9 +39,9 @@ class TimingModel(model.Model):
     def _set_pv(self, pv_name, value):
         if 'CYCLE' in pv_name:
             self._cycle = value
-            self.beam_inject()
+            self._pipe.send(('s', (pv_name, 0)))
+            self._beam_inject()
             self._cycle = 0
-            self._driver.setParam(pv_name, self._cycle)
         elif 'BO-KICKIN-ON' in pv_name:
             self._bo_kickin_on = value
         elif 'BO-KICKIN-DELAY' in pv_name:
@@ -58,6 +60,9 @@ class TimingModel(model.Model):
 
     # --- methods that help updating the model state
 
+    def _update_state(self):
+        pass
+
     def _reset(self, message1='reset', message2='', c='white', a=None):
         if not message2:
             message2 = self._model_module.lattice_version
@@ -71,3 +76,23 @@ class TimingModel(model.Model):
         self._bo_kickex_inc = 0
         self._si_kickin_on = 1
         self._si_kickin_delay = 0
+        self._state_deprecated = None
+
+    def _beam_inject(self):
+        if self._cycle:
+            interval = 0.2 # [s]
+            self._send_syncronism_signal(prefix='LI')
+            time.sleep(interval)
+            self._send_syncronism_signal(prefix='TB')
+            time.sleep(interval)
+            self._send_syncronism_signal(prefix='BO')
+            time.sleep(interval)
+            self._send_syncronism_signal(prefix='TS')
+            time.sleep(interval)
+            self._send_syncronism_signal(prefix='SI')
+
+    def _send_syncronism_signal(self, prefix=None):
+        if prefix is None: return
+        function  = 'receive_syncronism_signal'
+        args_dict = {}
+        self._pipe.send(('p', (prefix, function, args_dict)))

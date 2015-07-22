@@ -6,7 +6,7 @@ from pcaspy import SimpleServer
 from . import driver
 from . import model
 from . import sirius_models
-
+from . import utils
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 1.0
@@ -27,6 +27,10 @@ def run(prefix):
 
     models = get_models()
     pv_database = get_pv_database(models)
+
+    pv_names = get_pv_names(models)
+    utils.print_banner(prefix, **pv_names)
+
     processes = start_model_processes(models, stop_event)
 
     server = SimpleServer()
@@ -56,6 +60,7 @@ def get_models():
         sirius_models.BoModel,
         sirius_models.SiModel,
         sirius_models.TsModel,
+        sirius_models.TiModel,
     )
 
     return models
@@ -68,6 +73,12 @@ def get_pv_database(models):
 
     return pv_database
 
+def get_pv_names(models):
+    pv_names = {}
+    for m in models:
+        pv_names.update({m.prefix.lower()+'_pv_names': m.database.keys()})
+
+    return pv_names
 
 def start_model_processes(models, stop_event):
     processes = []

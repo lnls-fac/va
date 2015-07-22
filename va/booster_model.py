@@ -21,6 +21,10 @@ class BoosterModel(ring_model.RingModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
+            # injection
+            self._set_kickin('on')
+            self._calc_injection_loss_fraction()
+            self._set_kickin('off')
             # acceleration
             self._calc_acceleration_loss_fraction()
             # ejection
@@ -39,8 +43,6 @@ class BoosterModel(ring_model.RingModel):
         self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
-        self._kickin_angle = -0.01934
-        self._kickex_angle =  0.00132
         self._set_vacuum_chamber(indices='open')
         self._update_state()
 
@@ -53,7 +55,6 @@ class BoosterModel(ring_model.RingModel):
         efficiency = 1.0 - self._acceleration_loss_fraction
         final_charge = self._beam_charge.value
         self._log(message1='cycle', message2='beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self.model_module.lattice_version, 100*efficiency))
-        return final_charge
 
     # --- auxilliary methods
 
@@ -83,7 +84,8 @@ class BoosterModel(ring_model.RingModel):
         self._log('calc', 'injection efficiency  for '+self.model_module.lattice_version)
 
         args_dict = self._injection_parameters
-        args_dict.update(self._get_geometrical_parameters())
+        args_dict.update(self._get_vacuum_chamber())
+        args_dict.update(self._get_coordinate_system_parameters())
         self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **args_dict)
 
     def _calc_acceleration_loss_fraction(self):
@@ -97,7 +99,17 @@ class BoosterModel(ring_model.RingModel):
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
         args_dict = ejection_parameters
-        args_dict.update(self._get_geometrical_parameters(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
+        args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
         self._ejection_loss_fraction, twiss, *_ = utils.charge_loss_fraction_line(accelerator,
             init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)
         self._send_parameters_to_downstream_accelerator(twiss[-1], ejection_parameters)
+
+    def _receive_synchronism_signal(self):
+        self._log(message1 = 'cycle', message2 = self.prefix, c='white')
+        charge=self._charge_to_inject
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._beam_inject(charge=charge, message1='cycle')
+        self._charge_to_inject = 0.0
+        self._beam_accelerate()
+        final_charge = self._beam_eject(message1='cycle')
+        self._send_charge_to_downstream_accelerator(final_charge)

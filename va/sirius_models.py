@@ -20,7 +20,6 @@ class LiModel(_tline_model.TLineModel):
     database = _pvs_li.get_database()
     _downstream_accelerator_prefix = 'TB'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-
     _emittance         = model_module.accelerator_data['emittance']
     _energy_spread     = model_module.accelerator_data['energy_spread']
     _global_coupling   = model_module.accelerator_data['global_coupling']
@@ -49,6 +48,8 @@ class BoModel(_booster_model.BoosterModel):
     _downstream_accelerator_prefix = 'TS'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _nr_bunches = model_module.harmonic_number
+    _kickin_angle = model_module.accelerator_data['injection_kicker_nominal_deflection']
+    _kickex_angle = model_module.accelerator_data['extraction_kicker_nominal_deflection']
 
 class TsModel(_tline_model.TLineModel):
 
@@ -72,6 +73,6 @@ class SiModel(_ring_model.RingModel):
 class TiModel(_timing_model.TimingModel):
 
     prefix = 'TI'
-    model_modelu = _sirius.ti
+    model_module = _sirius.ti
     pv_module = _pvs_ti
     database = _pvs_ti.get_database()

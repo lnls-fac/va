@@ -133,16 +133,15 @@ class AcceleratorModel(model.Model):
         self._injection_loss_fraction = None
         self._ejection_loss_fraction = None
 
-    def _beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
+    def _beam_inject(self, charge=None, message1='inject', message2 = '', c='white', a=None):
+        if charge is None: return
         if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
         efficiency = 1.0 - self._injection_loss_fraction
-        delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
-        self._beam_charge.inject(delta_charge)
-        final_charge = self._beam_charge.value
+        charge = [bunch_charge * efficiency for bunch_charge in charge]
+        self._beam_charge.inject(charge)
         if message1 == 'cycle':
             self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.model_module.lattice_version, 100*efficiency))
-        return final_charge
 
     def _beam_eject(self, message1='eject', message2 = '', c='white', a=None):
         if message1 and message1 != 'cycle':
@@ -166,14 +165,36 @@ class AcceleratorModel(model.Model):
             indices.extend(idx)
         return indices
 
-    def _get_geometrical_parameters(self, init_idx=None, final_idx=None):
+    def _set_vacuum_chamber(self, indices = 'open'):
+        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
+        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
+        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
+        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
+        if indices == 'open':
+            self._hmin = hmin
+            self._hmax = hmax
+            self._vmin = vmin
+            self._vmax = vmax
+        elif indices == 'closed':
+            self._hmin = numpy.append(hmin, hmin[-1])
+            self._hmax = numpy.append(hmax, hmax[-1])
+            self._vmin = numpy.append(vmin, vmin[-1])
+            self._vmax = numpy.append(vmax, vmax[-1])
+        else:
+            raise Exception("invalid value for indices")
+
+    def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
         _dict = {}
-        _dict['delta_rx'] = self._delta_rx
-        _dict['delta_angle'] = self._delta_angle
         _dict['hmin'] = self._hmin[init_idx:final_idx]
         _dict['hmax'] = self._hmax[init_idx:final_idx]
         _dict['vmin'] = self._vmin[init_idx:final_idx]
         _dict['vmax'] = self._vmax[init_idx:final_idx]
+        return _dict
+
+    def _get_coordinate_system_parameters(self):
+        _dict = {}
+        _dict['delta_rx'] = self._delta_rx
+        _dict['delta_angle'] = self._delta_angle
         return _dict
 
     def _init_magnets_and_power_supplies(self):
@@ -228,34 +249,23 @@ class AcceleratorModel(model.Model):
                 power_supply = utils.IndividualPowerSupply(magnets)
             self._power_supplies[ps_name] = power_supply
 
-    def _set_vacuum_chamber(self, indices = 'open'):
-        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        if indices == 'open':
-            self._hmin = hmin
-            self._hmax = hmax
-            self._vmin = vmin
-            self._vmax = vmax
-        elif indices == 'closed':
-            self._hmin = numpy.append(hmin, hmin[-1])
-            self._hmax = numpy.append(hmax, hmax[-1])
-            self._vmin = numpy.append(vmin, vmin[-1])
-            self._vmax = numpy.append(vmax, vmax[-1])
-        else:
-            raise Exception("invalid value for indices")
-
     def _get_parameters_from_upstream_accelerator(self, **kwargs):
         self._injection_parameters = kwargs
         self._upstream_accelerator_state_deprecated = True
 
     def _send_parameters_to_downstream_accelerator(self, twiss, parameters):
+        prefix = self._downstream_accelerator_prefix
         args_dict = parameters
         args_dict['init_twiss'] = twiss.make_dict()
-        prefix = self._downstream_accelerator_prefix
         function = 'get_parameters_from_upstream_accelerator'
         self._pipe.send(('p', (prefix, function, args_dict)))
 
-    def _receive_synchronism_signal(self):
-        pass
+    def _get_charge_from_upstream_accelerator(self, **kwargs):
+        self._charge_to_inject = kwargs['charge']
+
+    def _send_charge_to_downstream_accelerator(self, charge):
+        prefix = self._downstream_accelerator_prefix
+        args_dict = {}
+        args_dict['charge'] = charge
+        function = 'get_charge_from_upstream_accelerator'
+        self._pipe.send(('p', (prefix, function, args_dict)))

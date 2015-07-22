@@ -159,3 +159,10 @@ class RingModel(accelerator_model.AcceleratorModel):
                                         inelastic=i_lifetime,
                                         quantum=q_lifetime,
                                         touschek_coefficient=t_coeff)
+
+    def _receive_synchronism_signal(self):
+        self._log(message1 = 'cycle', message2 = self.prefix, c='white')
+        charge=self._charge_to_inject
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._beam_inject(charge=charge, message1='cycle')
+        self._charge_to_inject = 0.0

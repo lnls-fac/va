@@ -87,6 +87,11 @@ class Model:
     def _execute_function(self, function=None, **kwargs):
         if function == 'get_parameters_from_upstream_accelerator':
             self._get_parameters_from_upstream_accelerator(**kwargs)
+        if function == 'get_charge_from_upstream_accelerator':
+            self._get_charge_from_upstream_accelerator(**kwargs)
+        if function == 'receive_syncronism_signal':
+            self._receive_synchronism_signal(**kwargs)
+
 
 class ModelThread(threading.Thread):
 
