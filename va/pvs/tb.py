@@ -1,10 +1,11 @@
 
 import sirius as _sirius
-from va import fake_rnames_tb as _model_fake_rnames
+
 
 # kingdom-dependent parameters
 _model = _sirius.tb
-def _subsys(rn): return 'TB'+rn
+def _subsys(rn):
+    return 'TB'+rn
 
 
 class _LocalData:
@@ -17,7 +18,7 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _model_fake_rnames.get_record_names()
+        _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(_model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
@@ -100,11 +101,43 @@ class _LocalData:
     def get_dynamical_pvs():
         return _LocalData.dynamical_pvs
 
+def _get_fake_record_names(family_name=None):
+    if family_name == None:
+        families = ['tbfk']
+        record_names_dict = {}
+        for i in range(len(families)):
+            record_names_dict.update(_get_fake_record_names(families[i]))
+        return record_names_dict
+
+    if family_name.lower() == 'tbfk':
+        _dict = {}
+
+        get_element_names = _sirius.tb.record_names.get_element_names
+
+        # adds fake Corrector pvs for errors
+        _dict.update(get_element_names('corr', prefix = 'TBFK-ERRORX-'))
+        _dict.update(get_element_names('corr', prefix = 'TBFK-ERRORY-'))
+        _dict.update(get_element_names('corr', prefix = 'TBFK-ERRORR-'))
+        # adds fake BEND pvs for errors
+        _dict.update(get_element_names('bend', prefix = 'TBFK-ERRORX-'))
+        _dict.update(get_element_names('bend', prefix = 'TBFK-ERRORY-'))
+        _dict.update(get_element_names('bend', prefix = 'TBFK-ERRORR-'))
+        # adds fake SEP pvs for errors
+        _dict.update(get_element_names('sep', prefix = 'TBFK-ERRORX-'))
+        _dict.update(get_element_names('sep', prefix = 'TBFK-ERRORY-'))
+        _dict.update(get_element_names('sep', prefix = 'TBFK-ERRORR-'))
+        #adds fake QUAD pvs for errors
+        _dict.update(get_element_names('quad', prefix = 'TBFK-ERRORX-'))
+        _dict.update(get_element_names('quad', prefix = 'TBFK-ERRORY-'))
+        _dict.update(get_element_names('quad', prefix = 'TBFK-ERRORR-'))
+
+        return _dict
+    else:
+        raise Exception('Family name %s not found'%family_name)
 
 _LocalData.build_data()
 
 # --- Module API ---
-
 get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs

@@ -51,8 +51,11 @@ def handle_signal(signum, frame):
 
 def get_models():
     models = (
-        sirius_models.SiModel,
+        sirius_models.LiModel,
+        sirius_models.TbModel,
         sirius_models.BoModel,
+        sirius_models.SiModel,
+        sirius_models.TsModel,
     )
 
     return models

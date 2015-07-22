@@ -128,11 +128,7 @@ def _get_fake_record_names(family_name=None):
         return record_names_dict
 
     if family_name.lower() == 'bofk':
-        _dict = {
-                # 'BOFK-RESET':{},
-                # 'BOFK-INJECT':{},
-                # 'BOFK-DUMP':{},
-        }
+        _dict = {}
 
         get_element_names = _sirius.bo.record_names.get_element_names
 

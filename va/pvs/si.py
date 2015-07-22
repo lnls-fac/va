@@ -152,11 +152,7 @@ def _get_fake_record_names(family_name=None):
         return record_names_dict
 
     if family_name.lower() == 'sifk':
-        _dict = {
-                # 'SIFK-RESET':{},
-                # 'SIFK-INJECT':{},
-                # 'SIFK-DUMP':{},
-        }
+        _dict = {}
 
         get_element_names = _sirius.si.record_names.get_element_names
 

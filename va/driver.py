@@ -1,5 +1,4 @@
 
-import time
 import threading
 from pcaspy import Driver
 from . import utils
@@ -29,11 +28,13 @@ class PCASDriver(Driver):
         for process in self._processes:
             pipe = process.pipe
             while pipe.poll():
-                cmd, name, value = pipe.recv()
-                if cmd == 'p':
-                    self.write(name, value)
-                elif cmd == 's':
+                cmd, data = pipe.recv()
+                if cmd == 's':
+                    name, value = data
                     self.setParam(name, value)
+                elif cmd == 'p':
+                    prefix, function, args_dict = data
+                    self.send_to_model(prefix, function, args_dict)
                 else:
                     print('Invalid command:', cmd)
 
@@ -44,8 +45,21 @@ class PCASDriver(Driver):
     def write(self, reason, value):
         for process in self._processes:
             if reason.startswith(process.model.prefix):
-                self.setParam(reason, value)
-                process.pipe.send((reason, value))
+                if reason in process.model.pv_module.get_read_only_pvs() + \
+                    process.model.pv_module.get_dynamical_pvs():
+                    utils.log('!write', reason, c='yellow', a=['bold'])
+                else:
+                    utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
+                    self.setParam(reason, value)
+                    process.pipe.send(('s',(reason, value)))
                 break
         else:
             print('Could not find matching system:', reason)
+
+    def send_to_model(self, prefix, function, args_dict):
+        for process in self._processes:
+            if prefix == process.model.prefix:
+                process.pipe.send(('p',(function, args_dict)))
+                break
+        else:
+            print('Could not find matching system:', prefix)
