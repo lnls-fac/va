@@ -1,10 +1,11 @@
 
 import sirius as _sirius
-from va import fake_rnames_si as _model_fake_rnames
 
-# kingdom-dependent parameters
+
+# Kingdom-dependent parameters
 _model = _sirius.si
-def _subsys(rn): return 'SI'+rn
+def _subsys(rn):
+    return 'SI' + rn
 
 
 class _LocalData:
@@ -18,7 +19,7 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _model_fake_rnames.get_record_names()
+        _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(_model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
@@ -82,8 +83,6 @@ class _LocalData:
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
-
-
         for p in _LocalData.di:
             if any([substring in p for substring in ('BCURRENT',)]):
                 _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
@@ -143,10 +142,48 @@ class _LocalData:
         return _LocalData.dynamical_pvs
 
 
+def _get_fake_record_names(family_name=None):
+    if family_name == None:
+        families = ['sifk',]
+        record_names_dict = dict()
+        for i in range(len(families)):
+            record_names_dict.update(_get_fake_record_names(families[i]))
+
+        return record_names_dict
+
+    if family_name.lower() == 'sifk':
+        _dict = {}
+
+        get_element_names = _sirius.si.record_names.get_element_names
+
+        # Add fake CF pvs for errors
+        cf_rn = get_element_names('chf', prefix='SIFK-ERRORX-')
+        cf_rn.update(get_element_names('chf', prefix='SIFK-ERRORY-'))
+        cf_rn.update(get_element_names('chf', prefix='SIFK-ERRORR-'))
+        for key in cf_rn.keys():
+            value = cf_rn[key]['chf']
+            _dict[str.replace(key, '-CHF-', '-CF-')] = {'cf':value}
+        # Add fake BEND pvs for errors
+        _dict.update(get_element_names('bend', prefix='SIFK-ERRORX-'))
+        _dict.update(get_element_names('bend', prefix='SIFK-ERRORY-'))
+        _dict.update(get_element_names('bend', prefix='SIFK-ERRORR-'))
+        # Add fake QUAD pvs for errors
+        _dict.update(get_element_names('quad', prefix='SIFK-ERRORX-'))
+        _dict.update(get_element_names('quad', prefix='SIFK-ERRORY-'))
+        _dict.update(get_element_names('quad', prefix='SIFK-ERRORR-'))
+        # Add fake SEXT pvs for errors
+        _dict.update(get_element_names('sext', prefix='SIFK-ERRORX-'))
+        _dict.update(get_element_names('sext', prefix='SIFK-ERRORY-'))
+        _dict.update(get_element_names('sext', prefix='SIFK-ERRORR-'))
+
+        return _dict
+    else:
+        raise Exception('Family name %s not found' % family_name)
+
+
 _LocalData.build_data()
 
 # --- Module API ---
-
 get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs

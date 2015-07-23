@@ -1,24 +1,24 @@
 
 import sirius as _sirius
-from va import fake_rnames_bo as _model_fake_rnames
+
 
 # kingdom-dependent parameters
-_model = _sirius.bo
-def _subsys(rn): return 'BO'+rn
+_model = _sirius.ts
+def _subsys(rn):
+    return 'TS'+rn
 
 
 class _LocalData:
 
     @staticmethod
     def build_data():
-
         _LocalData._init_record_names()
         _LocalData._init_database()
         _LocalData._init_dynamical_pvs()
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _model_fake_rnames.get_record_names()
+        _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(_model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
@@ -31,7 +31,7 @@ class _LocalData:
         _LocalData.ps = []
         _LocalData.ps_ch = []
         _LocalData.ps_cv = []
-        _LocalData.rf = []
+        _LocalData.pu = []
         for record_name in record_names:
             if 'DI-BPM-' in record_name:
                 _LocalData.di_bpms.append(record_name)
@@ -47,20 +47,18 @@ class _LocalData:
                 _LocalData.pa.append(record_name)
             elif 'FK-' in record_name:
                 _LocalData.fk.append(record_name)
-            elif 'RF-' in record_name:
-                _LocalData.rf.append(record_name)
+            elif 'PU-' in record_name:
+                _LocalData.pu.append(record_name)
             else:
                 print('Parameter', record_name, 'not found!')
-        _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv
+        _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.pu
         _LocalData.di = _LocalData.di + _LocalData.di_bpms
 
     @staticmethod
     def _init_database():
         _LocalData.database = {}
         for p in _LocalData.di:
-            if any([substring in p for substring in ('BCURRENT',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
-            elif 'DI-BPM' in p:
+            if 'DI-BPM' in p:
                 if 'FAM-X' in p:
                     _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-X')]['bpm'])}
                 elif 'FAM-Y' in p:
@@ -76,24 +74,12 @@ class _LocalData:
                 _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.rf:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
     @staticmethod
     def _init_dynamical_pvs():
-        _LocalData.dynamical_pvs = [
-            _subsys('DI-CURRENT'),
-            _subsys('DI-BCURRENT'),
-            _subsys('PA-LIFETIME'),
-            _subsys('PA-BLIFETIME'),
-        ]
-        for pv in _LocalData.dynamical_pvs:
-            if 'DI-' in pv:
-                _LocalData.di.remove(pv)
-            elif 'PA-' in pv:
-                _LocalData.pa.remove(pv)
+        _LocalData.dynamical_pvs = []
 
     @staticmethod
     def get_all_record_names():
@@ -105,21 +91,55 @@ class _LocalData:
 
     @staticmethod
     def get_read_only_pvs():
-        return _LocalData.di_bpms + _LocalData.pa + _LocalData.di
+        return _LocalData.di_bpms + _LocalData.pa
 
     @staticmethod
     def get_read_write_pvs():
-        return _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.fk + _LocalData.rf
+        return _LocalData.ps + _LocalData.fk + _LocalData.pu
 
     @staticmethod
     def get_dynamical_pvs():
         return _LocalData.dynamical_pvs
 
+def _get_fake_record_names(family_name = None):
+
+    if family_name == None:
+        families = ['tsfk']
+        record_names_dict = {}
+        for i in range(len(families)):
+            record_names_dict.update(_get_fake_record_names(families[i]))
+        return record_names_dict
+
+    if family_name.lower() == 'tsfk':
+        _dict = {}
+
+        get_element_names = _sirius.ts.record_names.get_element_names
+
+        # adds fake Corrector pvs for errors
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('corr', prefix = 'TSFK-ERRORR-'))
+        # adds fake BEND pvs for errors
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORR-'))
+        # adds fake SEP pvs for errors
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORR-'))
+        #adds fake QUAD pvs for errors
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORR-'))
+
+        return _dict
+    else:
+        raise Exception('Family name %s not found'%family_name)
+
 
 _LocalData.build_data()
 
 # --- Module API ---
-
 get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs
