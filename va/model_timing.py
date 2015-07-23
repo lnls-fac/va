@@ -13,7 +13,7 @@ class TimingModel(Model):
 
     # --- methods implementing response of model to get requests
 
-    def get_pv_static(self, pv_name):
+    def get_pv(self, pv_name):
         if 'CYCLE' in pv_name:
             return self._cycle
         elif 'BO-KICKIN-ON' in pv_name:

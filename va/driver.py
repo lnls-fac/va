@@ -69,8 +69,8 @@ class PCASDriver(Driver):
         return super().read(reason)
 
     def write(self, reason, value):
-        if reason in self.read_only_pvs:
-            utils.log('!write',reason + ' ' + str(value), c='yellow', a=['bold'])
+        if reason in self.read_only_pvs + self.dynamic_pvs:
+            utils.log('!write',reason , c='yellow', a=['bold'])
         else:
             utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
             self.queue.put((reason, value))

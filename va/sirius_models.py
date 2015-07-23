@@ -86,6 +86,8 @@ class BoModel(RingModel):
     _model_module = sirius.bo
     _delta_rx, _delta_angle = sirius.coordinate_system.parameters('BO')
     _nr_bunches = _model_module.harmonic_number
+    _kickin_angle = _model_module.accelerator_data['injection_kicker_nominal_deflection']
+    _kickex_angle = _model_module.accelerator_data['extraction_kicker_nominal_deflection']
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
@@ -109,8 +111,6 @@ class BoModel(RingModel):
         self._ext_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
-        self._kickin_angle = -0.01934 # FIX ME! : hardcoded value
-        self._kickex_angle =  0.00132 # FIX ME! : hardcoded value
 
     def _get_equilibrium_at_maximum_energy(self):
         # this has to be calculated everytime BO changes
