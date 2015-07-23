@@ -177,9 +177,9 @@ class RingModel(Model):
         delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
         self._beam_charge.inject(delta_charge)
         final_charge = self._beam_charge.value
-        if message1 == 'cycle':
-            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-        return final_charge
+        #if message1 == 'cycle':
+        #    self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        return final_charge, efficiency
 
     def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
         if message1 and message1 != 'cycle':
@@ -191,9 +191,9 @@ class RingModel(Model):
         charge = self._beam_charge.value
         final_charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        if message1 == 'cycle':
-            self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-        return final_charge
+        #if message1 == 'cycle':
+        #    self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        return final_charge, efficiency
 
     def beam_accelerate(self):
         if self._model_module.lattice_version.startswith('BO'):
@@ -201,8 +201,8 @@ class RingModel(Model):
         else:
             efficiency = 1.0
         final_charge = self._beam_charge.value
-        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
-        return final_charge
+        #self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
+        return final_charge, efficiency
 
     # --- auxilliary methods
 

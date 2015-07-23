@@ -22,7 +22,7 @@ class LiModel(TLineModel):
         self._nr_bunches          = int(self._frequency*self._pulse_duration/6)
         self._beam_charge         = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._state_deprecated = True
-        self._set_vacuum_chamber(indices='closed')
+        self._set_vacuum_chamber(indices='open')
         self.notify_driver()
         self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('LI')
 
@@ -57,7 +57,7 @@ class TbModel(TLineModel):
         self._accelerator.vchamber_on = VCHAMBER
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
         self._state_deprecated = True
-        self._set_vacuum_chamber(indices='closed')
+        self._set_vacuum_chamber(indices='open')
         self.notify_driver()
         self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TB')
 
@@ -130,7 +130,7 @@ class TsModel(TLineModel):
         self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
         self._state_deprecated = True
         self.notify_driver()
-        self._set_vacuum_chamber(indices='closed')
+        self._set_vacuum_chamber(indices='open')
         self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TS')
 
     def notify_driver(self):
