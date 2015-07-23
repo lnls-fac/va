@@ -7,9 +7,8 @@ import pyaccel
 
 class TimingModel(Model):
 
-    def __init__(self, model_module, all_pvs=None, log_func=utils.log):
-
-        super().__init__(model_module=model_module, all_pvs=None, log_func=log_func)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(all_pvs=None, log_func=log_func)
         self.reset('start')
 
     # --- methods implementing response of model to get requests

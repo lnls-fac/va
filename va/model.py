@@ -7,117 +7,35 @@ recalculates necessary parameters, controlling concurrent accesses coming from
 the server.
 """
 
-import numpy
 import mathphys
-import pyaccel
 import va.utils as utils
-
 
 TRACK6D     = False
 VCHAMBER    = False
 UNDEF_VALUE = 0.0
-
-_u, _Tp = mathphys.units, pyaccel.optics.get_revolution_period
+_u = mathphys.units
 
 
 #--- general model classes ---#
 
 class Model(object):
 
-    def __init__(self, model_module=None, all_pvs=None, log_func=utils.log):
+    def __init__(self, all_pvs=None, log_func=utils.log):
         # stored model state parameters
         self._driver = None # this will be set latter by Driver
-        self._model_module = model_module
         self._log = log_func
         self._all_pvs = all_pvs
 
-    # --- methods implementing response of model to get requests
+    # --- methods that help updating the model state
 
     def get_pv(self, pv_name):
-        value = self.get_pv_dynamic(pv_name)
-        if value is None:
-            value = self.get_pv_static(pv_name)
-        if value is None:
-            value = self.get_pv_fake(pv_name)
-        if value is None:
-            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
-        return value
-
-    def get_pv_dynamic(self, pv_name):
-        return None
-
-    def get_pv_static(self, pv_name):
-        return None
-
-    def get_pv_fake(self, pv_name):
-        if '-ERRORX' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
-            return error
-        if '-ERRORY' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
-            return error
-        if '-ERRORR' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
-            return error
-        else:
-            return None
-
-    # --- methods implementing response of model to set requests
+        pass
 
     def set_pv(self, pv_name, value):
-        return None
-
-    def set_pv_fake(self, pv_name, value):
-        if '-ERRORX' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
-            if value != prev_errorx:
-                pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
-                self._state_deprecated = True
-            return True
-        elif '-ERRORY' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            prev_errory = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
-            if value != prev_errory:
-                pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
-                self._state_deprecated = True
-            return True
-        elif '-ERRORR' in pv_name:
-            idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
-            prev_errorr = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
-            if value != prev_errorr:
-                pyaccel.lattice.set_error_rotation_roll(self._accelerator, idx, value)
-                self._state_deprecated = True
-            return True
-        return False
-
-    # --- methods that help updating the model state
+        pass
 
     def update_state(self, force=False):
         pass
 
     def all_models_defined_ack(self):
         self.update_state(force=True)
-
-    # --- auxilliary methods
-
-    def _set_vacuum_chamber(self, indices = 'open'):
-        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        if indices == 'open':
-            self._hmin = hmin
-            self._hmax = hmax
-            self._vmin = vmin
-            self._vmax = vmax
-        elif indices == 'closed':
-            self._hmin = numpy.append(hmin, hmin[-1])
-            self._hmax = numpy.append(hmax, hmax[-1])
-            self._vmin = numpy.append(vmin, vmin[-1])
-            self._vmax = numpy.append(vmax, vmax[-1])
-        else:
-            raise Exception("invalid value for indices")

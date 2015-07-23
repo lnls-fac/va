@@ -6,25 +6,25 @@ from va.model_timing import TimingModel
 import va.utils as utils
 import sirius
 import pyaccel
-import math
 
 
 #--- sirius-specific model classes ---#
 
 class LiModel(TLineModel):
 
-    def __init__(self, all_pvs=None, log_func=utils.log):
+    _prefix = 'LI'
+    _model_module = sirius.li
+    _single_bunch_mode   = True
+    _pulse_duration      = sirius.li.pulse_duration_interval[1]
+    _frequency           = sirius.li.frequency
+    _nr_bunches          = int(_frequency*_pulse_duration/6)
+    _delta_rx, _delta_angle = sirius.coordinate_system.parameters('LI')
 
-        super().__init__(sirius.li, all_pvs=all_pvs, log_func=log_func)
-        self._single_bunch_mode   = True
-        self._pulse_duration      = sirius.li.pulse_duration_interval[1]
-        self._frequency           = sirius.li.frequency
-        self._nr_bunches          = int(self._frequency*self._pulse_duration/6)
-        self._beam_charge         = utils.BeamCharge(nr_bunches=self._nr_bunches)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._state_deprecated = True
-        self._set_vacuum_chamber(indices='open')
         self.notify_driver()
-        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('LI')
 
     def notify_driver(self):
         if self._driver: self._driver.li_changed = True
@@ -33,7 +33,7 @@ class LiModel(TLineModel):
         self.update_state()
         if isinstance(index, str):
             if index == 'end':
-                return sirius.tb.initial_twiss
+                sirius.li.accelerator_data['twiss_at_exit']
         else:
             Exception('index in _get_twiss invalid for LI')
 
@@ -50,16 +50,18 @@ class LiModel(TLineModel):
 
 class TbModel(TLineModel):
 
-    def __init__(self, all_pvs=None, log_func=utils.log):
+    _prefix = 'TB'
+    _model_module = sirius.tb
+    _delta_rx, _delta_angle = sirius.coordinate_system.parameters('TB')
+    _nr_bunches = sirius.bo.harmonic_number
 
-        super().__init__(sirius.tb, all_pvs=all_pvs, log_func=log_func)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._state_deprecated = True
-        self._set_vacuum_chamber(indices='open')
         self.notify_driver()
-        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TB')
 
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
@@ -80,16 +82,21 @@ class TbModel(TLineModel):
 
 class BoModel(RingModel):
 
+    _prefix = 'BO'
+    _model_module = sirius.bo
+    _delta_rx, _delta_angle = sirius.coordinate_system.parameters('BO')
+    _nr_bunches = _model_module.harmonic_number
+
     def __init__(self, all_pvs=None, log_func=utils.log):
-        super().__init__(sirius.bo, all_pvs=all_pvs, log_func=log_func)
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
         #self._accelerator.energy = 0.15e9 # [eV]
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._calc_lifetimes()
-        self._set_vacuum_chamber(indices='open')
-        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('BO')
+        self._state_deprecated = True
+        self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.bo_changed = True
@@ -122,16 +129,18 @@ class BoModel(RingModel):
 
 class TsModel(TLineModel):
 
-    def __init__(self, all_pvs=None, log_func=utils.log):
+    _prefix = 'TS'
+    _model_module = sirius.ts
+    _delta_rx, _delta_angle = sirius.coordinate_system.parameters('TS')
+    _nr_bunches = sirius.bo.harmonic_number
 
-        super().__init__(sirius.ts, all_pvs=all_pvs, log_func=log_func)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=sirius.bo.harmonic_number)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._state_deprecated = True
         self.notify_driver()
-        self._set_vacuum_chamber(indices='open')
-        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TS')
 
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
@@ -152,15 +161,20 @@ class TsModel(TLineModel):
 
 class SiModel(RingModel):
 
+    _prefix = 'SI'
+    _model_module = sirius.si
+    _delta_rx, _delta_angle = sirius.coordinate_system.parameters('SI')
+    _nr_bunches = _model_module.harmonic_number
+
     def __init__(self, all_pvs=None, log_func=utils.log):
-        super().__init__(sirius.si, all_pvs=all_pvs, log_func=log_func)
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
+        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
         self._calc_lifetimes()
-        self._set_vacuum_chamber(indices='open')
-        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('SI')
+        self._state_deprecated = True
+        self.notify_driver()
 
     def notify_driver(self):
         if self._driver: self._driver.si_changed = True
@@ -174,9 +188,11 @@ class SiModel(RingModel):
 
 class TiModel(TimingModel):
 
-    def __init__(self, all_pvs=None, log_func=utils.log):
+    _prefix = 'TI'
+    _model_module = sirius.ti
 
-        super().__init__(sirius.ti, all_pvs=all_pvs, log_func=log_func)
+    def __init__(self, all_pvs=None, log_func=utils.log):
+        super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._state_deprecated = True
         self.notify_driver()
 
