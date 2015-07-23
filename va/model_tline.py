@@ -11,11 +11,19 @@ class TLineModel(AcceleratorModel):
     # --- methods that help updating the model state
 
     def update_state(self, force=False):
-        if force or self._state_deprecated:
+        if force:
             self._calc_transport_loss_fraction()
-            self._injection_loss_fraction = 0.0
-            self._ejection_loss_fraction = 0.0
             self._state_deprecated = False
+            self._upstream_accelerator_state_deprecated = False
+        elif self._state_deprecated or self._upstream_accelerator_state_deprecated:
+            self._calc_transport_loss_fraction()
+            self._state_deprecated = False
+            self._upstream_accelerator_state_deprecated = False
+            # signaling deprecation for other models
+            if self._prefix == 'LI':
+                self._driver.tb_model._upstream_accelerator_state_deprecated = True
+            elif self._prefix == 'TB':
+                self._driver.bo_model._upstream_accelerator_state_deprecated = True
 
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
         super().beam_dump(message1=message1, message2=message2, c=c, a=a)

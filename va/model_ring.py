@@ -99,21 +99,27 @@ class RingModel(AcceleratorModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            self._injection_loss_fraction = 0.0
-            self._ejection_loss_fraction = 0.0
             self._state_deprecated = False
+            if self._prefix == 'BO':
+                # injection
+                self._set_kickin('on')
+                self._calc_injection_loss_fraction()
+                self._set_kickin('off')
+                # acceleration
+                self._calc_acceleration_loss_fraction()
+                # ejection
+                self._set_kickex('on')
+                self._calc_ejection_loss_fraction()
+                self._set_kickex('off')
+                # signaling deprecation for other models
+                self._driver.ts_model._upstream_accelerator_state_deprecated = True
 
-        if force and self._model_module.lattice_version.startswith('BO'):
+        if self._prefix == 'BO' and self._upstream_accelerator_state_deprecated:
+            self._upstream_accelerator_state_deprecated = False
             # injection
-            self._kickin_on()
+            self._set_kickin('on')
             self._calc_injection_loss_fraction()
-            self._kickin_off()
-            # acceleration
-            self._calc_acceleration_loss_fraction()
-            # ejection
-            self._kickex_on()
-            self._calc_ejection_loss_fraction()
-            self._kickex_off()
+            self._set_kickin('off')
 
     def beam_dump(self, message1='panic', message2='', c='white', a=None):
         super().beam_dump(message1=message1, message2=message2, c=c, a=a)
@@ -194,21 +200,19 @@ class RingModel(AcceleratorModel):
         # need to update RF voltage !!!
         self._accelerator.energy = energy
 
-    def _kickin_on(self):
+    def _set_kickin(self, str ='off'):
         for idx in self._kickin_idx:
-            self._accelerator[idx].hkick_polynom = self._kickin_angle
+            if str.lower() == 'on':
+                self._accelerator[idx].hkick_polynom = self._kickin_angle
+            elif str.lower() == 'off':
+                self._accelerator[idx].hkick_polynom = 0.0
 
-    def _kickin_off(self):
-        for idx in self._kickin_idx:
-            self._accelerator[idx].hkick_polynom = 0.0
-
-    def _kickex_on(self):
+    def _set_kickex(self, str ='off'):
         for idx in self._kickex_idx:
-            self._accelerator[idx].hkick_polynom = self._kickex_angle
-
-    def _kickex_off(self):
-        for idx in self._kickex_idx:
-            self._accelerator[idx].hkick_polynom = 0.0
+            if str.lower() == 'on':
+                self._accelerator[idx].hkick_polynom = self._kickex_angle
+            elif str.lower() == 'off':
+                self._accelerator[idx].hkick_polynom = 0.0
 
     def _calc_injection_loss_fraction(self):
         self._log('calc', 'injection efficiency  for '+self._model_module.lattice_version)

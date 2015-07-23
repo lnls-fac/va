@@ -124,15 +124,16 @@ class AcceleratorModel(Model):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
         self._state_deprecated = True
+        self._upstream_accelerator_state_deprecated = False
         if self._beam_charge: self._beam_charge.dump()
         self._orbit = None
         self._twiss = None
         self._m66 = None
         self._transfer_matrices = None
         self._summary = None
-        self._injection_loss_fraction = None
-        self._ejection_loss_fraction = None
-    
+        self._injection_loss_fraction = 0.0
+        self._ejection_loss_fraction = 0.0
+
     def beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
         if message1 and message1 != 'cycle':
             self._log(message1, message2, c=c, a=a)
