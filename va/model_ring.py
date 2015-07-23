@@ -277,50 +277,67 @@ class RingModel(Model):
             self.beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
     def _calc_lifetimes(self):
-        if self._summary is None or self._beam_charge is None: return
+            if self._summary is None or self._beam_charge is None: return
 
-        self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
+            self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
 
-        spos, pressure = self._model_module.accelerator_data['pressure_profile']
-        avg_pressure = numpy.trapz(pressure,spos)/(spos[-1]-spos[0])
-        spos, *betas = pyaccel.optics.get_twiss(self._twiss, ('spos', 'betax','betay'))
-        alphax, etapx, *etas = pyaccel.optics.get_twiss(self._twiss, ('alphax', 'etapx','etax','etay'))
-        energy = self._accelerator.energy
-        e0 = self._summary['natural_emittance']
-        k = self._model_module.accelerator_data['global_coupling']
-        sigmae = self._summary['natural_energy_spread']
-        sigmal = self._summary['bunch_length']
-        Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
-        rad_damping_times = self._summary['damping_times']
+            Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
+            coupling = self._model_module.accelerator_data['global_coupling']
+            pressure_profile = self._model_module.accelerator_data['pressure_profile']
 
-        # acceptances
-        eaccep = self._summary['rf_energy_acceptance']
-        accepx, accepy, *_ = pyaccel.optics.get_transverse_acceptance(
-                                                self._accelerator,
-                                                twiss=self._twiss, energy_offset=0.0)
-        taccep = [min(accepx), min(accepy)]
+            e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
+                                                                self._twiss, self._summary, Ne1C, coupling, pressure_profile)
+            self._beam_charge.set_lifetimes(elastic=e_lifetime,
+                                            inelastic=i_lifetime,
+                                            quantum=q_lifetime,
+                                            touschek_coefficient=t_coeff)
 
-        lifetimes = self._beam_charge.get_lifetimes()
-        thetax = numpy.sqrt(taccep[0]/betas[0])
-        thetay = numpy.sqrt(taccep[1]/betas[1])
-        R = thetay / thetax
-        e_rate_spos = mathphys.beam_lifetime.calc_elastic_loss_rate(energy,R,taccep,avg_pressure,betas)
-        t_rate_spos = mathphys.beam_lifetime.calc_touschek_loss_rate(energy,sigmae,e0,Ne1C,
-                sigmal, k, (-eaccep,eaccep), betas, etas, alphax, etapx)
 
-        e_rate  = numpy.trapz(e_rate_spos,spos)/(spos[-1]-spos[0])
-        i_rate  = mathphys.beam_lifetime.calc_inelastic_loss_rate(eaccep, pressure=avg_pressure)
-        q_rate  = sum(mathphys.beam_lifetime.calc_quantum_loss_rates(e0, k, sigmae, taccep, eaccep, rad_damping_times))
-        t_coeff = numpy.trapz(t_rate_spos,spos)/(spos[-1]-spos[0])
-
-        e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
-        i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
-        q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
-
-        self._beam_charge.set_lifetimes(elastic=e_lifetime,
-                                        inelastic=i_lifetime,
-                                        quantum=q_lifetime,
-                                        touschek_coefficient=t_coeff)
+    # def _calc_lifetimes(self):
+    #     if self._summary is None or self._beam_charge is None: return
+    #
+    #     self._log('calc', 'beam lifetimes for '+self._model_module.lattice_version)
+    #
+    #     spos, pressure = self._model_module.accelerator_data['pressure_profile']
+    #     avg_pressure = numpy.trapz(pressure,spos)/(spos[-1]-spos[0])
+    #     spos, *betas = pyaccel.optics.get_twiss(self._twiss, ('spos', 'betax','betay'))
+    #     alphax, etapx, *etas = pyaccel.optics.get_twiss(self._twiss, ('alphax', 'etapx','etax','etay'))
+    #     energy = self._accelerator.energy
+    #     e0 = self._summary['natural_emittance']
+    #     k = self._model_module.accelerator_data['global_coupling']
+    #     sigmae = self._summary['natural_energy_spread']
+    #     sigmal = self._summary['bunch_length']
+    #     Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
+    #     rad_damping_times = self._summary['damping_times']
+    #
+    #     # acceptances
+    #     eaccep = self._summary['rf_energy_acceptance']
+    #     accepx, accepy, *_ = pyaccel.optics.get_transverse_acceptance(
+    #                                             self._accelerator,
+    #                                             twiss=self._twiss, energy_offset=0.0)
+    #     taccep = [min(accepx), min(accepy)]
+    #
+    #     lifetimes = self._beam_charge.get_lifetimes()
+    #     thetax = numpy.sqrt(taccep[0]/betas[0])
+    #     thetay = numpy.sqrt(taccep[1]/betas[1])
+    #     R = thetay / thetax
+    #     e_rate_spos = mathphys.beam_lifetime.calc_elastic_loss_rate(energy,R,taccep,avg_pressure,betas)
+    #     t_rate_spos = mathphys.beam_lifetime.calc_touschek_loss_rate(energy,sigmae,e0,Ne1C,
+    #             sigmal, k, (-eaccep,eaccep), betas, etas, alphax, etapx)
+    #
+    #     e_rate  = numpy.trapz(e_rate_spos,spos)/(spos[-1]-spos[0])
+    #     i_rate  = mathphys.beam_lifetime.calc_inelastic_loss_rate(eaccep, pressure=avg_pressure)
+    #     q_rate  = sum(mathphys.beam_lifetime.calc_quantum_loss_rates(e0, k, sigmae, taccep, eaccep, rad_damping_times))
+    #     t_coeff = numpy.trapz(t_rate_spos,spos)/(spos[-1]-spos[0])
+    #
+    #     e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
+    #     i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
+    #     q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
+    #
+    #     self._beam_charge.set_lifetimes(elastic=e_lifetime,
+    #                                     inelastic=i_lifetime,
+    #                                     quantum=q_lifetime,
+    #                                     touschek_coefficient=t_coeff)
 
     def _init_magnets_and_power_supplies(self):
         accelerator = self._accelerator

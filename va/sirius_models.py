@@ -43,6 +43,7 @@ class LiModel(TLineModel):
         eq['emittance'] =  sirius.li.accelerator_data['emittance']
         eq['energy_spread'] = sirius.li.accelerator_data['energy_spread']
         eq['global_coupling'] = sirius.li.accelerator_data['global_coupling']
+        eq['twiss_at_exit'] = sirius.li.accelerator_data['twiss_at_exit']
         return eq
 
 
@@ -71,7 +72,7 @@ class TbModel(TLineModel):
         li = self._driver.li_model
         li.update_state()
         eq = li._get_equilibrium_at_maximum_energy()
-        eq['twiss_at_entrance'] = li._get_twiss('end')
+        eq['twiss_at_entrance'] = eq.pop('twiss_at_exit')
         return eq
 
 
