@@ -119,43 +119,14 @@ class RingModel(AcceleratorModel):
         super().beam_dump(message1=message1, message2=message2, c=c, a=a)
         self._acceleration_loss_fraction = None
 
-    # def beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
-    #     if message1 and message1 != 'cycle':
-    #         self._log(message1, message2, c=c, a=a)
-    #     if self._summary is None: return
-    #     if self._model_module.lattice_version.startswith('BO'):
-    #         efficiency = 1.0 - self._injection_loss_fraction
-    #     else:
-    #         efficiency = 1.0
-    #     delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
-    #     self._beam_charge.inject(delta_charge)
-    #     final_charge = self._beam_charge.value
-    #     if message1 == 'cycle':
-    #         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-    #     return final_charge
-    #
-    # def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
-    #     if message1 and message1 != 'cycle':
-    #         self._log(message1, message2, c=c, a=a)
-    #     if self._model_module.lattice_version.startswith('BO'):
-    #         efficiency = 1.0 - self._ejection_loss_fraction
-    #     else:
-    #         efficiency = 1.0
-    #     charge = self._beam_charge.value
-    #     final_charge = [charge_bunch * efficiency for charge_bunch in charge]
-    #     self._beam_charge.dump()
-    #     if message1 == 'cycle':
-    #         self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-    #     return final_charge
-
     def beam_accelerate(self):
         if self._model_module.lattice_version.startswith('BO'):
             efficiency = 1.0 - self._acceleration_loss_fraction
         else:
             efficiency = 1.0
         final_charge = self._beam_charge.value
-        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
-        return final_charge
+        #self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
+        return final_charge, efficiency
 
     # --- auxilliary methods
 
@@ -219,6 +190,48 @@ class RingModel(AcceleratorModel):
                                             quantum=q_lifetime,
                                             touschek_coefficient=t_coeff)
 
+    def _set_energy(energy):
+        # need to update RF voltage !!!
+        self._accelerator.energy = energy
+
+    def _kickin_on(self):
+        for idx in self._kickin_idx:
+            self._accelerator[idx].hkick_polynom = self._kickin_angle
+
+    def _kickin_off(self):
+        for idx in self._kickin_idx:
+            self._accelerator[idx].hkick_polynom = 0.0
+
+    def _kickex_on(self):
+        for idx in self._kickex_idx:
+            self._accelerator[idx].hkick_polynom = self._kickex_angle
+
+    def _kickex_off(self):
+        for idx in self._kickex_idx:
+            self._accelerator[idx].hkick_polynom = 0.0
+
+    def _calc_injection_loss_fraction(self):
+        self._log('calc', 'injection efficiency  for '+self._model_module.lattice_version)
+        inj_parms = self._get_parameters_from_upstream_accelerator()
+        inj_parms['init_twiss'] = inj_parms.pop('twiss_at_entrance')
+        args_dict = inj_parms
+        args_dict.update(self._get_vacuum_chamber())
+        args_dict.update(self._get_coordinate_system_parameters())
+        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **args_dict)
+
+    def _calc_acceleration_loss_fraction(self):
+        self._acceleration_loss_fraction = 0.0
+
+    def _calc_ejection_loss_fraction(self):
+        if self._twiss is None: return
+        self._log('calc', 'ejection efficiency  for '+self._model_module.lattice_version)
+
+        accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
+        ejection_parameters = self._get_equilibrium_at_maximum_energy()
+        args_dict = ejection_parameters
+        args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
+        self._ejection_loss_fraction, self._ejection_twiss, *_ = utils.charge_loss_fraction_line(accelerator,
+            init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)
 
     # def _calc_lifetimes(self):
     #     if self._summary is None or self._beam_charge is None: return
@@ -265,47 +278,3 @@ class RingModel(AcceleratorModel):
     #                                     inelastic=i_lifetime,
     #                                     quantum=q_lifetime,
     #                                     touschek_coefficient=t_coeff)
-
-
-    def _set_energy(energy):
-        # need to update RF voltage !!!
-        self._accelerator.energy = energy
-
-    def _kickin_on(self):
-        for idx in self._kickin_idx:
-            self._accelerator[idx].hkick_polynom = self._kickin_angle
-
-    def _kickin_off(self):
-        for idx in self._kickin_idx:
-            self._accelerator[idx].hkick_polynom = 0.0
-
-    def _kickex_on(self):
-        for idx in self._kickex_idx:
-            self._accelerator[idx].hkick_polynom = self._kickex_angle
-
-    def _kickex_off(self):
-        for idx in self._kickex_idx:
-            self._accelerator[idx].hkick_polynom = 0.0
-
-    def _calc_injection_loss_fraction(self):
-        self._log('calc', 'injection efficiency  for '+self._model_module.lattice_version)
-        inj_parms = self._get_parameters_from_upstream_accelerator()
-        inj_parms['init_twiss'] = inj_parms.pop('twiss_at_entrance')
-        args_dict = inj_parms
-        args_dict.update(self._get_vacuum_chamber())
-        args_dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **args_dict)
-
-    def _calc_acceleration_loss_fraction(self):
-        self._acceleration_loss_fraction = 0.0
-
-    def _calc_ejection_loss_fraction(self):
-        if self._twiss is None: return
-        self._log('calc', 'ejection efficiency  for '+self._model_module.lattice_version)
-
-        accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
-        ejection_parameters = self._get_equilibrium_at_maximum_energy()
-        args_dict = ejection_parameters
-        args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
-        self._ejection_loss_fraction, self._ejection_twiss, *_ = utils.charge_loss_fraction_line(accelerator,
-            init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)

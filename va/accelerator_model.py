@@ -132,28 +132,29 @@ class AcceleratorModel(Model):
         self._summary = None
         self._injection_loss_fraction = None
         self._ejection_loss_fraction = None
-
-    def beam_inject(self, delta_charge=None, message1='inject', message2 = '', c='white', a=None):
-        if delta_charge is None: return
-        # if message1 and message1 != 'cycle':
-        #     self._log(message1, message2, c=c, a=a)
+    
+    def beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
+        if message1 and message1 != 'cycle':
+            self._log(message1, message2, c=c, a=a)
         efficiency = 1.0 - self._injection_loss_fraction
-        charge = [bunch_charge * efficiency for bunch_charge in delta_charge]
-        self._beam_charge.inject(charge)
-        # if message1 == 'cycle':
-        #     self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
-        return charge
+        delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
+        self._beam_charge.inject(delta_charge)
+        final_charge = self._beam_charge.value
+        #if message1 == 'cycle':
+        #    self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        return final_charge, efficiency
 
     def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
-        # if message1 and message1 != 'cycle':
-        #     self._log(message1, message2, c=c, a=a)
+        if message1 and message1 != 'cycle':
+            self._log(message1, message2, c=c, a=a)
         efficiency = 1.0 - self._ejection_loss_fraction
         charge = self._beam_charge.value
         final_charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        # if message1 == 'cycle':
-        #     self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
-        return final_charge
+        #if message1 == 'cycle':
+        #    self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
+        return final_charge, efficiency
+
 
    # --- auxilliary methods
 

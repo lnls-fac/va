@@ -23,14 +23,25 @@ class TLineModel(AcceleratorModel):
 
     def beam_transport(self, charge):
         self.update_state()
-        charge = self.beam_inject(charge, message1='')
         efficiency = 1.0 - self._transport_loss_fraction
-        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
+        #self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
         charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        return charge
+        return charge, efficiency
 
     # --- auxilliary methods
+
+    def _calc_transport_loss_fraction(self):
+        if self._model_module.lattice_version.startswith('LI'):
+            self._transport_loss_fraction = 0.0
+        else:
+            self._log('calc', 'transport efficiency  for '+self._model_module.lattice_version)
+            args_dict = self._get_parameters_from_upstream_accelerator()
+            args_dict['init_twiss'] = args_dict.pop('twiss_at_entrance')
+            args_dict.update(self._get_vacuum_chamber())
+            args_dict.update(self._get_coordinate_system_parameters())
+            self._transport_loss_fraction, self._twiss, self._m66, self._transfer_matrices, self._orbit = \
+                utils.charge_loss_fraction_line(self._accelerator, **args_dict)
 
     # def _calc_orbit(self, init_twiss):
     #     if init_twiss is None: return
@@ -57,16 +68,3 @@ class TLineModel(AcceleratorModel):
     #     emity = natural_emittance * coupling / (1 + coupling)
     #     self._sigmax = numpy.sqrt(betax * emitx + (etax * natural_energy_spread)**2)
     #     self._sigmay = numpy.sqrt(betay * emity + (etax * natural_energy_spread)**2)
-
-
-    def _calc_transport_loss_fraction(self):
-        if self._model_module.lattice_version.startswith('LI'):
-            self._transport_loss_fraction = 0.0
-        else:
-            self._log('calc', 'transport efficiency  for '+self._model_module.lattice_version)
-            args_dict = self._get_parameters_from_upstream_accelerator()
-            args_dict['init_twiss'] = args_dict.pop('twiss_at_entrance')
-            args_dict.update(self._get_vacuum_chamber())
-            args_dict.update(self._get_coordinate_system_parameters())
-            self._transport_loss_fraction, self._twiss, self._m66, self._transfer_matrices, self._orbit = \
-                utils.charge_loss_fraction_line(self._accelerator, **args_dict)
