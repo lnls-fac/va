@@ -56,16 +56,7 @@ class TLineModel(Model):
 
     def update_state(self, force=False):
         if force or self._state_deprecated:  # we need to check deprecation of other models on which tline depends
-            parms = self._get_parameters_from_upstream_accelerator()
-            if parms is not None:
-                init_twiss = parms['twiss_at_entrance']
-                emittance = parms['emittance']
-                energy_spread = parms['energy_spread']
-                global_coupling = parms['global_coupling']
-                self._calc_orbit(init_twiss)
-                self._calc_linear_optics(init_twiss)
-                self._calc_beam_size(emittance, energy_spread, global_coupling)
-                self._calc_loss_fraction()
+            self._calc_transport_loss_fraction()
             self._state_deprecated = False
 
     def reset(self, message1='reset', message2='', c='white', a=None):
@@ -100,7 +91,7 @@ class TLineModel(Model):
     def beam_transport(self, charge):
         self.update_state()
         charge = self.beam_inject(charge, message1='')
-        efficiency = 1.0 - self._loss_fraction
+        efficiency = 1.0 - self._transport_loss_fraction
         self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
         charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
@@ -118,35 +109,49 @@ class TLineModel(Model):
         else:
             return self._twiss[index]
 
+    def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
+        _dict = {}
+        _dict['hmin'] = self._hmin[init_idx:final_idx]
+        _dict['hmax'] = self._hmax[init_idx:final_idx]
+        _dict['vmin'] = self._vmin[init_idx:final_idx]
+        _dict['vmax'] = self._vmax[init_idx:final_idx]
+        return _dict
+
+    def _get_coordinate_system_parameters(self):
+        _dict = {}
+        _dict['delta_rx'] = self._delta_rx
+        _dict['delta_angle'] = self._delta_angle
+        return _dict
+
     def _get_parameters_from_upstream_accelerator(self):
         """Return initial Twiss parameters to be tracked"""
         return None
 
-    def _calc_orbit(self, init_twiss):
-        if init_twiss is None: return
-        init_pos = init_twiss.fixed_point
-        try:
-            self._log('calc', 'orbit for '+self._model_module.lattice_version)
-            self._orbit, *_ = pyaccel.tracking.linepass(self._accelerator, init_pos, indices = 'closed')
-        except pyaccel.tracking.TrackingException:
-            # beam is lost
-            self.beam_dump('panic', 'BEAM LOST: orbit does not exist', c='red')
-
-    def _calc_linear_optics(self, init_twiss):
-        if init_twiss is None: return
-        try:
-            self._log('calc', 'linear optics for '+self._model_module.lattice_version)
-            self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss, indices='closed')
-        except pyaccel.tracking.TrackingException:
-            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-
-    def _calc_beam_size(self, natural_emittance, natural_energy_spread, coupling):
-        if self._twiss is None: return
-        betax, etax, betay, etay = pyaccel.optics.get_twiss(self._twiss, ('betax','etax','betay','etay'))
-        emitx = natural_emittance * 1 / (1 + coupling)
-        emity = natural_emittance * coupling / (1 + coupling)
-        self._sigmax = numpy.sqrt(betax * emitx + (etax * natural_energy_spread)**2)
-        self._sigmay = numpy.sqrt(betay * emity + (etax * natural_energy_spread)**2)
+    # def _calc_orbit(self, init_twiss):
+    #     if init_twiss is None: return
+    #     init_pos = init_twiss.fixed_point
+    #     try:
+    #         self._log('calc', 'orbit for '+self._model_module.lattice_version)
+    #         self._orbit, *_ = pyaccel.tracking.linepass(self._accelerator, init_pos, indices = 'open')
+    #     except pyaccel.tracking.TrackingException:
+    #         # beam is lost
+    #         self.beam_dump('panic', 'BEAM LOST: orbit does not exist', c='red')
+    #
+    # def _calc_linear_optics(self, init_twiss):
+    #     if init_twiss is None: return
+    #     try:
+    #         self._log('calc', 'linear optics for '+self._model_module.lattice_version)
+    #         self._twiss, *_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss=init_twiss, indices='open')
+    #     except pyaccel.tracking.TrackingException:
+    #         self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+    #
+    # def _calc_beam_size(self, natural_emittance, natural_energy_spread, coupling):
+    #     if self._twiss is None: return
+    #     betax, etax, betay, etay = pyaccel.optics.get_twiss(self._twiss, ('betax','etax','betay','etay'))
+    #     emitx = natural_emittance * 1 / (1 + coupling)
+    #     emity = natural_emittance * coupling / (1 + coupling)
+    #     self._sigmax = numpy.sqrt(betax * emitx + (etax * natural_energy_spread)**2)
+    #     self._sigmay = numpy.sqrt(betay * emity + (etax * natural_energy_spread)**2)
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""
@@ -210,32 +215,14 @@ class TLineModel(Model):
                 power_supply = utils.IndividualPowerSupply(magnets)
             self._power_supplies[ps_name] = power_supply
 
-    def _calc_loss_fraction(self):
-        if self._orbit is None: return 0.0
-        self._log('calc', 'loss fraction for '+self._model_module.lattice_version)
-
-        h_vc = self._hmax - self._hmin
-        v_vc = self._vmax - self._vmin
-        rx, ry = self._orbit[[0,2],:]
-        xlim_inf, xlim_sup = rx - self._hmin, self._hmax - rx
-        ylim_inf, ylim_sup = ry - self._vmin, self._vmax - ry
-        xlim_inf[xlim_inf < 0] = 0
-        xlim_sup[xlim_sup < 0] = 0
-        ylim_inf[ylim_inf < 0] = 0
-        ylim_sup[ylim_sup < 0] = 0
-        xlim_inf[xlim_inf > h_vc] = 0
-        xlim_sup[xlim_sup > h_vc] = 0
-        ylim_inf[ylim_inf > v_vc] = 0
-        ylim_sup[ylim_sup > v_vc] = 0
-        min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
-        min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
-        min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
-        min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
-        sqrt2 = math.sqrt(2)
-        x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
-                               0.5*math.erf(min_xfrac_sup/sqrt2)
-        y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2) + \
-                               0.5*math.erf(min_yfrac_sup/sqrt2)
-        surviving_fraction = x_surviving_fraction * y_surviving_fraction
-
-        self._loss_fraction = 1.0 - surviving_fraction
+    def _calc_transport_loss_fraction(self):
+        if self._model_module.lattice_version.startswith('LI'):
+            self._transport_loss_fraction = 0.0
+        else:
+            self._log('calc', 'transport efficiency  for '+self._model_module.lattice_version)
+            args_dict = self._get_parameters_from_upstream_accelerator()
+            args_dict['init_twiss'] = args_dict.pop('twiss_at_entrance')
+            args_dict.update(self._get_vacuum_chamber())
+            args_dict.update(self._get_coordinate_system_parameters())
+            self._transport_loss_fraction, self._twiss, self._m66, self._transfer_matrices, self._orbit = \
+                utils.charge_loss_fraction_line(self._accelerator, **args_dict)
