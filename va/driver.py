@@ -1,12 +1,12 @@
 
 import queue
 from pcaspy import Driver
-import va.pvs_li as pvs_li
-import va.pvs_tb as pvs_tb
-import va.pvs_bo as pvs_bo
-import va.pvs_ts as pvs_ts
-import va.pvs_si as pvs_si
-import va.pvs_ti as pvs_ti
+import va.pvs.li as pvs_li
+import va.pvs.tb as pvs_tb
+import va.pvs.bo as pvs_bo
+import va.pvs.ts as pvs_ts
+import va.pvs.si as pvs_si
+import va.pvs.ti as pvs_ti
 import va.utils as utils
 
 

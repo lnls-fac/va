@@ -1,18 +1,13 @@
 """Virtual Accelerator with Channel Access Server"""
 
 import os as _os
-from . import pvs_li
-from . import pvs_tb
-from . import pvs_bo
-from . import pvs_ts
-from . import pvs_si
-from . import pvs_ti
-from . import fake_rnames_li
-from . import fake_rnames_tb
-from . import fake_rnames_bo
-from . import fake_rnames_ts
-from . import fake_rnames_si
-from . import fake_rnames_ti
+from .pvs import li
+from .pvs import tb
+from .pvs import bo
+from .pvs import ts
+from .pvs import si
+from .pvs import ti
+
 
 
 with open(_os.path.join(__path__[0], 'VERSION'), 'r') as _f:

@@ -130,31 +130,14 @@ class RingModel(Model):
             self._state_deprecated = False
 
         if force and self._model_module.lattice_version.startswith('BO'):
-            # we need to check deprecation of other models on which booster depends
-
             # injection
-            inj_parms = self._get_parameters_from_upstream_accelerator()
-            inj_emittance = inj_parms['emittance']
-            inj_energy_spread = inj_parms['energy_spread']
-            inj_init_twiss = inj_parms['twiss_at_entrance']
-
             self._kickin_on()
-            self._calc_injection_loss_fraction(inj_emittance, inj_energy_spread, inj_init_twiss)
+            self._calc_injection_loss_fraction()
             self._kickin_off()
-
             # acceleration
             self._calc_acceleration_loss_fraction()
-
             # ejection
-            ext_parms = self._get_equilibrium_at_maximum_energy()
-            ext_emittance = ext_parms['emittance']
-            ext_energy_spread = ext_parms['energy_spread']
-            ext_coupling = ext_parms['global_coupling']
-            ext_init_twiss = self._twiss[self._kickex_idx[0]]
-
             self._kickex_on()
-            self._calc_ejection_twiss(ext_init_twiss)
-            self._calc_ejection_beam_size(ext_emittance, ext_energy_spread, ext_coupling)
             self._calc_ejection_loss_fraction()
             self._kickex_off()
 
@@ -399,6 +382,20 @@ class RingModel(Model):
         else:
             return self._twiss[index]
 
+    def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
+        _dict = {}
+        _dict['hmin'] = self._hmin[init_idx:final_idx]
+        _dict['hmax'] = self._hmax[init_idx:final_idx]
+        _dict['vmin'] = self._vmin[init_idx:final_idx]
+        _dict['vmax'] = self._vmax[init_idx:final_idx]
+        return _dict
+
+    def _get_coordinate_system_parameters(self):
+        _dict = {}
+        _dict['delta_rx'] = self._delta_rx
+        _dict['delta_angle'] = self._delta_angle
+        return _dict
+
     def _set_energy(energy):
         # need to update RF voltage !!!
         self._accelerator.energy = energy
@@ -422,103 +419,25 @@ class RingModel(Model):
         for idx in self._kickex_idx:
             self._accelerator[idx].hkick_polynom = 0.0
 
-    def _calc_injection_loss_fraction(self, emittance, energy_spread, init_twiss):
-        if init_twiss is None: return
-
-        init_pos = init_twiss.fixed_point
-        twiss,*_ = pyaccel.optics.calc_twiss(self._accelerator, init_twiss = init_twiss)
-        betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
-
-        if math.isnan(betax[-1]):
-            self._injection_loss_fraction = 1.0
-            return
-
-        de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 11)
-        de_probability = numpy.zeros(len(de))
-        lost_fraction = numpy.zeros(len(de))
-        total_lost_fraction = 0
-
-        for i in range(len(de)):
-            de_probability[i] = math.exp(-(de[i]**2)/(2*(energy_spread**2)))/(math.sqrt(2*math.pi)*energy_spread)
-            pos = [p for p in init_pos]
-            pos[4] += de[i]
-            orbit, *_ = pyaccel.tracking.linepass(self._accelerator, pos, indices = 'open')
-
-            if math.isnan(orbit[0,-1]):
-                lost_fraction[i] = 1.0
-                total_lost_fraction += de_probability[i]*lost_fraction[i]
-                continue
-
-            rx, ry = orbit[[0,2],:]
-            xlim_inf, xlim_sup = rx - self._hmin, self._hmax - rx
-            ylim_inf, ylim_sup = ry - self._vmin, self._vmax - ry
-            xlim_inf[xlim_inf < 0] = 0
-            xlim_sup[xlim_sup < 0] = 0
-            ylim_inf[ylim_inf < 0] = 0
-            ylim_sup[ylim_sup < 0] = 0
-            emit_x_inf = (xlim_inf**2  - (etax*energy_spread)**2)/betax
-            emit_x_sup = (xlim_sup**2  - (etax*energy_spread)**2)/betax
-            emit_y_inf = (ylim_inf**2  - (etay*energy_spread)**2)/betay
-            emit_y_sup = (ylim_sup**2  - (etay*energy_spread)**2)/betay
-            emit_x_inf[emit_x_inf < 0] = 0.0
-            emit_x_sup[emit_x_sup < 0] = 0.0
-            emit_y_inf[emit_y_inf < 0] = 0.0
-            emit_y_sup[emit_y_sup < 0] = 0.0
-            min_emit_x = numpy.amin([emit_x_inf, emit_x_sup])
-            min_emit_y = numpy.amin([emit_y_inf, emit_y_sup])
-            min_emit = min_emit_x + min_emit_y if min_emit_x*min_emit_y !=0 else 0.0
-            lf = math.exp(- min_emit/emittance)
-            lost_fraction[i] = lf if lf <1 else 1.0
-            total_lost_fraction += de_probability[i]*lost_fraction[i]
-
-        total_lost_fraction = total_lost_fraction/numpy.sum(de_probability)
-        self._injection_loss_fraction = total_lost_fraction if total_lost_fraction < 1.0 else 1.0
+    def _calc_injection_loss_fraction(self):
+        self._log('calc', 'injection efficiency  for '+self._model_module.lattice_version)
+        inj_parms = self._get_parameters_from_upstream_accelerator()
+        inj_parms['init_twiss'] = inj_parms.pop('twiss_at_entrance')
+        args_dict = inj_parms
+        args_dict.update(self._get_vacuum_chamber())
+        args_dict.update(self._get_coordinate_system_parameters())
+        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **args_dict)
 
     def _calc_acceleration_loss_fraction(self):
         self._acceleration_loss_fraction = 0.0
 
-    def _calc_ejection_twiss(self, init_twiss):
-        if init_twiss is None: return
-        self._ejection_twiss, *_ = \
-            pyaccel.optics.calc_twiss(self._accelerator[self._kickex_idx[0]:self._ext_point+1], init_twiss = init_twiss)
-
-    def _calc_ejection_beam_size(self, emittance, energy_spread, coupling):
-        if self._ejection_twiss is None: return
-        betax, etax, betay, etay = pyaccel.optics.get_twiss(self._ejection_twiss, ('betax','etax','betay','etay'))
-        emitx = emittance * 1 / (1 + coupling)
-        emity = emittance * coupling / (1 + coupling)
-        self._sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
-        self._sigmay = numpy.sqrt(betay * emity + (etax * energy_spread)**2)
-
     def _calc_ejection_loss_fraction(self):
-        if self._ejection_twiss is None: return
+        if self._twiss is None: return
+        self._log('calc', 'ejection efficiency  for '+self._model_module.lattice_version)
 
-        hmin = self._hmin[self._kickex_idx[0]:self._ext_point+1]
-        hmax = self._hmax[self._kickex_idx[0]:self._ext_point+1]
-        vmin = self._vmin[self._kickex_idx[0]:self._ext_point+1]
-        vmax = self._vmax[self._kickex_idx[0]:self._ext_point+1]
-
-        h_vc = hmax - hmin
-        v_vc = vmax - vmin
-        rx, ry = pyaccel.optics.get_twiss(self._ejection_twiss, ('rx','ry'))
-        xlim_inf, xlim_sup = rx - hmin, hmax - rx
-        ylim_inf, ylim_sup = ry - vmin, vmax - ry
-        xlim_inf[xlim_inf < 0] = 0
-        xlim_sup[xlim_sup < 0] = 0
-        ylim_inf[ylim_inf < 0] = 0
-        ylim_sup[ylim_sup < 0] = 0
-        xlim_inf[xlim_inf > h_vc] = 0
-        xlim_sup[xlim_sup > h_vc] = 0
-        ylim_inf[ylim_inf > v_vc] = 0
-        ylim_sup[ylim_sup > v_vc] = 0
-        min_xfrac_inf = numpy.amin(xlim_inf/self._sigmax)
-        min_xfrac_sup = numpy.amin(xlim_sup/self._sigmax)
-        min_yfrac_inf = numpy.amin(ylim_inf/self._sigmay)
-        min_yfrac_sup = numpy.amin(ylim_sup/self._sigmay)
-        sqrt2 = math.sqrt(2)
-        x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2) + \
-                               0.5*math.erf(min_xfrac_sup/sqrt2)
-        y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2) + \
-                               0.5*math.erf(min_yfrac_sup/sqrt2)
-        surviving_fraction = x_surviving_fraction * y_surviving_fraction
-        self._ejection_loss_fraction = 1.0 - surviving_fraction
+        accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
+        ejection_parameters = self._get_equilibrium_at_maximum_energy()
+        args_dict = ejection_parameters
+        args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
+        self._ejection_loss_fraction, self._ejection_twiss, *_ = utils.charge_loss_fraction_line(accelerator,
+            init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)

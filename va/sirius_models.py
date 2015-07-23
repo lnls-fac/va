@@ -24,6 +24,7 @@ class LiModel(TLineModel):
         self._state_deprecated = True
         self._set_vacuum_chamber(indices='closed')
         self.notify_driver()
+        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('LI')
 
     def notify_driver(self):
         if self._driver: self._driver.li_changed = True
@@ -58,6 +59,7 @@ class TbModel(TLineModel):
         self._state_deprecated = True
         self._set_vacuum_chamber(indices='closed')
         self.notify_driver()
+        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TB')
 
     def notify_driver(self):
         if self._driver: self._driver.tb_changed = True
@@ -87,6 +89,7 @@ class BoModel(RingModel):
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._calc_lifetimes()
         self._set_vacuum_chamber(indices='open')
+        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('BO')
 
     def notify_driver(self):
         if self._driver: self._driver.bo_changed = True
@@ -95,8 +98,7 @@ class BoModel(RingModel):
         super().reset(message1=message1, message2=message2, c=c, a=a)
         injection_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
         self._accelerator = pyaccel.lattice.shift(self._accelerator, start = injection_point)
-        self._record_names = _shift_record_names(self._accelerator, self._record_names)
-
+        self._record_names = utils.shift_record_names(self._accelerator, self._record_names)
         self._ext_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
@@ -115,9 +117,7 @@ class BoModel(RingModel):
         tb = self._driver.tb_model
         tb.update_state()
         eq = tb._get_equilibrium_at_maximum_energy()
-        init_twiss = tb._get_twiss('end')
-        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.03, 0.0143) #FIX ME! : hardcoded value
-        eq['twiss_at_entrance'] =  init_twiss
+        eq['twiss_at_entrance'] =  tb._get_twiss('end')
         return eq
 
 class TsModel(TLineModel):
@@ -131,6 +131,7 @@ class TsModel(TLineModel):
         self._state_deprecated = True
         self.notify_driver()
         self._set_vacuum_chamber(indices='closed')
+        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('TS')
 
     def notify_driver(self):
         if self._driver: self._driver.ts_changed = True
@@ -145,9 +146,7 @@ class TsModel(TLineModel):
         bo = self._driver.bo_model
         bo.update_state()
         eq = bo._get_equilibrium_at_maximum_energy()
-        init_twiss = bo._ejection_twiss[-1]
-        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.022, -0.005) #FIX ME! : hardcoded value
-        eq['twiss_at_entrance'] =  init_twiss
+        eq['twiss_at_entrance'] =  bo._ejection_twiss[-1]
         return eq
 
 
@@ -161,6 +160,7 @@ class SiModel(RingModel):
         self._beam_charge = utils.BeamCharge(nr_bunches=self._accelerator.harmonic_number)
         self._calc_lifetimes()
         self._set_vacuum_chamber(indices='open')
+        self._delta_rx, self._delta_angle = sirius.coordinate_system.parameters('SI')
 
     def notify_driver(self):
         if self._driver: self._driver.si_changed = True
@@ -169,9 +169,7 @@ class SiModel(RingModel):
         ts = self._driver.ts_model
         ts.update_state()
         eq = ts._get_equilibrium_at_maximum_energy()
-        init_twiss = ts._get_twiss('end')
-        init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, -0.0165 , 0.00219 ) #FIX ME! : hardcoded value
-        eq['twiss_at_entrance'] = init_twiss
+        eq['twiss_at_entrance'] = ts._get_twiss('end')
         return eq
 
 class TiModel(TimingModel):
@@ -184,44 +182,3 @@ class TiModel(TimingModel):
 
     def notify_driver(self):
         if self._driver: self._driver.ti_changed = True
-
-
-# --- auxilliary methods
-
-def _shift_record_names(accelerator, record_names_dict):
-    new_dict = {}
-    for key in record_names_dict.keys():
-        new_dict[key] = {}
-        for k in record_names_dict[key].keys():
-            new_dict[key][k]= record_names_dict[key][k]
-    length = len(accelerator)
-    start = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'start')[0]
-    for value in new_dict.values():
-        for key in value.keys():
-            indices = value[key]
-            new_indices = _shift_indices(indices, length, start)
-            value[key] = new_indices
-    return new_dict
-
-def _shift_indices(indices, length, start):
-    try:
-        new_indices = indices[:]
-        for i in range(len(new_indices)):
-            if isinstance(new_indices[i], int):
-                new_indices[i] = (new_indices[i] + start)%(length)
-            else:
-                new_indices[i] = _shift_indices(new_indices[i], length, start)
-        return new_indices
-    except:
-        new_indices = (indices+start)%(length)
-        return new_indices
-
-
-def _transform_to_local_coordinates(old_pos, delta_rx, angle, delta_dl=0.0):
-    C, S = math.cos(angle), math.sin(angle)
-    old_angle = math.atan(old_pos[1])
-    new_pos = [p for p in old_pos]
-    new_pos[0] =  C * old_pos[0] + S * old_pos[5] + delta_rx
-    new_pos[5] = -S * old_pos[0] + C * old_pos[5] + delta_dl
-    new_pos[1] = math.tan(angle + old_angle)
-    return new_pos
