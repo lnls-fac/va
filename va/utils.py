@@ -433,12 +433,10 @@ def process_and_wait_interval(processing_function, interval):
     processing_function()
     _wait_interval(start_time, interval)
 
-
 def _wait_interval(start_time, interval):
     delta_t = time.time() - start_time
     if 0 < delta_t < interval:
         time.sleep(interval - delta_t)
-
 
 def charge_loss_fraction_line(accelerator, **kwargs):
     """Calculate charge loss in a line
