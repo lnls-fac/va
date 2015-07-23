@@ -99,106 +99,106 @@ class TimingModel(Model):
         # LI
         # ==
         model = self._driver.li_model
-        self._log(message1 = 'cycle', message2 = '-- LI --', c='white')
+        self._log(message1 = 'cycle', message2 = '  -- LI --', c='white')
 
         # create charge from electron gun
         if model._single_bunch_mode:
             charge = [model._model_module.single_bunch_charge]
         else:
             charge = [model._model_module.multi_bunch_charge]*model._nr_bunches
-        self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
 
         # transport through linac
         add_time(t)
-        charge = model.beam_transport(charge)
+        new_charge, efficiency = model.beam_transport(charge)
         model.notify_driver()
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
-
+        self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)))
+        charge = new_charge
 
         # TB
         # ==
         model = self._driver.tb_model
-        self._log(message1 = 'cycle', message2 = '-- TB --', c='white')
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  -- TB --', c='white')
+        self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
-        charge = self._driver.tb_model.beam_transport(charge)
+        new_charge, efficiency = self._driver.tb_model.beam_transport(charge)
         #self._driver.tb_model.notify_driver()
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
-
+        self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)))
+        charge = new_charge
 
         # BO
         # ==
         model = self._driver.bo_model
-        self._log(message1 = 'cycle', message2 = '-- BO --', c='white')
+        self._log(message1 = 'cycle', message2 = '  -- BO --', c='white')
 
         # injection into booster
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
         if self._bo_kickin_on:
             charge = model.beam_inject(delta_charge = charge, message1='cycle')
         else:
             charge = [0]
-            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+            self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        self._log(message1 = 'cycle', message2 = '  beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
         # acceleration through booster
-        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  beam acceleration at {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
         charge = self._driver.bo_model.beam_accelerate()
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam acceleration at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        self._log(message1 = 'cycle', message2 = '  beam acceleration at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
         # ejection from booster
-        self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  beam ejection from {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
         if self._bo_kickex_on:
             charge = self._driver.bo_model.beam_eject(message1='cycle')
         else:
             charge = [0]
-            self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+            self._log(message1 = 'cycle', message2 = '  beam ejection from {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        self._log(message1 = 'cycle', message2 = '  beam ejection from {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
         self._driver.bo_model.notify_driver()
 
 
         # TS
         # ==
         model = self._driver.ts_model
-        self._log(message1 = 'cycle', message2 = '-- TS --', c='white')
+        self._log(message1 = 'cycle', message2 = '  -- TS --', c='white')
         charge = self._incoming_bunch_injected_in_si(charge) # adds delay
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
-        charge = self._driver.ts_model.beam_transport(charge)
+        charge, efficiency = self._driver.ts_model.beam_transport(charge)
         #self._driver.ts_model.notify_driver()
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
 
 
         # SI
         # ==
         model = self._driver.si_model
-        self._log(message1 = 'cycle', message2 = '-- SI --', c='white')
+        self._log(message1 = 'cycle', message2 = '  -- SI --', c='white')
         #   injection into sirius
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
+        self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
         add_time(t)
         if self._si_kickin_on:
             self._incoming_bunch_injected_in_si(charge)
             charge = model.beam_inject(delta_charge = charge, message1='cycle')
         else:
             charge = [0]
-            self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
+            self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
+        self._log(message1 = 'cycle', message2 = '  beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
         self._driver.si_model.notify_driver()
 
         # prepares internal data for next cycle
         self._set_delay_next_cycle()
 
         add_time(t)
-        self._log(message1 = 'cycle', message2 = 'TI end injection, total {0:.0f} ms'.format(get_total_time(t)))
+        self._log(message1 = 'cycle', message2 = '  total time: {0:.0f} ms'.format(get_total_time(t)))
 
     def all_models_defined_ack(self):
         rfrequency = self._driver.si_model.get_pv('SIRF-FREQUENCY')

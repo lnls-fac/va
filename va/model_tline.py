@@ -101,10 +101,10 @@ class TLineModel(Model):
         self.update_state()
         charge = self.beam_inject(charge, message1='')
         efficiency = 1.0 - self._loss_fraction
-        self._log(message1 = 'cycle', message2 = 'beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
+        self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency))
         charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        return charge
+        return charge, efficiency
 
     # --- auxilliary methods
 
