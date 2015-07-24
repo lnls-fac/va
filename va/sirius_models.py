@@ -1,11 +1,11 @@
 
-from va.model import TRACK6D, VCHAMBER
+import sirius
+import pyaccel
+import va.utils as utils
+from va.model_accelerator import TRACK6D, VCHAMBER
 from va.model_tline import TLineModel
 from va.model_ring import RingModel
 from va.model_timing import TimingModel
-import va.utils as utils
-import sirius
-import pyaccel
 
 
 #--- sirius-specific model classes ---#
@@ -14,7 +14,7 @@ class LiModel(TLineModel):
 
     _prefix = 'LI'
     _model_module = sirius.li
-    _single_bunch_mode   = True
+    _single_bunch_mode   = False
     _pulse_duration      = sirius.li.pulse_duration_interval[1]
     _frequency           = sirius.li.frequency
     _nr_bunches          = int(_frequency*_pulse_duration/6)
@@ -22,8 +22,6 @@ class LiModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
@@ -38,8 +36,7 @@ class LiModel(TLineModel):
             Exception('index in _get_twiss invalid for LI')
 
     def _get_equilibrium_at_maximum_energy(self):
-        li = self._driver.li_model
-        li.update_state()
+        self._driver.li_model.update_state()
         eq = dict()
         eq['emittance'] =  sirius.li.accelerator_data['emittance']
         eq['energy_spread'] = sirius.li.accelerator_data['energy_spread']
@@ -53,14 +50,12 @@ class TbModel(TLineModel):
     _prefix = 'TB'
     _model_module = sirius.tb
     _delta_rx, _delta_angle = sirius.coordinate_system.parameters('TB')
-    _nr_bunches = sirius.bo.harmonic_number
+    _nr_bunches = int(sirius.li.frequency*sirius.li.pulse_duration_interval[1]/6)
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
@@ -95,9 +90,6 @@ class BoModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
-        self._calc_lifetimes()
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
@@ -111,9 +103,9 @@ class BoModel(RingModel):
         self._ext_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
+        self._set_vacuum_chamber(indices='open')
 
     def _get_equilibrium_at_maximum_energy(self):
-        # this has to be calculated everytime BO changes
         eq = dict()
         eq['emittance'] = self._summary['natural_emittance']
         eq['energy_spread'] = self._summary['natural_energy_spread']
@@ -138,8 +130,6 @@ class TsModel(TLineModel):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
@@ -171,9 +161,6 @@ class SiModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self._beam_charge = utils.BeamCharge(nr_bunches=self._nr_bunches)
-        self._calc_lifetimes()
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):
@@ -193,7 +180,6 @@ class TiModel(TimingModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
-        self._state_deprecated = True
         self.notify_driver()
 
     def notify_driver(self):

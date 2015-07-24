@@ -1,54 +1,54 @@
+
+"""Accelerator model module
+
+The Model class in this module is in charge of the initialisation and
+interaction with the engine (pyaccel/trackcpp). It updates values and
+recalculates necessary parameters, controlling concurrent accesses coming from
+the server.
+"""
+
 import os
 import numpy
 import mathphys
 import pyaccel
-from va.model import Model, UNDEF_VALUE
 from va import utils
 
+TRACK6D     = False
+VCHAMBER    = False
+UNDEF_VALUE = 0.0
+_u = mathphys.units
 
-class AcceleratorModel(Model):
+class AcceleratorModel(object):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
-        super().__init__(all_pvs=all_pvs, log_func=log_func)
+        self._driver = None # this will be set latter by Driver
+        self._log = log_func
+        self._all_pvs = all_pvs
         self.reset('start',self._model_module.lattice_version)
         self._init_magnets_and_power_supplies()
-        self._set_vacuum_chamber(indices='open')
 
     # --- methods implementing response of model to get requests
 
     def get_pv(self, pv_name):
-        value = self.get_pv_dynamic(pv_name)
+        value = self._get_pv_dynamic(pv_name)
         if value is None:
-            value = self.get_pv_static(pv_name)
+            value = self._get_pv_static(pv_name)
         if value is None:
-            value = self.get_pv_fake(pv_name)
+            value = self._get_pv_fake(pv_name)
         if value is None:
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
 
-    def get_pv_dynamic(self, pv_name):
+    def _get_pv_dynamic(self, pv_name):
         return None
 
-    def get_pv_static(self, pv_name):
-        # process global parameters
-        if '-BPM-' in pv_name:
-            charge = self._beam_charge.total_value
-            idx = self._get_elements_indices(pv_name)
-            if 'FAM-X' in pv_name:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[0,idx]
-            elif 'FAM-Y' in pv_name:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[2,idx]
-            else:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
-                return self._orbit[[0,2],idx[0]]
-        elif 'PS-' in pv_name or 'PU' in pv_name:
+    def _get_pv_static(self, pv_name):
+        if 'PS-' in pv_name or 'PU' in pv_name:
             return self._power_supplies[pv_name].current
         else:
             return None
 
-    def get_pv_fake(self, pv_name):
+    def _get_pv_fake(self, pv_name):
         if '-ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -67,11 +67,11 @@ class AcceleratorModel(Model):
   # --- methods implementing response of model to set requests
 
     def set_pv(self, pv_name, value):
-        if self.set_pv_magnets(pv_name, value): return
-        if self.set_pv_rf(pv_name, value): return
-        if self.set_pv_fake(pv_name, value): return
+        if self._set_pv_magnets(pv_name, value): return
+        if self._set_pv_rf(pv_name, value): return
+        if self._set_pv_fake(pv_name, value): return
 
-    def set_pv_magnets(self, pv_name, value):
+    def _set_pv_magnets(self, pv_name, value):
         if 'PS' in pv_name or 'PU' in pv_name:
             ps = self._power_supplies[pv_name]
             prev_value = ps.current
@@ -81,10 +81,10 @@ class AcceleratorModel(Model):
             return True
         return False
 
-    def set_pv_rf(self, pv_name, value):
+    def _set_pv_rf(self, pv_name, value):
         return False
 
-    def set_pv_fake(self, pv_name, value):
+    def _set_pv_fake(self, pv_name, value):
         if '-ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -110,6 +110,9 @@ class AcceleratorModel(Model):
 
     # --- methods that help updating the model state
 
+    def all_models_defined_ack(self):
+        self.update_state(force=True)
+
     def reset(self, message1='reset', message2='', c='white', a=None):
         if self._all_pvs is None:
             self._record_names = self._model_module.record_names.get_record_names()
@@ -117,10 +120,23 @@ class AcceleratorModel(Model):
             self._record_names = self._all_pvs
         self._accelerator = self._model_module.create_accelerator()
         self._beam_charge = utils.BeamCharge(nr_bunches = self._nr_bunches)
-        self.beam_dump(message1,message2,c,a)
+        self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber(indices='open')
 
-    def beam_dump(self, message1='panic', message2='', c='white', a=None):
+    def beam_inject(self, delta_charge):
+        efficiency = 1.0 - self._injection_loss_fraction
+        delta_charge = list(numpy.multiply(delta_charge, efficiency))
+        self._beam_charge.inject(delta_charge)
+        return efficiency
+
+    def beam_eject(self):
+        efficiency = 1.0 - self._ejection_loss_fraction
+        charge = self._beam_charge.value
+        self._beam_charge.dump()
+        final_charge = list(numpy.multiply(charge, efficiency))
+        return final_charge, efficiency
+
+    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
         self._state_deprecated = True
@@ -133,29 +149,6 @@ class AcceleratorModel(Model):
         self._summary = None
         self._injection_loss_fraction = 0.0
         self._ejection_loss_fraction = 0.0
-
-    def beam_inject(self, delta_charge, message1='inject', message2 = '', c='white', a=None):
-        if message1 and message1 != 'cycle':
-            self._log(message1, message2, c=c, a=a)
-        efficiency = 1.0 - self._injection_loss_fraction
-        delta_charge = [delta_charge_bunch * efficiency for delta_charge_bunch in delta_charge]
-        self._beam_charge.inject(delta_charge)
-        final_charge = self._beam_charge.value
-        #if message1 == 'cycle':
-        #    self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-        return final_charge, efficiency
-
-    def beam_eject(self, message1='eject', message2 = '', c='white', a=None):
-        if message1 and message1 != 'cycle':
-            self._log(message1, message2, c=c, a=a)
-        efficiency = 1.0 - self._ejection_loss_fraction
-        charge = self._beam_charge.value
-        final_charge = [charge_bunch * efficiency for charge_bunch in charge]
-        self._beam_charge.dump()
-        #if message1 == 'cycle':
-        #    self._log(message1 = 'cycle', message2 = 'beam ejection from {0:s}: {1:.2f}% efficiency'.format(self._model_module.lattice_version, 100*efficiency), c='white')
-        return final_charge, efficiency
-
 
    # --- auxilliary methods
 

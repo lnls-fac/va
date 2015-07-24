@@ -27,20 +27,13 @@ def run(prefix):
     """
     global stop_event, driver_thread
 
-    li_pv_names = list(pvs_li.get_database().keys())
-    tb_pv_names = list(pvs_tb.get_database().keys())
-    bo_pv_names = list(pvs_bo.get_database().keys())
-    ts_pv_names = list(pvs_ts.get_database().keys())
-    si_pv_names = list(pvs_si.get_database().keys())
-    ti_pv_names = list(pvs_ti.get_database().keys())
-
     utils.print_banner(prefix,
-                      li_pv_names = li_pv_names,
-                      tb_pv_names = tb_pv_names,
-                      bo_pv_names = bo_pv_names,
-                      ts_pv_names = ts_pv_names,
-                      si_pv_names = si_pv_names,
-                      ti_pv_names = ti_pv_names)
+                      li_pv_names = list(pvs_li.get_database().keys()),
+                      tb_pv_names = list(pvs_tb.get_database().keys()),
+                      bo_pv_names = list(pvs_bo.get_database().keys()),
+                      ts_pv_names = list(pvs_ts.get_database().keys()),
+                      si_pv_names = list(pvs_si.get_database().keys()),
+                      ti_pv_names = list(pvs_ti.get_database().keys()))
 
     li = models.LiModel(all_pvs=pvs_li.get_all_record_names())
     tb = models.TbModel(all_pvs=pvs_tb.get_all_record_names())

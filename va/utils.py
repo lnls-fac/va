@@ -44,11 +44,10 @@ def log(message1='', message2='', c='white', a=None):
     st = st + '.{0:03d}'.format(int(1000*(t0-int(t0))))
     if a is None: a = []
     strt = colored(st, 'white', attrs=[])
-    str1 = colored('{0:<6.6s}'.format(message1), c, attrs=a)
+    str1 = colored('{0:<5.5s}'.format(message1), c, attrs=a)
     str2 = colored('{0}'.format(message2), c, attrs=a)
     strt = strt + ': ' + str1 + ' ' + str2
     print(strt)
-    #return strt + ': ' + str1 + ' ' + str2
 
 
 class BeamCharge:
@@ -113,13 +112,12 @@ class BeamCharge:
         # updates bunch charges
         prev_total_value = sum(self._charge)
         t0, t1 = self._timestamp, time.time()
+        expf = math.exp(-(t1-t0)/single_particle_lifetime)
+        touf = numpy.multiply(self._charge, self._touschek_coefficient*single_particle_lifetime*(1.0 - expf))
+        new_value = expf*numpy.divide(self._charge, (1.0 + touf))
         for i in range(len(self._charge)):
-            expf = math.exp(-(t1-t0)/single_particle_lifetime)
-            touf = self._touschek_coefficient * single_particle_lifetime * self._charge[i] * (1.0 - expf)
-            #print(touf)
-            new_value = self._charge[i] * expf / (1.0 + touf)
-            if not math.isnan(new_value):
-                self._charge[i] = new_value
+            if not math.isnan(new_value[i]):
+                self._charge[i] = new_value[i]
         new_total_value = sum(self._charge)
         self._accumulated_value = self._accumulated_value + math.fabs((new_total_value - prev_total_value))*(t1-t0)
         # updates timestamp
@@ -430,19 +428,17 @@ def _wait_interval(start_time, interval):
 def charge_loss_fraction_line(accelerator, **kwargs):
     """Calculate charge loss in a line
     Keyword arguments:
-    twiss           -- Twiss parameters at the start of first element
-    global_coupling -- Global coupling
-    energy_spread   -- Relative energy spread
-    emittance       -- [m·rad]
-    delta_rx        -- [m]
-    delta_angle     -- [rad]
-    hmax            -- [m]
-    hmin            -- [m]
-    vmax            -- [m]
-    vmin            -- [m]
-    Returns loss fraction and twiss parameters in the last element of the accelerator
+    twiss_at_entrance -- Twiss parameters at the start of first element
+    global_coupling   -- Global coupling
+    energy_spread     -- Relative energy spread
+    emittance         -- [m·rad]
+    delta_rx          -- [m]
+    delta_angle       -- [rad]
+    hmax              -- [m]
+    hmin              -- [m]
+    vmax              -- [m]
+    vmin              -- [m]
     """
-
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
@@ -482,18 +478,16 @@ def charge_loss_fraction_line(accelerator, **kwargs):
 def charge_loss_fraction_ring(accelerator, **kwargs):
     """Calculate charge loss in a ring
     Keyword arguments:
-    twiss         -- Twiss parameters at the start of first element
-    energy_spread -- Relative energy spread
-    emittance     -- [m·rad]
-    delta_rx      -- [m]
-    delta_angle   -- [rad]
-    hmax          -- [m]
-    hmin          -- [m]
-    vmax          -- [m]
-    vmin          -- [m]
-    Returns loss fraction and twiss parameters in the last element of the accelerator
+    twiss_at_entrance -- Twiss parameters at the start of first element
+    energy_spread     -- Relative energy spread
+    emittance         -- [m·rad]
+    delta_rx          -- [m]
+    delta_angle       -- [rad]
+    hmax              -- [m]
+    hmin              -- [m]
+    vmax              -- [m]
+    vmin              -- [m]
     """
-
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
 
     init_pos = init_twiss.fixed_point
@@ -563,7 +557,8 @@ def shift_record_names(accelerator, record_names_dict):
 def _process_loss_fraction_args(accelerator, **kwargs):
     energy_spread = kwargs['energy_spread']
     emittance     = kwargs['emittance']
-    init_twiss    = kwargs['init_twiss']
+
+    init_twiss = kwargs['init_twiss'] if 'init_twiss' in kwargs else kwargs['twiss_at_entrance']
     delta_rx = kwargs['delta_rx'] if 'delta_rx' in kwargs else 0.0
     delta_angle = kwargs['delta_angle'] if 'delta_angle' in kwargs else 0.0
 
