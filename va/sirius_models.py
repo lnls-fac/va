@@ -14,7 +14,7 @@ class LiModel(TLineModel):
 
     _prefix = 'LI'
     _model_module = sirius.li
-    _single_bunch_mode   = False
+    _single_bunch_mode   = True
     _pulse_duration      = sirius.li.pulse_duration_interval[1]
     _frequency           = sirius.li.frequency
     _nr_bunches          = int(_frequency*_pulse_duration/6)

@@ -82,7 +82,7 @@ class TimingModel(object):
         self._bo_kickin_on = 1
         self._bo_kickin_delay = 0
         self._bo_kickex_on = 1
-        self._bo_kickex_delay = 0 
+        self._bo_kickex_delay = 0
         self._bo_kickex_inc = 0
         self._si_kickin_on = 1
         self._si_kickin_delay = 0
@@ -110,7 +110,7 @@ class TimingModel(object):
         if model._single_bunch_mode:
             charge = [model._model_module.single_bunch_charge]
         else:
-            charge = [model._model_module.multi_bunch_charge]*model._nr_bunches
+            charge = [model._model_module.multi_bunch_charge/model._nr_bunches]*model._nr_bunches
         initial_charge = charge
         self._log(message1='cycle', message2=' electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
         # transport through linac
