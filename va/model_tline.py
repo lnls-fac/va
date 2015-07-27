@@ -2,33 +2,12 @@
 import numpy
 import pyaccel
 import va.utils as utils
-from va.model_accelerator import AcceleratorModel
+from va.model_accelerator import AcceleratorModel, UNDEF_VALUE
 
 class TLineModel(AcceleratorModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
-
-    # --- methods implementing response of model to get requests
-
-    def _get_pv_static(self, pv_name):
-        value = super()._get_pv_static(pv_name)
-        if value is not None:
-            return value
-        elif '-BPM-' in pv_name:
-            charge = self._beam_charge.total_value
-            idx = self._get_elements_indices(pv_name)
-            if 'FAM-X' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[0,idx]
-            elif 'FAM-Y' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[2,idx]
-            else:
-                if self._orbit is None: return [UNDEF_VALUE]*2
-                return self._orbit[[0,2],idx[0]]
-        else:
-            return None
 
     # --- methods that help updating the model state
 
@@ -37,6 +16,7 @@ class TLineModel(AcceleratorModel):
             self._calc_transport_loss_fraction()
             self._state_deprecated = False
             self._upstream_accelerator_state_deprecated = False
+            self._notify_driver()
         elif self._state_deprecated or self._upstream_accelerator_state_deprecated:
             self._calc_transport_loss_fraction()
             self._state_deprecated = False
@@ -46,6 +26,7 @@ class TLineModel(AcceleratorModel):
                 self._driver.tb_model._upstream_accelerator_state_deprecated = True
             elif self._prefix=='TB':
                 self._driver.bo_model._upstream_accelerator_state_deprecated = True
+            self._notify_driver()
 
     def beam_transport(self, charge):
         self.update_state()

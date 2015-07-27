@@ -22,9 +22,8 @@ class LiModel(TLineModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.li_changed = True
 
     def _get_twiss(self, index):
@@ -56,9 +55,8 @@ class TbModel(TLineModel):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.tb_changed = True
 
     def _get_equilibrium_at_maximum_energy(self):
@@ -90,9 +88,8 @@ class BoModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.bo_changed = True
 
     def reset(self, message1='reset', message2='', c='white', a=None):
@@ -130,9 +127,8 @@ class TsModel(TLineModel):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.ts_changed = True
 
     def _get_equilibrium_at_maximum_energy(self):
@@ -161,9 +157,8 @@ class SiModel(RingModel):
         self._accelerator.cavity_on = TRACK6D
         self._accelerator.radiation_on = TRACK6D
         self._accelerator.vchamber_on = VCHAMBER
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.si_changed = True
 
     def _get_parameters_from_upstream_accelerator(self):
@@ -180,7 +175,6 @@ class TiModel(TimingModel):
 
     def __init__(self, all_pvs=None, log_func=utils.log):
         super().__init__(all_pvs=all_pvs, log_func=log_func)
-        self.notify_driver()
 
-    def notify_driver(self):
+    def _notify_driver(self):
         if self._driver: self._driver.ti_changed = True

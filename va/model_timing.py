@@ -87,6 +87,8 @@ class TimingModel(object):
         self._si_kickin_on = 1
         self._si_kickin_delay = 0
 
+        self._notify_driver()
+
     def _beam_inject(self):
 
         def add_time(t):
@@ -115,7 +117,7 @@ class TimingModel(object):
         self._log(message1='cycle', message2=' electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
         # transport through linac
         charge = self._transport_to_line(charge, model, t, add_time, get_time)
-        model.notify_driver()
+        model._notify_driver()
 
         # TB
         # ==
@@ -123,7 +125,7 @@ class TimingModel(object):
         self._log(message1='cycle', message2=' -- TB --', c='white')
         self._log(message1='cycle', message2=' beam injection in {0:s}: {1:.5f} nC'.format(model._prefix, sum(charge)*1e9), c='white')
         charge = self._transport_to_line(charge, model, t, add_time, get_time)
-        model.notify_driver()
+        model._notify_driver()
 
         # BO
         # ==
@@ -145,7 +147,7 @@ class TimingModel(object):
         charge, efficiency = (new_charge, ejection_efficiency) if self._bo_kickex_on else ([0], 0)
         add_time(t)
         self._log(message1 = 'cycle', message2 = ' beam ejection from {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._prefix, 100*efficiency, get_time(t)), c='white')
-        model.notify_driver()
+        model._notify_driver()
 
         # TS
         # ==
@@ -153,7 +155,7 @@ class TimingModel(object):
         self._log(message1 = 'cycle', message2 = ' -- TS --', c='white')
         self._log(message1 = 'cycle', message2 = ' beam injection in {0:s}: {1:.5f} nC'.format(model._prefix, sum(charge)*1e9), c='white')
         charge = self._transport_to_line(charge, model, t, add_time, get_time)
-        model.notify_driver()
+        model._notify_driver()
 
         # SI
         # ==
@@ -169,7 +171,7 @@ class TimingModel(object):
         add_time(t)
         self._log(message1 = 'cycle', message2 = ' beam injection in {0:s}: {1:.2f}% efficiency'.format(model._prefix, 100*efficiency), c='white')
         self._log(message1 = 'cycle', message2 = ' beam injection at {0:s}: {1:.0f} ms'.format(model._prefix, get_time(t)))
-        model.notify_driver()
+        model._notify_driver()
 
         # prepares internal data for next cycle
         self._set_delay_next_cycle()
@@ -230,7 +232,7 @@ class TimingModel(object):
     #     self._log(message1='cycle', message2='  electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9), c='white')
     #     # transport through linac
     #     new_charge, efficiency = model.beam_transport(charge)
-    #     model.notify_driver()
+    #     model._notify_driver()
     #     add_time(t)
     #     self._log(message1='cycle', message2='  beam transport at {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)))
     #     charge = new_charge
@@ -242,7 +244,7 @@ class TimingModel(object):
     #     self._log(message1='cycle', message2='  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
     #     add_time(t)
     #     new_charge, efficiency = model.beam_transport(charge)
-    #     #self._driver.tb_model.notify_driver()
+    #     #self._driver.tb_model._notify_driver()
     #     add_time(t)
     #     self._log(message1='cycle', message2='  beam transport at {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)))
     #     charge = new_charge
@@ -271,7 +273,7 @@ class TimingModel(object):
     #     charge, efficiency = (new_charge, ejection_efficiency) if self._bo_kickex_on else (0.0, 0.0)
     #     add_time(t)
     #     self._log(message1 = 'cycle', message2 = '  beam ejection from {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)), c='white')
-    #     # self._driver.bo_model.notify_driver()
+    #     # self._driver.bo_model._notify_driver()
     #
     #     # TS
     #     # ==
@@ -280,7 +282,7 @@ class TimingModel(object):
     #     charge = self._incoming_bunch_injected_in_si(charge) # adds delay
     #     self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.5f} nC'.format(model._model_module.lattice_version, sum(charge)*1e9), c='white')
     #     new_charge, efficiency = model.beam_transport(charge)
-    #     #self._driver.ts_model.notify_driver()
+    #     #self._driver.ts_model._notify_driver()
     #     add_time(t)
     #     self._log(message1 = 'cycle', message2 = '  beam transport at {0:s}: {1:.2f}% efficiency, {2:.0f} ms'.format(model._model_module.lattice_version, 100*efficiency, get_time(t)))
     #     charge = new_charge
@@ -302,7 +304,7 @@ class TimingModel(object):
     #         self._log(message1 = 'cycle', message2 = '  beam injection in {0:s}: {1:.2f}% efficiency'.format(model._model_module.lattice_version, 0.0), c='white')
     #     add_time(t)
     #     self._log(message1 = 'cycle', message2 = '  beam injection at {0:s}: {1:.0f} ms'.format(model._model_module.lattice_version, get_time(t)))
-    #     self._driver.si_model.notify_driver()
+    #     self._driver.si_model._notify_driver()
     #
     #
     #     # prepares internal data for next cycle
