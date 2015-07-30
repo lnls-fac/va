@@ -35,6 +35,28 @@ class TimingModel(model.Model):
         else:
             return None
 
+    def _get_pv(self, pv_name):
+        if 'CYCLE' in pv_name:
+            return self._cycle
+        elif 'BO-KICKIN-ENABLED' in pv_name:
+            return self._bo_kickin_on
+        elif 'BO-KICKIN-DELAY' in pv_name:
+            return self._bo_kickin_delay
+        elif 'BO-KICKEX-ENABLED' in pv_name:
+            return self._bo_kickex_on
+        elif 'BO-KICKEX-DELAY' in pv_name:
+            return self._bo_kickex_delay
+        elif 'SI-KICKIN-ENABLED' in pv_name:
+            return self._si_kickin_on
+        elif 'SI-KICKIN-DELAY' in pv_name:
+            return self._si_kickin_delay
+        elif 'TI-DELAY' in pv_name:
+            return self._delay
+        elif 'TI-DELAY-INC' in pv_name:
+            return self._delay_inc
+        else:
+            return None
+
     # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
@@ -91,7 +113,7 @@ class TimingModel(model.Model):
             self._delay_inc += 1.0 / self._si_rf_frequency
             self._pipe.send(('s', ('TI-DELAY-INC', self._delay_inc)))
             self._state_deprecated = True
-        elif 'LI-CO-MODE' in pv_name:
+        elif 'LIPA-MODE' in pv_name:
             if not self._si_rf_frequency: return
             self._li_single_bunch_mode = value
             if not self._li_single_bunch_mode:

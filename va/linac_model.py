@@ -15,7 +15,7 @@ class LinacModel(TLineModel):
     def _set_pv_control(self, pv_name, value):
         if 'MODE' in pv_name:
             self._single_bunch_mode = value
-            self._pipe.send(('g', ('TI', 'LI-CO-MODE')))
+            self._pipe.send(('g', ('TI', 'LIPA-MODE')))
             return True
         return False
 
