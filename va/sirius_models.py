@@ -14,7 +14,7 @@ class LiModel(TLineModel):
 
     _prefix = 'LI'
     _model_module = sirius.li
-    _single_bunch_mode   = True
+    _single_bunch_mode   = 1
     _pulse_duration      = sirius.li.pulse_duration_interval[1]
     _frequency           = sirius.li.frequency
     _nr_bunches          = int(_frequency*_pulse_duration/6)
@@ -42,6 +42,16 @@ class LiModel(TLineModel):
         eq['global_coupling'] = sirius.li.accelerator_data['global_coupling']
         eq['twiss_at_exit'] = sirius.li.accelerator_data['twiss_at_exit']
         return eq
+
+    def _get_pv_static(self, pv_name):
+        if 'MODE' in pv_name:
+            return self._single_bunch_mode
+
+    def _set_pv_control(self, pv_name, value):
+        if 'MODE' in pv_name:
+            self._single_bunch_mode = value
+            return True
+        return False
 
 
 class TbModel(TLineModel):
