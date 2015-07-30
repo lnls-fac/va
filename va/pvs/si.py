@@ -72,7 +72,7 @@ class _LocalData:
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.ps:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         for p in _LocalData.pa:
             if any([substring in p for substring in ('BLIFETIME',)]):
                 _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
@@ -83,29 +83,6 @@ class _LocalData:
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
-        for p in _LocalData.di:
-            if any([substring in p for substring in ('BCURRENT',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
-            elif 'DI-BPM' in p:
-                if 'FAM-X' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-X')]['bpm'])}
-                elif 'FAM-Y' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-Y')]['bpm'])}
-                else:
-                    _LocalData.database[p] = {'type' : 'float', 'count': 2}
-            else:
-                _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.ps:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.pa:
-            if any([substring in p for substring in ('BLIFETIME',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
-            else:
-                _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.rf:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.fk:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
     @staticmethod
     def _init_dynamical_pvs():

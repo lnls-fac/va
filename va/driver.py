@@ -1,4 +1,5 @@
 
+import time
 import threading
 from pcaspy import Driver
 from . import utils
@@ -17,7 +18,6 @@ class DriverThread(threading.Thread):
             utils.process_and_wait_interval(self._driver.process,
                 self._interval)
 
-
 class PCASDriver(Driver):
 
     def  __init__(self, processes):
@@ -30,11 +30,21 @@ class PCASDriver(Driver):
             while pipe.poll():
                 cmd, data = pipe.recv()
                 if cmd == 's':
-                    name, value = data
-                    self.setParam(name, value)
+                    pv_name, value = data
+                    self.setParam(pv_name, value)
+                    self.updatePVs()
+                elif cmd == 'g':
+                    prefix, pv_name = data
+                    value = self.getParam(pv_name)
+                    self.send_to_model(cmd, prefix, pv_name, value)
                 elif cmd == 'p':
                     prefix, function, args_dict = data
-                    self.send_to_model(prefix, function, args_dict)
+                    self.send_to_model(cmd, prefix, function, args_dict)
+                elif cmd == 'sp':
+                    sp_pv_list = data
+                    for pv_name, value in sp_pv_list:
+                        self.setParam(pv_name, value)
+                    self.updatePVs()
                 else:
                     print('Invalid command:', cmd)
 
@@ -51,15 +61,16 @@ class PCASDriver(Driver):
                 else:
                     utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
                     self.setParam(reason, value)
+                    self.updatePVs()
                     process.pipe.send(('s',(reason, value)))
                 break
         else:
             print('Could not find matching system:', reason)
 
-    def send_to_model(self, prefix, function, args_dict):
+    def send_to_model(self, cmd, prefix, *args):
         for process in self._processes:
             if prefix == process.model.prefix:
-                process.pipe.send(('p',(function, args_dict)))
+                process.pipe.send((cmd, (args)))
                 break
         else:
             print('Could not find matching system:', prefix)

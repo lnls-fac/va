@@ -1,4 +1,5 @@
 
+import time
 import math
 import numpy
 import pyaccel
@@ -100,6 +101,27 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._injection_loss_fraction = 0.0
             self._ejection_loss_fraction = 0.0
 
+    def _receive_pv_value(self, pv_name, value):
+        if 'SI-KICKIN-ENABLED' in pv_name:
+            self._ti_si_kickin_on = value
+        elif 'SI-KICKIN-DELAY' in pv_name:
+            self._ti_si_kickin_delay = value
+        elif 'TI-DELAY' in pv_name:
+            self._ti_delay = value
+
+    def _get_charge_from_upstream_accelerator(self, charge=None):
+        if charge is None: return
+        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+        charge = self._incoming_bunch_injected_in_si(charge)
+        if not self._ti_si_kickin_on:
+            charge = [0.0]
+        efficiency = self._beam_inject(charge=charge)
+        if not self._ti_si_kickin_on:
+            efficiency = 0
+        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+        self._pipe.send(('g', ('TI', 'SIRF-FREQUENCY')))
+
    # --- auxilliary methods
 
     def _calc_closed_orbit(self):
@@ -113,7 +135,7 @@ class RingModel(accelerator_model.AcceleratorModel):
                 self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         # beam is lost
         except pyaccel.tracking.TrackingException:
-            self.beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
+            self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
 
     def _calc_linear_optics(self):
         # calcs linear optics when there is beam
@@ -125,11 +147,11 @@ class RingModel(accelerator_model.AcceleratorModel):
                 pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
         # beam is lost
         except numpy.linalg.linalg.LinAlgError:
-            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
         except pyaccel.optics.OpticsException:
-            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
         except pyaccel.tracking.TrackingException:
-            self.beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
     def _calc_equilibrium_parameters(self):
         if self._m66 is None: return
@@ -142,7 +164,7 @@ class RingModel(accelerator_model.AcceleratorModel):
                                          transfer_matrices=self._transfer_matrices,
                                          closed_orbit=self._orbit)
         except:
-            self.beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
+            self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
     def _calc_lifetimes(self):
         if self._summary is None or self._beam_charge is None: return
@@ -160,9 +182,12 @@ class RingModel(accelerator_model.AcceleratorModel):
                                         quantum=q_lifetime,
                                         touschek_coefficient=t_coeff)
 
-    def _receive_synchronism_signal(self):
-        self._log(message1 = 'cycle', message2 = self.prefix, c='white')
-        charge=self._charge_to_inject
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.model_module.lattice_version, sum(charge)*1e9), c='white')
-        self._beam_inject(charge=charge, message1='cycle')
-        self._charge_to_inject = 0.0
+    def _incoming_bunch_injected_in_si(self, charge):
+        rf_frequency = pyaccel.optics.get_rf_frequency(self._accelerator)
+        bunch_offset = round(self._ti_delay * rf_frequency)
+        harmonic_number = self.model_module.harmonic_number
+        bunch_charge = [0.0] * harmonic_number
+        for i in range(len(charge)):
+            n = (i + bunch_offset) % harmonic_number
+            bunch_charge[n] += charge[i]
+        return bunch_charge

@@ -1,14 +1,15 @@
 
 import os
 import numpy
+import time
 import mathphys
 import pyaccel
-from . import model
+from .model import Model
 from . import utils
 
 UNDEF_VALUE = 0.0
 
-class AcceleratorModel(model.Model):
+class AcceleratorModel(Model):
 
     def __init__(self, pipe, interval):
         super().__init__(pipe, interval)
@@ -72,6 +73,7 @@ class AcceleratorModel(model.Model):
         if self._set_pv_magnets(pv_name, value): return
         if self._set_pv_rf(pv_name, value): return
         if self._set_pv_fake(pv_name, value): return
+        if self._set_pv_control(pv_name, value): return
 
     def _set_pv_magnets(self, pv_name, value):
         if 'PS' in pv_name or 'PU' in pv_name:
@@ -110,20 +112,23 @@ class AcceleratorModel(model.Model):
             return True
         return False
 
+    def set_pv_control(self, pv_name, value):
+        return False
+
     # --- methods that help updating the model state
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator = self.model_module.create_accelerator()
-        self._beam_charge  = utils.BeamCharge(nr_bunches = self._nr_bunches)
+        self._beam_charge  = utils.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber(indices='open')
+        self._state_deprecated = True
+        self._upstream_accelerator_state_deprecated = False
         self._update_state()
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
-        self._state_deprecated = True
-        self._upstream_accelerator_state_deprecated = False
         if self._beam_charge: self._beam_charge.dump()
         self._orbit = None
         self._twiss = None
@@ -132,27 +137,29 @@ class AcceleratorModel(model.Model):
         self._summary = None
         self._injection_loss_fraction = None
         self._ejection_loss_fraction = None
+        self._charge_to_inject = None
 
-    def _beam_inject(self, charge=None, message1='inject', message2 = '', c='white', a=None):
+    def _init_sp_pv_values(self):
+        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
+        sp_pv_list = []
+        for pv in self.pv_module.get_read_write_pvs():
+            value = self._get_pv(pv)
+            sp_pv_list.append((pv,value))
+        self._pipe.send(('sp', sp_pv_list ))
+
+    def _beam_inject(self, charge=None):
         if charge is None: return
-        if message1 and message1 != 'cycle':
-            self._log(message1, message2, c=c, a=a)
         efficiency = 1.0 - self._injection_loss_fraction
         charge = [bunch_charge * efficiency for bunch_charge in charge]
         self._beam_charge.inject(charge)
-        if message1 == 'cycle':
-            self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.model_module.lattice_version, 100*efficiency))
+        return efficiency
 
-    def _beam_eject(self, message1='eject', message2 = '', c='white', a=None):
-        if message1 and message1 != 'cycle':
-            self._log(message1, message2, c=c, a=a)
+    def _beam_eject(self):
         efficiency = 1.0 - self._ejection_loss_fraction
         charge = self._beam_charge.value
         final_charge = [charge_bunch * efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        if message1 == 'cycle':
-            self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.model_module.lattice_version, 100*efficiency))
-        return final_charge
+        return final_charge, efficiency
 
    # --- auxilliary methods
 
@@ -244,10 +251,17 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
-                power_supply = utils.FamilyPowerSupply(magnets)
-            else:
-                power_supply = utils.IndividualPowerSupply(magnets)
-            self._power_supplies[ps_name] = power_supply
+                power_supply = utils.FamilyPowerSupply(magnets, model = self)
+                self._power_supplies[ps_name] = power_supply
+
+        for ps_name in ps2magnet.keys():
+            magnets = set()
+            for magnet_name in ps2magnet[ps_name]:
+                if magnet_name in self._magnets:
+                    magnets.add(self._magnets[magnet_name])
+            if not '-FAM' in ps_name:
+                power_supply = utils.IndividualPowerSupply(magnets, model = self)
+                self._power_supplies[ps_name] = power_supply
 
     def _get_parameters_from_upstream_accelerator(self, **kwargs):
         self._injection_parameters = kwargs
@@ -259,9 +273,6 @@ class AcceleratorModel(model.Model):
         args_dict['init_twiss'] = twiss.make_dict()
         function = 'get_parameters_from_upstream_accelerator'
         self._pipe.send(('p', (prefix, function, args_dict)))
-
-    def _get_charge_from_upstream_accelerator(self, **kwargs):
-        self._charge_to_inject = kwargs['charge']
 
     def _send_charge_to_downstream_accelerator(self, charge):
         prefix = self._downstream_accelerator_prefix

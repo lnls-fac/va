@@ -1,14 +1,15 @@
 
+import time
 import pyaccel
-from . import ring_model
+from .ring_model import RingModel
 from . import utils
 
-class BoosterModel(ring_model.RingModel):
+class BoosterModel(RingModel):
 
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
-        if force or self._upstream_accelerator_state_deprecated:
+        if self._upstream_accelerator_state_deprecated:
             self._upstream_accelerator_state_deprecated = False
             # injection
             self._set_kickin('on')
@@ -32,9 +33,9 @@ class BoosterModel(ring_model.RingModel):
             self._calc_ejection_loss_fraction()
             self._set_kickex('off')
 
-
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._beam_charge  = utils.BeamCharge(nr_bunches = self._nr_bunches)
+        t0 = time.time()
+        self._beam_charge  = utils.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         accelerator        = self.model_module.create_accelerator()
         injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
@@ -44,6 +45,8 @@ class BoosterModel(ring_model.RingModel):
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
         self._set_vacuum_chamber(indices='open')
+        self._state_deprecated = True
+        self._upstream_accelerator_state_deprecated = False
         self._update_state()
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
@@ -54,7 +57,7 @@ class BoosterModel(ring_model.RingModel):
     def _beam_accelerate(self):
         efficiency = 1.0 - self._acceleration_loss_fraction
         final_charge = self._beam_charge.value
-        self._log(message1='cycle', message2='beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self.model_module.lattice_version, 100*efficiency))
+        return efficiency
 
     # --- auxilliary methods
 
@@ -81,6 +84,7 @@ class BoosterModel(ring_model.RingModel):
 
     def _calc_injection_loss_fraction(self):
         if self._injection_parameters is None: return
+        t0 = time.time()
         self._log('calc', 'injection efficiency  for '+self.model_module.lattice_version)
 
         args_dict = self._injection_parameters
@@ -94,22 +98,43 @@ class BoosterModel(ring_model.RingModel):
 
     def _calc_ejection_loss_fraction(self):
         if self._twiss is None: return
+        t0 =time.time()
         self._log('calc', 'ejection efficiency  for '+self.model_module.lattice_version)
 
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
-        args_dict = ejection_parameters
+        args_dict = {}
+        args_dict.update(ejection_parameters)
         args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
         self._ejection_loss_fraction, twiss, *_ = utils.charge_loss_fraction_line(accelerator,
             init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)
         self._send_parameters_to_downstream_accelerator(twiss[-1], ejection_parameters)
 
-    def _receive_synchronism_signal(self):
-        self._log(message1 = 'cycle', message2 = self.prefix, c='white')
-        charge=self._charge_to_inject
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.model_module.lattice_version, sum(charge)*1e9), c='white')
-        self._beam_inject(charge=charge, message1='cycle')
-        self._charge_to_inject = 0.0
-        self._beam_accelerate()
-        final_charge = self._beam_eject(message1='cycle')
+    def _receive_pv_value(self, pv_name, value):
+        if 'BO-KICKIN-ENABLED' in pv_name:
+            self._ti_bo_kickin_on =  value
+        elif 'BO-KICKIN-DELAY' in pv_name:
+            self._ti_bo_kickin_delay = value
+        elif 'BO-KICKEX-ENABLED' in pv_name:
+            self._ti_bo_kickex_on = value
+        elif 'BO-KICKEX-DELAY' in pv_name:
+            self._ti_bo_kickex_delay = value
+
+    def _get_charge_from_upstream_accelerator(self, charge=None):
+        if charge is None: return
+        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+        if not self._ti_bo_kickin_on:
+            charge = [0.0]
+        efficiency = self._beam_inject(charge=charge)
+        if not self._ti_bo_kickin_on:
+            efficiency = 0
+        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+        efficiency = self._beam_accelerate()
+        self._log(message1='cycle', message2='beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+        final_charge, efficiency = self._beam_eject()
+        if not self._ti_bo_kickex_on:
+            final_charge = [0.0]
+            efficiency = 0
+        self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
         self._send_charge_to_downstream_accelerator(final_charge)

@@ -27,11 +27,16 @@ class _LocalData:
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk = []
         _LocalData.pa = []
+        _LocalData.co = []
         for record_name in record_names:
             if 'FK-' in record_name:
-                fk.append(record_name)
+                _LocalData.fk.append(record_name)
+            elif 'PA-' in record_name:
+                _LocalData.pa.append(record_name)
+            elif 'CO-' in record_name:
+                _LocalData.co.append(record_name)
             else:
-                pa.append(record_name)
+                print('Parameter', record_name, 'not found!')
 
     @staticmethod
     def _init_database():
@@ -39,6 +44,8 @@ class _LocalData:
         for p in _LocalData.pa:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.co:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
     @staticmethod
@@ -55,11 +62,11 @@ class _LocalData:
 
     @staticmethod
     def get_read_only_pvs():
-        return []
+        return _LocalData.pa
 
     @staticmethod
     def get_read_write_pvs():
-        return _LocalData.pa + _LocalData.fk
+        return _LocalData.fk + _LocalData.co
 
     @staticmethod
     def get_dynamical_pvs():

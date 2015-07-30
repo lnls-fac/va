@@ -44,7 +44,6 @@ class Model:
         self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
         self._interval = interval/2
-        self._state_deprecated = True
 
     def process(self):
         self._process_requests()
@@ -67,6 +66,9 @@ class Model:
             if cmd == 's':
                 pv_name, value = data
                 self._set_pv(pv_name, value)
+            elif cmd == 'g':
+                pv_name, value = data
+                self._receive_pv_value(pv_name, value)
             elif cmd == 'p':
                 function, args_dict = data
                 self._execute_function(function=function, **args_dict)
@@ -78,11 +80,8 @@ class Model:
         has_request = self._pipe.poll()
         return has_remaining_time and has_request
 
-    def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
-        for pv in self.pv_module.get_read_write_pvs():
-            value = self._get_pv(pv)
-            self._pipe.send(('s', (pv, value)))
+    def _receive_pv_value(self, pv_name, value):
+        pass
 
     def _execute_function(self, function=None, **kwargs):
         if function == 'get_parameters_from_upstream_accelerator':

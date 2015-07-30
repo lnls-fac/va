@@ -31,13 +31,13 @@ def run(prefix):
     pv_names = get_pv_names(models)
     utils.print_banner(prefix, **pv_names)
 
-    processes = start_model_processes(models, stop_event)
-
     server = SimpleServer()
     server.createPV(prefix, pv_database)
 
+    processes = start_model_processes(models, stop_event)
+
     start_driver_thread(processes, stop_event)
-    
+
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 

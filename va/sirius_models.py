@@ -6,13 +6,13 @@ from .pvs import ts as _pvs_ts
 from .pvs import bo as _pvs_bo
 from .pvs import si as _pvs_si
 from .pvs import ti as _pvs_ti
-from . import tline_model   as _tline_model
-from . import booster_model as _booster_model
-from . import ring_model    as _ring_model
-from . import timing_model  as _timing_model
+from .linac_model import LinacModel
+from .tline_model import TLineModel
+from .booster_model import BoosterModel
+from .ring_model import RingModel
+from .timing_model import TimingModel
 
-
-class LiModel(_tline_model.TLineModel):
+class LiModel(LinacModel):
 
     prefix = 'LI'
     model_module = _sirius.li
@@ -26,53 +26,56 @@ class LiModel(_tline_model.TLineModel):
     _twiss_at_exit     = model_module.accelerator_data['twiss_at_exit']
     _pulse_duration    = model_module.pulse_duration_interval[1]
     _frequency         = model_module.frequency
-    _nr_bunches        = int(_frequency*_pulse_duration/6)
-    _single_bunch_mode = True
+    _single_bunch_mode = 0
+    nr_bunches         = int(_frequency*_pulse_duration/6)
 
-class TbModel(_tline_model.TLineModel):
+
+class TbModel(TLineModel):
 
     prefix = 'TB'
     model_module = _sirius.tb
     pv_module = _pvs_tb
     database = _pvs_tb.get_database()
+    nr_bunches = LiModel.nr_bunches
     _downstream_accelerator_prefix = 'BO'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _nr_bunches = _sirius.bo.harmonic_number
 
-class BoModel(_booster_model.BoosterModel):
+class BoModel(BoosterModel):
 
     prefix = 'BO'
     model_module = _sirius.bo
     pv_module = _pvs_bo
     database = _pvs_bo.get_database()
+    nr_bunches = model_module.harmonic_number
     _downstream_accelerator_prefix = 'TS'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _nr_bunches = model_module.harmonic_number
     _kickin_angle = model_module.accelerator_data['injection_kicker_nominal_deflection']
     _kickex_angle = model_module.accelerator_data['extraction_kicker_nominal_deflection']
 
-class TsModel(_tline_model.TLineModel):
+class TsModel(TLineModel):
 
     prefix = 'TS'
     model_module = _sirius.ts
     pv_module = _pvs_ts
     database = _pvs_ts.get_database()
+    nr_bunches = BoModel.nr_bunches
     _downstream_accelerator_prefix = 'SI'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _nr_bunches = _sirius.bo.harmonic_number
 
-class SiModel(_ring_model.RingModel):
+class SiModel(RingModel):
 
     prefix = 'SI'
     model_module = _sirius.si
     pv_module = _pvs_si
     database = _pvs_si.get_database()
+    nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _nr_bunches = model_module.harmonic_number
 
-class TiModel(_timing_model.TimingModel):
+
+class TiModel(TimingModel):
 
     prefix = 'TI'
     model_module = _sirius.ti
     pv_module = _pvs_ti
     database = _pvs_ti.get_database()
+    _li_nr_bunches = LiModel.nr_bunches 
