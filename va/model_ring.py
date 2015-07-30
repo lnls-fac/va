@@ -1,6 +1,5 @@
 
 import math
-import time
 import numpy
 import pyaccel
 import mathphys
@@ -145,14 +144,12 @@ class RingModel(AcceleratorModel):
     def _calc_closed_orbit(self):
         # calcs closed orbit when there is beam
         try:
-            t0 = time.time()
             self._log('calc', 'closed orbit for ' + self._prefix)
             if TRACK6D:
                 self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
             else:
                 self._orbit = numpy.zeros((6,len(self._accelerator)))
                 self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
-            print('closed orbit: %3.2f' %(time.time()-t0))
         except pyaccel.tracking.TrackingException:
             # beam is lost
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
@@ -161,12 +158,10 @@ class RingModel(AcceleratorModel):
         # calcs linear optics when there is beam
         if self._orbit is None: return
         try:
-            t0 = time.time()
             # optics
             self._log('calc', 'linear optics for ' + self._prefix)
             self._twiss, self._m66, self._transfer_matrices, self._orbit = \
                 pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-            print('linear optics: %3.2f' %(time.time()-t0))
         # beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
@@ -178,7 +173,6 @@ class RingModel(AcceleratorModel):
     def _calc_equilibrium_parameters(self):
         if self._m66 is None: return
         try:
-            t0 = time.time()
             self._log('calc', 'equilibrium parameters for ' + self._prefix)
             self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
                                          accelerator=self._accelerator,
@@ -186,13 +180,11 @@ class RingModel(AcceleratorModel):
                                          m66=self._m66,
                                          transfer_matrices=self._transfer_matrices,
                                          closed_orbit=self._orbit)
-            print('eq parms: %3.2f' %(time.time()-t0))
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
     def _calc_lifetimes(self):
             if self._summary is None or self._beam_charge is None: return
-            t0 = time.time()
             self._log('calc', 'beam lifetimes for ' + self._prefix)
 
             Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
@@ -205,7 +197,6 @@ class RingModel(AcceleratorModel):
                                             inelastic=i_lifetime,
                                             quantum=q_lifetime,
                                             touschek_coefficient=t_coeff)
-            print('lifetimes: %3.2f' %(time.time()-t0))
 
     def _set_energy(energy):
         # need to update RF voltage !!!

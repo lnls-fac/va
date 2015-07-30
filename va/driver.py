@@ -1,6 +1,5 @@
 
 import queue
-import time
 from pcaspy import Driver
 import va.pvs.li as pvs_li
 import va.pvs.tb as pvs_tb
@@ -85,14 +84,10 @@ class PCASDriver(Driver):
             pv_name, value = self.queue.get()
             self.set_model_parameter(pv_name, value)
 
-        t0 = time.time()
         # then update model states and epics memory
         self.update_model_state()
-        t1 = time.time()
         self.update_epics_from_model()
-        t2 = time.time()
         self.updatePVs()  # internal PCASPY routine signaling update of parameters
-        #print('model state: %3.2f ms   epics memory: %3.2f ms   pvs: %3.2f ms' %(1000*(t1-t0),1000*(t2-t1),1000*(time.time()-t2)))
 
         self.li_changed = False
         self.tb_changed = False
