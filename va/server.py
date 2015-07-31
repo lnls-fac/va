@@ -15,7 +15,6 @@ JOIN_TIMEOUT = 1.0
 
 def run(prefix):
     """Start virtual accelerator with given PV prefix
-
     Keyword arguments:
     prefix -- prefix to be added to PVs
     """

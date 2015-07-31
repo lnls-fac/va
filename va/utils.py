@@ -3,6 +3,7 @@ import time
 import datetime
 from termcolor import colored
 import pyaccel
+import mathphys
 import va
 
 
@@ -47,7 +48,6 @@ def log(message1='', message2='', c='white', a=None):
     str2 = colored('{0}'.format(message2), c, attrs=a)
     strt = strt + ': ' + str1 + ' ' + str2
     print(strt)
-    #return strt + ': ' + str1 + ' ' + str2
 
 
 def process_and_wait_interval(processing_function, interval):

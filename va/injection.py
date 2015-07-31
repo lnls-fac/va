@@ -8,20 +8,17 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     """Calculate charge loss in a line
 
     Keyword arguments:
-    twiss           -- Twiss parameters at the start of first element
-    global_coupling -- Global coupling
-    energy_spread   -- Relative energy spread
-    emittance       -- [m·rad]
-    delta_rx        -- [m]
-    delta_angle     -- [rad]
-    hmax            -- [m]
-    hmin            -- [m]
-    vmax            -- [m]
-    vmin            -- [m]
-
-    Returns loss fraction and twiss parameters in the last element of the accelerator
+    twiss_at_entrance -- Twiss parameters at the start of first element
+    global_coupling   -- Global coupling
+    energy_spread     -- Relative energy spread
+    emittance         -- [m·rad]
+    delta_rx          -- [m]
+    delta_angle       -- [rad]
+    hmax              -- [m]
+    hmin              -- [m]
+    vmax              -- [m]
+    vmin              -- [m]
     """
-
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
@@ -63,19 +60,16 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     """Calculate charge loss in a ring
 
     Keyword arguments:
-    twiss         -- Twiss parameters at the start of first element
-    energy_spread -- Relative energy spread
-    emittance     -- [m·rad]
-    delta_rx      -- [m]
-    delta_angle   -- [rad]
-    hmax          -- [m]
-    hmin          -- [m]
-    vmax          -- [m]
-    vmin          -- [m]
-
-    Returns loss fraction and twiss parameters in the last element of the accelerator
+    twiss_at_entrance -- Twiss parameters at the start of first element
+    energy_spread     -- Relative energy spread
+    emittance         -- [m·rad]
+    delta_rx          -- [m]
+    delta_angle       -- [rad]
+    hmax              -- [m]
+    hmin              -- [m]
+    vmax              -- [m]
+    vmin              -- [m]
     """
-
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
 
     init_pos = init_twiss.fixed_point

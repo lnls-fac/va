@@ -11,6 +11,7 @@ class ModelProcess(multiprocessing.Process):
         self.pipe = conn1
         self.model = model
         self.model_prefix = model.prefix
+
         super().__init__(
             target=start_and_run_model,
             kwargs={
@@ -31,19 +32,17 @@ def start_and_run_model(model, stop_event, interval, **kwargs):
     interval -- processing interval [s]
     **kwargs -- extra arguments to model __init__
     """
-    m = model(interval=interval, **kwargs)
-
+    m = model(**kwargs)
     while not stop_event.is_set():
         utils.process_and_wait_interval(m.process, interval)
 
 
 class Model:
 
-    def __init__(self, pipe, interval, log_func=utils.log, **kwargs):
+    def __init__(self, pipe, log_func=utils.log, **kwargs):
         self._pipe = pipe
         self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
-        self._interval = interval
 
     def process(self):
         self._process_requests()

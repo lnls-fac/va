@@ -127,7 +127,7 @@ class RingModel(accelerator_model.AcceleratorModel):
    # --- auxilliary methods
 
     def _calc_closed_orbit(self):
-        # calcs closed orbit when there is beam
+        # Calculate closed orbit when there is beam
         try:
             self._log('calc', 'closed orbit for '+self.model_module.lattice_version)
             if TRACK6D:
@@ -135,19 +135,19 @@ class RingModel(accelerator_model.AcceleratorModel):
             else:
                 self._orbit = numpy.zeros((6,len(self._accelerator)))
                 self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
-        # beam is lost
+        # Beam is lost
         except pyaccel.tracking.TrackingException:
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
 
     def _calc_linear_optics(self):
-        # calcs linear optics when there is beam
+        # Calculate linear optics when there is beam
         if self._orbit is None: return
         try:
-        # optics
+        # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66, self._transfer_matrices, self._orbit = \
                 pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-        # beam is lost
+        # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
         except pyaccel.optics.OpticsException:

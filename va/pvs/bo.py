@@ -35,7 +35,7 @@ class _LocalData:
         _LocalData.ps_ch = []
         _LocalData.ps_cv = []
         _LocalData.rf = []
-
+        _LocalData.ti = []
         for record_name in record_names:
             if 'DI-BPM-' in record_name:
                 _LocalData.di_bpms.append(record_name)
@@ -53,6 +53,8 @@ class _LocalData:
                 _LocalData.fk.append(record_name)
             elif 'RF-' in record_name:
                 _LocalData.rf.append(record_name)
+            elif 'TI-' in record_name:
+                _LocalData.ti.append(record_name)
             else:
                 print('Parameter', record_name, 'not found!')
         _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv
@@ -81,6 +83,8 @@ class _LocalData:
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.rf:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.ti:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
@@ -113,7 +117,7 @@ class _LocalData:
 
     @staticmethod
     def get_read_write_pvs():
-        return _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.fk + _LocalData.rf
+        return _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.fk + _LocalData.rf + _LocalData.ti
 
     @staticmethod
     def get_dynamical_pvs():

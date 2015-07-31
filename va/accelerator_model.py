@@ -15,7 +15,6 @@ UNDEF_VALUE = 0.0
 
 
 class AcceleratorModel(model.Model):
-
     def __init__(self, pipe, interval):
         super().__init__(pipe, interval)
         self._reset('start', self.model_module.lattice_version)
@@ -31,11 +30,10 @@ class AcceleratorModel(model.Model):
         if value is None:
             value = self._get_pv_fake(pv_name)
         if value is None:
+            value = self._get_pv_timing(pv_name)
+        if value is None:
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
-
-    def _get_pv_dynamic(self, pv_name):
-        return None
 
     def _get_pv_static(self, pv_name):
         # Process global parameters
@@ -51,7 +49,7 @@ class AcceleratorModel(model.Model):
             else:
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
                 return self._orbit[[0,2],idx[0]]
-        elif 'PS-' in pv_name or 'PU' in pv_name:
+        elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
         else:
             return None
@@ -72,12 +70,19 @@ class AcceleratorModel(model.Model):
         else:
             return None
 
+    def _get_pv_dynamic(self, pv_name):
+        return None
+
+    def _get_pv_timing(self, pv_name):
+        return None
+
   # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
         if self._set_pv_magnets(pv_name, value): return
         if self._set_pv_rf(pv_name, value): return
         if self._set_pv_fake(pv_name, value): return
+        if self._set_pv_timing(pv_name, value): return
 
     def _set_pv_magnets(self, pv_name, value):
         if 'PS' in pv_name or 'PU' in pv_name:
@@ -87,9 +92,6 @@ class AcceleratorModel(model.Model):
                 ps.current = value
                 self._state_deprecated = True
             return True
-        return False
-
-    def _set_pv_rf(self, pv_name, value):
         return False
 
     def _set_pv_fake(self, pv_name, value):
@@ -116,32 +118,16 @@ class AcceleratorModel(model.Model):
             return True
         return False
 
+    def _set_pv_rf(self, pv_name, value):
+        return False
+
+    def _set_pv_timing(self, pv_name, value):
+        return False
+
     # --- methods that help updating the model state
 
-    def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator = self.model_module.create_accelerator()
-        self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
-        self._beam_dump(message1,message2,c,a)
-        self._set_vacuum_chamber(indices='open')
-        self._state_deprecated = True
-        self._upstream_accelerator_state_deprecated = False
-        self._update_state()
-
-    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
-        if message1 or message2:
-            self._log(message1, message2, c=c, a=a)
-        if self._beam_charge: self._beam_charge.dump()
-        self._orbit = None
-        self._twiss = None
-        self._m66 = None
-        self._transfer_matrices = None
-        self._summary = None
-        self._injection_loss_fraction = None
-        self._ejection_loss_fraction = None
-        self._charge_to_inject = None
-
     def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs' % self.prefix)
+        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
         sp_pv_list = []
         for pv in self.pv_module.get_read_write_pvs():
             value = self._get_pv(pv)
@@ -279,5 +265,6 @@ class AcceleratorModel(model.Model):
         prefix = self._downstream_accelerator_prefix
         args_dict = {}
         args_dict['charge'] = charge
+
         function = 'get_charge_from_upstream_accelerator'
         self._pipe.send(('p', (prefix, function, args_dict)))

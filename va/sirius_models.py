@@ -5,7 +5,6 @@ from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
 from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
-from .pvs import ti as _pvs_ti
 from . import linac_model
 from . import tline_model
 from . import booster_model
@@ -27,7 +26,7 @@ class LiModel(linac_model.LinacModel):
     _emittance         = model_module.accelerator_data['emittance']
     _energy_spread     = model_module.accelerator_data['energy_spread']
     _global_coupling   = model_module.accelerator_data['global_coupling']
-    _twiss_at_exit     = model_module.accelerator_data['twiss_at_exit']
+    _twiss_at_exit     = model_module.accelerator_data['twiss_at_exit'].make_dict()
     _pulse_duration    = model_module.pulse_duration_interval[1]
     _frequency         = model_module.frequency
     _single_bunch_mode = 0
@@ -77,12 +76,5 @@ class SiModel(ring_model.RingModel):
     database = pv_module.get_database()
     nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-
-
-class TiModel(timing_model.TimingModel):
-
-    pv_module = _pvs_ti
-    prefix = pv_module.prefix
-    model_module = pv_module.model
-    database = pv_module.get_database()
-    _li_nr_bunches = LiModel.nr_bunches
+    _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
+    _pmm_angle = model_module.accelerator_data['pmm_nominal_deflection']

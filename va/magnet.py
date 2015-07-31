@@ -7,7 +7,6 @@ class Magnet(object):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
         """Magnet with power supplies
-
         Reads current from power supplies and sets Accelerator elements fields
         using value converted with excitation curve."""
         self._power_supplies = set()
@@ -42,7 +41,6 @@ class Magnet(object):
     @value.setter
     def value(self, integrated_field):
         """Set integrated field
-
         If element is segmented, all segments are assigned the same polynom
         value.
         """
@@ -72,8 +70,9 @@ class Magnet(object):
         try:
             data = numpy.loadtxt(filename)
         except FileNotFoundError:
-            # Default conversion table: F = I/2
-            data = numpy.array([[-1000, 1000], [-500, 500]]).transpose()
+            # Default conversion table: F = I
+            data = numpy.array([[-1e10, 1e10], [-1e10, 1e10]]).transpose()
+
         self._i = data[:, 0]
         self._f = data[:, 1]
 
@@ -82,7 +81,6 @@ class DipoleMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
         """Gets and sets beam energy [eV]
-
         DipoleMagnet is processed differently from other Magnet objects: it
         averages the current over the set of power supplies.
         """
@@ -119,6 +117,7 @@ class DipoleMagnet(Magnet):
             new_value = 0.0
 
         self.value = new_value
+
 
 class SeptumMagnet(Magnet):
 
@@ -188,7 +187,6 @@ class CorrectorMagnet(Magnet):
     @value.setter
     def value(self, integrated_field):
         """Set integrated field [T·m]
-
         If element is segmented, all segments are assigned the same B.
         """
         if self._pass_method != 'corrector_pass':
