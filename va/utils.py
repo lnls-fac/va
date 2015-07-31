@@ -226,21 +226,32 @@ class Magnet(object):
 
 class DipoleMagnet(Magnet):
 
-    """Gets and sets beam energy [eV]
-
-    DipoleMagnet is processed differently from other Magnet objects: it
-    averages the current over the set of power supplies.
-    """
+    def __init__(self, accelerator, indices, exc_curve_filename):
+        """Gets and sets beam energy [eV]
+        DipoleMagnet is processed differently from other Magnet objects: it
+        averages the current over the set of power supplies.
+        """
+        super().__init__(accelerator, indices, exc_curve_filename)
+        e0 = mathphys.constants.electron_rest_energy*mathphys.constants._joule_2_eV
+        self._electron_rest_energy_ev = e0
+        self._energy = self._accelerator.energy
 
     @property
     def value(self):
         """Get beam energy [eV]"""
-        return self._accelerator.energy
+        # return self._accelerator.energy
+        return self._energy
 
     @value.setter
     def value(self, energy):
-        """Get beam energy [T·m]"""
-        self._accelerator.energy = energy
+        """Set beam energy [eV]"""
+        # Avoid division by zero and math domain error
+        if energy > self._electron_rest_energy_ev:
+            self._accelerator.energy = energy
+        else:
+            self._accelerator.energy = self._electron_rest_energy_ev + 1 # OK?
+
+        self._energy = energy
 
     def process(self):
         current = 0.0
@@ -254,32 +265,33 @@ class DipoleMagnet(Magnet):
 
         self.value = new_value
 
-
 class SeptumMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
-        """Gets and sets integrated field [T]"""
         super().__init__(accelerator, indices, exc_curve_filename)
+        """Gets and sets deflection angle [rad]"""
         self._polynom = 'polynom_b'
         self._polynom_index = 0
 
         angle = 0.0
         for i in self._indices:
             angle += self._accelerator[i].angle
-        self._angle = angle
+        self._nominal_angle = angle
 
     def _get_value(self):
         v = 0.0
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            v += polynom[self._polynom_index]*self._accelerator[i].length/self._accelerator[i].angle
-        energy = (1.0 + v)*self._accelerator.energy
-        return energy
+            v += polynom[self._polynom_index]*self._accelerator[i].length
+        angle = v + self._nominal_angle
+        return angle
 
-    def _set_value(self, energy):
+    def _set_value(self, angle):
+        delta_angle = angle - self._nominal_angle
+        strength = delta_angle/self._length
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            polynom[self._polynom_index] = (self._angle/self._length)*(energy/self._accelerator.energy - 1.0)
+            polynom[self._polynom_index] = strength
 
 class QuadrupoleMagnet(Magnet):
 
@@ -362,16 +374,14 @@ class SkewQuadrupoleMagnet(Magnet):
 
 class PowerSupply(object):
 
-    def __init__(self, magnets):
+    def __init__(self, magnets, model):
         """Gets and sets current [A]
-
         Connected magnets are processed after current is set.
         """
+        self._model = model
         self._magnets = magnets
-        # self._current = current
         for magnet in magnets:
             magnet.add_power_supply(self)
-
     @property
     def current(self):
         return self._current
@@ -385,9 +395,9 @@ class PowerSupply(object):
 
 class FamilyPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, current=None):
+    def __init__(self, magnets, model, current=None):
         """Initialises current from average integrated field in magnets"""
-        super().__init__(magnets)
+        super().__init__(magnets, model=model)
         if (current is None) and (len(magnets) > 0):
             total_current = 0.0
             n = 0
@@ -398,18 +408,36 @@ class FamilyPowerSupply(PowerSupply):
         else:
             self._current = 0.0
 
+    @property
+    def current(self):
+        return self._current
+
+    @current.setter
+    def current(self, value):
+        self._current = value
+        for magnet in self._magnets:
+            magnet.process()
+        if isinstance(list(self._magnets)[0], DipoleMagnet):
+            all_power_supplies = self._model._power_supplies.values()
+            for ps in all_power_supplies:
+                if not isinstance(list(ps._magnets)[0], DipoleMagnet):
+                    ps.current = ps._current
+
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, current = None):
-        super().__init__(magnets)
-        if (current is None) and (len(magnets) > 0):
-            total_current = 0.0
-            n = 0
-            for magnet in magnets:
-                total_current += magnet.current
-                n += 1
-            self._current = total_current/n
+    def __init__(self, magnets, model, current = None):
+        super().__init__(magnets, model=model)
+        if len(magnets) > 1:
+            raise Exception('Individual Power Supply')
+        elif (current is None) and (len(magnets) > 0):
+            magnet = list(magnets)[0]
+            total_current = magnet.current
+            power_supplies = magnet._power_supplies.difference({self})
+            ps_current = 0.0
+            for ps in power_supplies:
+                ps_current += ps.current
+            self._current = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
         else:
             self._current = 0.0
 
@@ -495,7 +523,7 @@ def charge_loss_fraction_ring(accelerator, **kwargs):
     betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
     if math.isnan(betax[-1]):
         loss_fraction = 1.0
-        return loss_fraction, final_twiss
+        return loss_fraction
 
     de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
     de_probability = numpy.zeros(len(de))
