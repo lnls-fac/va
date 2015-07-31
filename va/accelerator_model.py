@@ -73,7 +73,6 @@ class AcceleratorModel(Model):
         if self._set_pv_magnets(pv_name, value): return
         if self._set_pv_rf(pv_name, value): return
         if self._set_pv_fake(pv_name, value): return
-        if self._set_pv_control(pv_name, value): return
 
     def _set_pv_magnets(self, pv_name, value):
         if 'PS' in pv_name or 'PU' in pv_name:
@@ -112,8 +111,6 @@ class AcceleratorModel(Model):
             return True
         return False
 
-    def set_pv_control(self, pv_name, value):
-        return False
 
     # --- methods that help updating the model state
 

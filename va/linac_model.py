@@ -6,16 +6,16 @@ class LinacModel(TLineModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_static(self, pv_name):
+    def _get_pv_fake(self, pv_name):
         if 'MODE' in pv_name:
             return self._single_bunch_mode
 
   # --- methods implementing response of model to set requests
 
-    def _set_pv_control(self, pv_name, value):
+    def _set_pv_fake(self, pv_name, value):
         if 'MODE' in pv_name:
             self._single_bunch_mode = value
-            self._pipe.send(('g', ('TI', 'LIPA-MODE')))
+            self._pipe.send(('g', ('TI', 'LIFK-MODE')))
             return True
         return False
 

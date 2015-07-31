@@ -81,7 +81,7 @@ def _get_fake_record_names(family_name=None):
         return record_names_dict
 
     if family_name.lower() == 'lifk':
-        _dict = {}
+        _dict = {'LIFK-MODE':{}}
         return _dict
     else:
         raise Exception('Family name %s not found'%family_name)

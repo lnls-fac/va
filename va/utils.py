@@ -268,33 +268,33 @@ class DipoleMagnet(Magnet):
 
         self.value = new_value
 
-
 class SeptumMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
-        """Gets and sets integrated field [T]"""
         super().__init__(accelerator, indices, exc_curve_filename)
+        """Gets and sets deflection angle [rad]"""
         self._polynom = 'polynom_b'
         self._polynom_index = 0
 
         angle = 0.0
         for i in self._indices:
             angle += self._accelerator[i].angle
-        self._angle = angle
+        self._nominal_angle = angle
 
     def _get_value(self):
         v = 0.0
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            v += polynom[self._polynom_index]*self._accelerator[i].length/self._accelerator[i].angle
-        energy = (1.0 + v)*self._accelerator.energy
-        return energy
+            v += polynom[self._polynom_index]*self._accelerator[i].length
+        angle = v + self._nominal_angle
+        return angle
 
-    def _set_value(self, energy):
+    def _set_value(self, angle):
+        delta_angle = angle - self._nominal_angle
+        strength = delta_angle/self._length
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            polynom[self._polynom_index] = (self._angle/self._length)*(energy/self._accelerator.energy - 1.0)
-
+            polynom[self._polynom_index] = strength
 
 class QuadrupoleMagnet(Magnet):
 
@@ -534,7 +534,7 @@ def charge_loss_fraction_ring(accelerator, **kwargs):
     betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
     if math.isnan(betax[-1]):
         loss_fraction = 1.0
-        return loss_fraction, final_twiss
+        return loss_fraction
 
     de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
     de_probability = numpy.zeros(len(de))
@@ -596,7 +596,8 @@ def shift_record_names(accelerator, record_names_dict):
 def _process_loss_fraction_args(accelerator, **kwargs):
     energy_spread = kwargs['energy_spread']
     emittance     = kwargs['emittance']
-    init_twiss    = kwargs['init_twiss']
+
+    init_twiss = kwargs['init_twiss'] if 'init_twiss' in kwargs else kwargs['twiss_at_entrance']
     delta_rx = kwargs['delta_rx'] if 'delta_rx' in kwargs else 0.0
     delta_angle = kwargs['delta_angle'] if 'delta_angle' in kwargs else 0.0
 

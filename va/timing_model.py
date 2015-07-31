@@ -113,7 +113,7 @@ class TimingModel(model.Model):
             self._delay_inc += 1.0 / self._si_rf_frequency
             self._pipe.send(('s', ('TI-DELAY-INC', self._delay_inc)))
             self._state_deprecated = True
-        elif 'LIPA-MODE' in pv_name:
+        elif 'LIFK-MODE' in pv_name:
             if not self._si_rf_frequency: return
             self._li_single_bunch_mode = value
             if not self._li_single_bunch_mode:
