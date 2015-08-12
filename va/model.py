@@ -1,7 +1,6 @@
 
-import time
 import multiprocessing
-import threading
+import time
 from . import utils
 
 
@@ -11,6 +10,7 @@ class ModelProcess(multiprocessing.Process):
         conn1, conn2 = multiprocessing.Pipe()
         self.pipe = conn1
         self.model = model
+        self.model_prefix = model.prefix
         super().__init__(
             target=start_and_run_model,
             kwargs={
@@ -20,6 +20,7 @@ class ModelProcess(multiprocessing.Process):
                 'interval': interval,
             }
         )
+
 
 def start_and_run_model(model, stop_event, interval, **kwargs):
     """Start periodic processing of model
@@ -31,8 +32,7 @@ def start_and_run_model(model, stop_event, interval, **kwargs):
     **kwargs -- extra arguments to model __init__
     """
     m = model(interval=interval, **kwargs)
-    m_thread = ModelThread(m, interval, stop_event)
-    m_thread.start()
+
     while not stop_event.is_set():
         utils.process_and_wait_interval(m.process, interval)
 
@@ -43,67 +43,55 @@ class Model:
         self._pipe = pipe
         self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
-        self._interval = interval/2
+        self._interval = interval
 
     def process(self):
         self._process_requests()
-        self._update_state()
-
-    def update_pvs(self):
-        if self._state_deprecated:
-            for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
-                value = self._get_pv(pv)
-                self._pipe.send(('s', (pv, value)))
-        else:
-            for pv in self.pv_module.get_dynamical_pvs():
-                value = self._get_pv(pv)
-                self._pipe.send(('s', (pv, value)))
+        # self._update_state()
+        self._update_pvs()
 
     def _process_requests(self):
-        start_time = time.time()
-        while self._has_remaining_time_and_request(start_time):
-            cmd, data = self._pipe.recv()
-            if cmd == 's':
-                pv_name, value = data
-                self._set_pv(pv_name, value)
-            elif cmd == 'g':
-                pv_name, value = data
-                self._receive_pv_value(pv_name, value)
-            elif cmd == 'p':
-                function, args_dict = data
-                self._execute_function(function=function, **args_dict)
-            else:
-                print('Invalid command:', cmd)
+        while self._pipe.poll():
+            print('Inside Model') # Debug
+            request = self._pipe.recv()
+            self._process_request(request)
 
-    def _has_remaining_time_and_request(self, start_time):
-        has_remaining_time = (time.time() - start_time) < self._interval
-        has_request = self._pipe.poll()
-        return has_remaining_time and has_request
+    def _process_request(self, request):
+        cmd, data = request
+        print('Inside _process_request:', cmd, data) # Debug
+        if cmd == 's':
+            self._set_parameter(data)
+        elif cmd == 'g':
+            self._receive_pv_value(data)
+        elif cmd == 'p':
+            self._execute_function(data)
+        else:
+            utils.log('!cmd', cmd, c='red', a=['bold'])
+
+    def _set_parameter(self, data):
+        pv_name, value = data
+        # self._set_pv(pv_name, value)
 
     def _receive_pv_value(self, pv_name, value):
+        pv_name, value = data
         pass
 
-    def _execute_function(self, function=None, **kwargs):
+    def _execute_function(data):
+        function, kwargs = data
         if function == 'get_parameters_from_upstream_accelerator':
             self._get_parameters_from_upstream_accelerator(**kwargs)
         if function == 'get_charge_from_upstream_accelerator':
             self._get_charge_from_upstream_accelerator(**kwargs)
-        if function == 'receive_syncronism_signal':
-            self._receive_synchronism_signal(**kwargs)
+        if function == 'receive_timing_signal':
+            self._receive_timing_signal(**kwargs)
 
-
-class ModelThread(threading.Thread):
-
-    def __init__(self, model, interval, stop_event):
-        self._model = model
-        self._interval = interval
-        self._stop_event = stop_event
-        super().__init__(target=self._main)
-
-    def _main(self):
-        while not self._stop_event.is_set():
-            start_time = time.time()
-            self._model.update_pvs()
-            delta_t = time.time() - start_time
-            if 0 < delta_t < self._interval:
-                time.sleep(self._interval - delta_t)
+    def _update_pvs(self):
+        # if self._state_deprecated:
+        #     for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
+        #         value = self._get_pv(pv)
+        #         self._pipe.send(('s', (pv, value)))
+        # else:
+        #     for pv in self.pv_module.get_dynamical_pvs():
+        #         value = self._get_pv(pv)
+        #         self._pipe.send(('s', (pv, value)))
+        pass

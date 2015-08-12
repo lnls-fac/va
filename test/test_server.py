@@ -1,11 +1,15 @@
 
 import unittest
+import multiprocessing
+import time
 import os
 import signal
-import multiprocessing
 import numpy
 import va
 import epics
+
+
+INIT_WAIT = 2.0
 
 
 server_process = multiprocessing.Process(
@@ -15,16 +19,16 @@ server_process = multiprocessing.Process(
 
 
 def setUpModule():
-    print('inside setUpModule')
     global server_process
     server_process.start()
+    print('\nWaiting %d seconds for server initialisation...\n' % INIT_WAIT)
+    time.sleep(INIT_WAIT)
 
 
 def tearDownModule():
-    print('inside tearDownModule')
     global server_process
-    va.server.stop_event.set()
-    server_process.join()
+    os.kill(server_process.pid, signal.SIGINT)
+    server_process.join(1.0)
 
 
 class TestServer(unittest.TestCase):

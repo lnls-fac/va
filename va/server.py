@@ -2,17 +2,15 @@
 
 import signal
 import multiprocessing
-from pcaspy import SimpleServer
+import pcaspy
 from . import driver
 from . import model
 from . import sirius_models
 from . import utils
 
+
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 1.0
-
-
-stop_event = multiprocessing.Event()
 
 
 def run(prefix):
@@ -22,45 +20,59 @@ def run(prefix):
     prefix -- prefix to be added to PVs
     """
     global stop_event
-
-    set_sigint_handler(handle_signal)
+    stop_event = multiprocessing.Event() # signals a stop request
+    set_sigint_handler(set_global_stop_event)
 
     models = get_models()
     pv_database = get_pv_database(models)
-
     pv_names = get_pv_names(models)
-    utils.print_banner(prefix, **pv_names)
+    # utils.print_banner(prefix, **pv_names)
 
-    server = SimpleServer()
+    server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
 
-    processes = start_model_processes(models, stop_event)
-
+    processes = create_model_processes(models)
+    start_model_processes(processes)
     start_driver_thread(processes, stop_event)
+
+    # Debug
+    print('Inside run()...')
 
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
+    # Debug
+    print('\nStopping server...')
+
     join_processes(processes)
 
-def set_sigint_handler(handler):
-    signal.signal(signal.SIGINT, handle_signal)
 
-def handle_signal(signum, frame):
+def set_sigint_handler(handler):
+    signal.signal(signal.SIGINT, handler)
+
+
+def set_global_stop_event(signum, frame):
     global stop_event
     stop_event.set()
 
+
 def get_models():
+    # models = (
+    #     sirius_models.LiModel,
+    #     sirius_models.TbModel,
+    #     sirius_models.BoModel,
+    #     sirius_models.SiModel,
+    #     sirius_models.TsModel,
+    #     sirius_models.TiModel,
+    # )
     models = (
-        sirius_models.LiModel,
-        sirius_models.TbModel,
-        sirius_models.BoModel,
-        sirius_models.SiModel,
-        sirius_models.TsModel,
-        sirius_models.TiModel,
+        sirius_models.ModelA,
+        sirius_models.ModelB,
+        sirius_models.SiModel
     )
 
     return models
+
 
 def get_pv_database(models):
     pv_database = {}
@@ -69,26 +81,36 @@ def get_pv_database(models):
 
     return pv_database
 
+
 def get_pv_names(models):
     pv_names = {}
     for m in models:
-        pv_names.update({m.prefix.lower()+'_pv_names': m.database.keys()})
+        # Too low level?
+        model_pv_names = {m.prefix.lower()+'_pv_names': m.database.keys()}
+        pv_names.update(model_pv_names)
 
     return pv_names
 
-def start_model_processes(models, stop_event):
+
+def create_model_processes(models):
     processes = []
     for m in models:
         mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
-        mp.start()
         processes.append(mp)
 
     return processes
 
+
+def start_model_processes(processes):
+    for p in processes:
+        p.start()
+
+
 def start_driver_thread(processes, stop_event):
-    pcas_driver = driver.PCASDriver(processes)
+    pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT)
     driver_thread = driver.DriverThread(pcas_driver, WAIT_TIMEOUT, stop_event)
     driver_thread.start()
+
 
 def join_processes(processes):
     for process in processes:
