@@ -33,21 +33,19 @@ class PCASDriver(Driver):
         for p in processes:
             self._processes[p.model_prefix] = p
 
-    # ***** Break into lower level functions? *****
+    # Break into lower level functions?
     def process(self):
         has_pv_changed = False
         for process in self._processes.values():
             pipe = process.pipe
             while pipe.poll():
                 request = pipe.recv()
-                print(request)
                 has_pv_changed |= self._process_request(request)
 
         if has_pv_changed:
             self.updatePVs()
 
     def _process_request(self, request):
-        # ***** Should functions take data or its elements as input? *****
         cmd, data = request
         if cmd == 's':
             return self._set_parameter_in_memory(data)
@@ -68,12 +66,12 @@ class PCASDriver(Driver):
     def _send_parameter_to_model(self, data):
         prefix, pv_name = data
         value = self.getParam(pv_name)
-        self._send_to_model(cmd, prefix, pv_name, value)
+        self._send_to_model('g', prefix, pv_name, value)
         return False
 
     def _call_model_function(self, data):
         prefix, function, args_dict = data
-        self._send_to_model(cmd, prefix, function, args_dict)
+        self._send_to_model('p', prefix, function, args_dict)
         return False
 
     def _set_sp_parameters_in_memory(self, data):
@@ -98,7 +96,7 @@ class PCASDriver(Driver):
             prefix = reason[:PREFIX_LEN]
             process = self._processes[prefix]
 
-            # ***** Move to separate function *****
+            # Move to separate function
             if reason in process.model.pv_module.get_read_only_pvs() + \
                     process.model.pv_module.get_dynamical_pvs():
                 utils.log('!write', reason, c='yellow', a=['bold'])

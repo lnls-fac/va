@@ -1,10 +1,13 @@
 
 import time
 import pyaccel
-from .ring_model import RingModel
+from . import ring_model
+from . import beam_charge
+from . import injection
 from . import utils
 
-class BoosterModel(RingModel):
+
+class BoosterModel(ring_model.RingModel):
 
     # --- methods that help updating the model state
 
@@ -35,7 +38,7 @@ class BoosterModel(RingModel):
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         t0 = time.time()
-        self._beam_charge  = utils.BeamCharge(nr_bunches = self.nr_bunches)
+        self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         accelerator        = self.model_module.create_accelerator()
         injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
@@ -90,7 +93,7 @@ class BoosterModel(RingModel):
         args_dict = self._injection_parameters
         args_dict.update(self._get_vacuum_chamber())
         args_dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **args_dict)
+        self._injection_loss_fraction = injection.charge_loss_fraction_ring(self._accelerator, **args_dict)
 
     def _calc_acceleration_loss_fraction(self):
         self._log('calc', 'acceleration efficiency  for '+self.model_module.lattice_version)
@@ -106,7 +109,7 @@ class BoosterModel(RingModel):
         args_dict = {}
         args_dict.update(ejection_parameters)
         args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
-        self._ejection_loss_fraction, twiss, *_ = utils.charge_loss_fraction_line(accelerator,
+        self._ejection_loss_fraction, twiss, *_ = injection.charge_loss_fraction_line(accelerator,
             init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)
         self._send_parameters_to_downstream_accelerator(twiss[-1], ejection_parameters)
 

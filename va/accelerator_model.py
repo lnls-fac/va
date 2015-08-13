@@ -4,12 +4,17 @@ import numpy
 import time
 import mathphys
 import pyaccel
-from .model import Model
+from . import model
+from . import beam_charge
+from . import magnet
+from . import power_supply
 from . import utils
+
 
 UNDEF_VALUE = 0.0
 
-class AcceleratorModel(Model):
+
+class AcceleratorModel(model.Model):
 
     def __init__(self, pipe, interval):
         super().__init__(pipe, interval)
@@ -111,12 +116,11 @@ class AcceleratorModel(Model):
             return True
         return False
 
-
     # --- methods that help updating the model state
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator = self.model_module.create_accelerator()
-        self._beam_charge  = utils.BeamCharge(nr_bunches = self.nr_bunches)
+        self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber(indices='open')
         self._state_deprecated = True
@@ -221,24 +225,24 @@ class AcceleratorModel(Model):
             indices = indices[0]
             family_type = family_mapping[family]
             if family_type == 'dipole':
-                magnet = utils.DipoleMagnet(accelerator, indices, filename)
+                m = magnet.DipoleMagnet(accelerator, indices, filename)
             elif family_type == 'quadrupole':
-                magnet = utils.QuadrupoleMagnet(accelerator, indices, filename)
+                m = magnet.QuadrupoleMagnet(accelerator, indices, filename)
             elif family_type == 'sextupole':
-                magnet = utils.SextupoleMagnet(accelerator, indices, filename)
+                m = magnet.SextupoleMagnet(accelerator, indices, filename)
             elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
-                magnet = utils.HorizontalCorrectorMagnet(accelerator, indices, filename)
+                m = magnet.HorizontalCorrectorMagnet(accelerator, indices, filename)
             elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
-                magnet = utils.VerticalCorrectorMagnet(accelerator, indices, filename)
+                m = magnet.VerticalCorrectorMagnet(accelerator, indices, filename)
             elif family_type == 'skew_quadrupole':
-                magnet = utils.SkewQuadrupoleMagnet(accelerator, indices, filename)
+                m = magnet.SkewQuadrupoleMagnet(accelerator, indices, filename)
             elif family_type in 'septum':
-                magnet = utils.SeptumMagnet(accelerator, indices, filename)
+                m = magnet.SeptumMagnet(accelerator, indices, filename)
             else:
-                magnet = None
+                m = None
 
-            if magnet is not None:
-                self._magnets[magnet_name] = magnet
+            if m is not None:
+                self._magnets[magnet_name] = m
 
         # Set initial current values
         self._power_supplies = dict()
@@ -248,8 +252,8 @@ class AcceleratorModel(Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
-                power_supply = utils.FamilyPowerSupply(magnets, model = self)
-                self._power_supplies[ps_name] = power_supply
+                ps = power_supply.FamilyPowerSupply(magnets, model = self)
+                self._power_supplies[ps_name] = ps
 
         for ps_name in ps2magnet.keys():
             magnets = set()
@@ -257,8 +261,8 @@ class AcceleratorModel(Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if not '-FAM' in ps_name:
-                power_supply = utils.IndividualPowerSupply(magnets, model = self)
-                self._power_supplies[ps_name] = power_supply
+                ps = power_supply.IndividualPowerSupply(magnets, model = self)
+                self._power_supplies[ps_name] = ps
 
     def _get_parameters_from_upstream_accelerator(self, **kwargs):
         self._injection_parameters = kwargs

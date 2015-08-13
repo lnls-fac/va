@@ -1,9 +1,11 @@
 
 import time
-from .accelerator_model import AcceleratorModel
+from . import accelerator_model
+from . import injection
 from . import utils
 
-class TLineModel(AcceleratorModel):
+
+class TLineModel(accelerator_model.AcceleratorModel):
 
     # --- methods that help updating the model state
 
@@ -39,7 +41,7 @@ class TLineModel(AcceleratorModel):
         args_dict.update(self._get_vacuum_chamber())
         args_dict.update(self._get_coordinate_system_parameters())
         self._transport_loss_fraction, self._twiss, self._m66, self._transfer_matrices, self._orbit = \
-            utils.charge_loss_fraction_line(self._accelerator, **args_dict)
+            injection.charge_loss_fraction_line(self._accelerator, **args_dict)
         self._send_parameters_to_downstream_accelerator(self._twiss[-1], self._injection_parameters)
 
     def _get_charge_from_upstream_accelerator(self, charge=None):

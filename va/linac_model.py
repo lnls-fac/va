@@ -2,6 +2,7 @@
 from .tline_model import TLineModel
 import time
 
+
 class LinacModel(TLineModel):
 
     # --- methods implementing response of model to get requests
@@ -26,7 +27,7 @@ class LinacModel(TLineModel):
         parameters = {'emittance': self._emittance, 'energy_spread': self._energy_spread, 'global_coupling': self._global_coupling}
         self._send_parameters_to_downstream_accelerator(self._twiss_at_exit, parameters)
 
-    def _receive_synchronism_signal(self):
+    def _receive_timing_signal(self):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         if self._single_bunch_mode:
             charge = [self.model_module.single_bunch_charge]

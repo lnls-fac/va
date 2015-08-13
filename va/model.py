@@ -47,22 +47,20 @@ class Model:
 
     def process(self):
         self._process_requests()
-        # self._update_state()
+        self._update_state()
         self._update_pvs()
 
     def _process_requests(self):
         while self._pipe.poll():
-            print('Inside Model') # Debug
             request = self._pipe.recv()
             self._process_request(request)
 
     def _process_request(self, request):
         cmd, data = request
-        print('Inside _process_request:', cmd, data) # Debug
         if cmd == 's':
             self._set_parameter(data)
         elif cmd == 'g':
-            self._receive_pv_value(data)
+            self._receive_parameter_value(data)
         elif cmd == 'p':
             self._execute_function(data)
         else:
@@ -70,13 +68,13 @@ class Model:
 
     def _set_parameter(self, data):
         pv_name, value = data
-        # self._set_pv(pv_name, value)
+        self._set_pv(pv_name, value)
 
-    def _receive_pv_value(self, pv_name, value):
+    def _receive_parameter_value(self, data):
         pv_name, value = data
-        pass
+        self._receive_pv_value(pv_name, value)
 
-    def _execute_function(data):
+    def _execute_function(self, data):
         function, kwargs = data
         if function == 'get_parameters_from_upstream_accelerator':
             self._get_parameters_from_upstream_accelerator(**kwargs)
@@ -86,12 +84,11 @@ class Model:
             self._receive_timing_signal(**kwargs)
 
     def _update_pvs(self):
-        # if self._state_deprecated:
-        #     for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
-        #         value = self._get_pv(pv)
-        #         self._pipe.send(('s', (pv, value)))
-        # else:
-        #     for pv in self.pv_module.get_dynamical_pvs():
-        #         value = self._get_pv(pv)
-        #         self._pipe.send(('s', (pv, value)))
-        pass
+        if self._state_deprecated:
+            for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
+                value = self._get_pv(pv)
+                self._pipe.send(('s', (pv, value)))
+        else:
+            for pv in self.pv_module.get_dynamical_pvs():
+                value = self._get_pv(pv)
+                self._pipe.send(('s', (pv, value)))

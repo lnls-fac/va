@@ -26,7 +26,7 @@ def run(prefix):
     models = get_models()
     pv_database = get_pv_database(models)
     pv_names = get_pv_names(models)
-    # utils.print_banner(prefix, **pv_names)
+    utils.print_banner(prefix, **pv_names)
 
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
@@ -35,14 +35,8 @@ def run(prefix):
     start_model_processes(processes)
     start_driver_thread(processes, stop_event)
 
-    # Debug
-    print('Inside run()...')
-
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
-
-    # Debug
-    print('\nStopping server...')
 
     join_processes(processes)
 
@@ -57,18 +51,13 @@ def set_global_stop_event(signum, frame):
 
 
 def get_models():
-    # models = (
-    #     sirius_models.LiModel,
-    #     sirius_models.TbModel,
-    #     sirius_models.BoModel,
-    #     sirius_models.SiModel,
-    #     sirius_models.TsModel,
-    #     sirius_models.TiModel,
-    # )
     models = (
-        sirius_models.ModelA,
-        sirius_models.ModelB,
-        sirius_models.SiModel
+        sirius_models.LiModel,
+        sirius_models.TbModel,
+        sirius_models.BoModel,
+        sirius_models.TsModel,
+        sirius_models.SiModel,
+        sirius_models.TiModel,
     )
 
     return models

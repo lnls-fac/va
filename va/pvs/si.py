@@ -13,7 +13,6 @@ class _LocalData:
 
     @staticmethod
     def build_data():
-
         _LocalData._init_record_names()
         _LocalData._init_database()
         _LocalData._init_dynamical_pvs()
@@ -83,7 +82,6 @@ class _LocalData:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-
 
     @staticmethod
     def _init_dynamical_pvs():

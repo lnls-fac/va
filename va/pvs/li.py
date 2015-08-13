@@ -2,17 +2,19 @@
 import sirius as _sirius
 
 
-# kingdom-dependent parameters
-_model = _sirius.li
-def _subsys(rn):
-    return 'LI'+rn
+# Kingdom-dependent parameters
+model = _sirius.li
+prefix = 'LI'
+
+
+def _get_subsystem(rn):
+    return prefix + rn
 
 
 class _LocalData:
 
     @staticmethod
     def build_data():
-
         _LocalData._init_record_names()
         _LocalData._init_database()
         _LocalData._init_dynamical_pvs()
@@ -21,9 +23,9 @@ class _LocalData:
     def _init_record_names():
         _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
-        _LocalData.all_record_names.update(_model.record_names.get_record_names())
+        _LocalData.all_record_names.update(model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
-        record_names = _model.record_names.get_record_names()
+        record_names = model.record_names.get_record_names()
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk = []
         _LocalData.pa = []
@@ -72,6 +74,7 @@ class _LocalData:
     def get_dynamical_pvs():
         return []
 
+
 def _get_fake_record_names(family_name=None):
     if family_name == None:
         families = ['lifk']
@@ -85,6 +88,7 @@ def _get_fake_record_names(family_name=None):
         return _dict
     else:
         raise Exception('Family name %s not found'%family_name)
+
 
 _LocalData.build_data()
 

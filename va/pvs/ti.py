@@ -2,10 +2,13 @@
 import sirius as _sirius
 
 
-# kingdom-dependent parameters
-_model = _sirius.ti
-def _subsys(rn):
-    return 'TI'+rn
+# Kingdom-dependent parameters
+model = _sirius.ti
+prefix = 'TI'
+
+
+def _get_subsystem(rn):
+    return prefix + rn
 
 
 class _LocalData:
@@ -20,9 +23,9 @@ class _LocalData:
     def _init_record_names():
         _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
-        _LocalData.all_record_names.update(_model.record_names.get_record_names())
+        _LocalData.all_record_names.update(model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
-        record_names = _model.record_names.get_record_names()
+        record_names = model.record_names.get_record_names()
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk = []
         _LocalData.pa = []
@@ -78,7 +81,9 @@ def _get_fake_record_names(family_name = None):
     else:
         raise Exception('Family name %s not found'%family_name)
 
+
 _LocalData.build_data()
+
 
 # --- Module API ---
 get_all_record_names = _LocalData.get_all_record_names

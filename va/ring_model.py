@@ -6,9 +6,11 @@ import pyaccel
 import mathphys
 from . import accelerator_model
 
+
 TRACK6D = False
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 _u = mathphys.units
+
 
 class RingModel(accelerator_model.AcceleratorModel):
 

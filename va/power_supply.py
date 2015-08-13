@@ -1,4 +1,7 @@
 
+import math
+
+
 class PowerSupply(object):
 
     def __init__(self, magnets, model):

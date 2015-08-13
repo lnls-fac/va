@@ -2,10 +2,13 @@
 import sirius as _sirius
 
 
-# kingdom-dependent parameters
-_model = _sirius.ts
-def _subsys(rn):
-    return 'TS'+rn
+# Kingdom-dependent parameters
+model = _sirius.ts
+prefix = 'TS'
+
+
+def _get_subsystem(rn):
+    return prefix + rn
 
 
 class _LocalData:
@@ -20,9 +23,9 @@ class _LocalData:
     def _init_record_names():
         _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
-        _LocalData.all_record_names.update(_model.record_names.get_record_names())
+        _LocalData.all_record_names.update(model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
-        record_names = _model.record_names.get_record_names()
+        record_names = model.record_names.get_record_names()
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk = []
         _LocalData.pa = []
@@ -60,9 +63,9 @@ class _LocalData:
         for p in _LocalData.di:
             if 'DI-BPM' in p:
                 if 'FAM-X' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-X')]['bpm'])}
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_get_subsystem('DI-BPM-FAM-X')]['bpm'])}
                 elif 'FAM-Y' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-Y')]['bpm'])}
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_get_subsystem('DI-BPM-FAM-Y')]['bpm'])}
                 else:
                     _LocalData.database[p] = {'type' : 'float', 'count': 2}
             else:
@@ -71,7 +74,7 @@ class _LocalData:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.pa:
             if any([substring in p for substring in ('BLIFETIME',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
+                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
@@ -138,6 +141,7 @@ def _get_fake_record_names(family_name = None):
 
 
 _LocalData.build_data()
+
 
 # --- Module API ---
 get_all_record_names = _LocalData.get_all_record_names

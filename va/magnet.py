@@ -1,4 +1,8 @@
 
+import numpy
+import mathphys
+
+
 class Magnet(object):
 
     def __init__(self, accelerator, indices, exc_curve_filename):

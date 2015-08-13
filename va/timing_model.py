@@ -152,7 +152,7 @@ class TimingModel(model.Model):
     def _send_syncronism_signal(self, prefix=None):
         if prefix is None: return
         elif prefix == 'LI':
-            self._pipe.send(('p', (prefix, 'receive_syncronism_signal', {})))
+            self._pipe.send(('p', (prefix, 'receive_timing_signal', {})))
 
     def _set_delay_next_cycle(self):
         self._delay += self._delay_inc
