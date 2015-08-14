@@ -57,7 +57,6 @@ def get_models():
         sirius_models.BoModel,
         sirius_models.TsModel,
         sirius_models.SiModel,
-        sirius_models.TiModel,
     )
 
     return models

@@ -1,5 +1,4 @@
 
-import time
 from . import accelerator_model
 from . import beam_charge
 from . import injection

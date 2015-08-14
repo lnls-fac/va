@@ -1,18 +1,24 @@
 
-import time
 import math
 import numpy
 import pyaccel
 import mathphys
 from . import accelerator_model
+from . import beam_charge
+from . import utils
 
 
-TRACK6D = False
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
+TRACK6D = False
 _u = mathphys.units
 
 
 class RingModel(accelerator_model.AcceleratorModel):
+
+    def __init__(self, pipe):
+        super().__init__(pipe)
+        # Send value of SIRF-FREQUENCY to LI
+        self._pipe.send(('g', ('LI', 'SIRF-FREQUENCY')))
 
     # --- methods implementing response of model to get requests
 
@@ -72,6 +78,21 @@ class RingModel(accelerator_model.AcceleratorModel):
         else:
             return None
 
+    def _get_pv_timing(self, pv_name):
+        if 'TI-' in pv_name:
+            if 'KICKINJ-ENABLED' in pv_name:
+                return self._ti_kickinj_enabled
+            elif 'KICKINJ-DELAY' in pv_name:
+                return self._ti_kickinj_delay
+            elif 'PMM-ENABLED' in pv_name:
+                return self._ti_pmm_enabled
+            elif 'PMM-DELAY' in pv_name:
+                return self._ti_pmm_delay
+            else:
+                return None
+        else:
+            return None
+
   # --- methods implementing response of model to set requests
 
     def _set_pv_rf(self, pv_name, value):
@@ -88,8 +109,32 @@ class RingModel(accelerator_model.AcceleratorModel):
             if value != prev_value:
                 self._accelerator[idx[0]].frequency = value
                 self._state_deprecated = True
+            self._pipe.send(('g', ('LI', 'SIRF-FREQUENCY')))
             return True
         return False
+
+    def _set_pv_timing(self, pv_name, value):
+        if 'TI-' in pv_name:
+            if 'KICKINJ-ENABLED' in pv_name:
+                self._ti_kickinj_enabled = value
+                self._state_deprecated = True
+                return True
+            elif 'KICKINJ-DELAY' in pv_name:
+                self._ti_kickinj_delay = value
+                self._state_deprecated = True
+                return True
+            elif 'PMM-ENABLED' in pv_name:
+                self._ti_pmm_enabled = value
+                self._state_deprecated = True
+                return True
+            elif 'PMM-DELAY' in pv_name:
+                self._ti_pmm_delay = value
+                self._state_deprecated = True
+                return True
+            else:
+                return False
+        else:
+            return False
 
     # --- methods that help updating the model state
 
@@ -100,29 +145,38 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            self._injection_loss_fraction = 0.0
-            self._ejection_loss_fraction = 0.0
 
-    def _receive_pv_value(self, pv_name, value):
-        if 'SI-KICKIN-ENABLED' in pv_name:
-            self._ti_si_kickin_on = value
-        elif 'SI-KICKIN-DELAY' in pv_name:
-            self._ti_si_kickin_delay = value
-        elif 'TI-DELAY' in pv_name:
-            self._ti_delay = value
+    def _reset(self, message1='reset', message2='', c='white', a=None):
+        self._accelerator = self.model_module.create_accelerator()
+        self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
+        self._beam_dump(message1,message2,c,a)
+        self._set_vacuum_chamber(indices='open')
 
-    def _get_charge_from_upstream_accelerator(self, charge=None):
-        if charge is None: return
-        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
-        charge = self._incoming_bunch_injected_in_si(charge)
-        if not self._ti_si_kickin_on:
-            charge = [0.0]
-        efficiency = self._beam_inject(charge=charge)
-        if not self._ti_si_kickin_on:
-            efficiency = 0
-        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
-        self._pipe.send(('g', ('TI', 'SIRF-FREQUENCY')))
+        self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
+        self._pmm_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
+
+        # Initial values of timing pvs
+        self._ti_kickinj_enabled = 1
+        self._ti_kickinj_delay = 0
+        self._ti_pmm_enabled = 1
+        self._ti_pmm_delay = 0
+        self._ti_egun_delay = 0
+        self._ti_kickex_inc = 0
+        self._state_deprecated = True
+        self._upstream_accelerator_state_deprecated = False
+        self._update_state()
+
+    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+        if self._beam_charge: self._beam_charge.dump()
+        self._orbit = None
+        self._twiss = None
+        self._m66 = None
+        self._transfer_matrices = None
+        self._summary = None
+        self._injection_parameters = None
+        self._injection_loss_fraction = 0.0
 
    # --- auxilliary methods
 
@@ -177,16 +231,59 @@ class RingModel(accelerator_model.AcceleratorModel):
         coupling = self.model_module.accelerator_data['global_coupling']
         pressure_profile = self.model_module.accelerator_data['pressure_profile']
 
-        e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(
-            self._accelerator, self._twiss, self._summary, Ne1C, coupling, pressure_profile)
+        e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
+                                                            self._twiss, self._summary, Ne1C, coupling, pressure_profile)
         self._beam_charge.set_lifetimes(elastic=e_lifetime,
                                         inelastic=i_lifetime,
                                         quantum=q_lifetime,
                                         touschek_coefficient=t_coeff)
 
+    def _set_kickin(self, str ='off'):
+        for idx in self._kickin_idx:
+            if str.lower() == 'on':
+                self._accelerator[idx].hkick_polynom = self._kickin_angle
+            elif str.lower() == 'off':
+                self._accelerator[idx].hkick_polynom = 0.0
+
+    def _set_pmm(self, str ='off'):
+        for idx in self._pmm_idx:
+            if str.lower() == 'on':
+                self._accelerator[idx].hkick_polynom = self._pmm_angle
+            elif str.lower() == 'off':
+                self._accelerator[idx].hkick_polynom = 0.0
+
+    def _calc_injection_loss_fraction(self):
+        if self._injection_parameters is None: return
+        self._log('calc', 'injection efficiency  for '+self.model_module.lattice_version)
+
+        _dict = self._injection_parameters
+        _dict.update(self._get_vacuum_chamber())
+        _dict.update(self._get_coordinate_system_parameters())
+        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **_dict)
+
+    def _start_injection(self, charge=None):
+        if charge is None: return
+
+        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
+        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+        charge = self._incoming_bunch_injected_in_si(charge)
+        if not self._ti_kickinj_enabled or not self._ti_pmm_enabled: charge = [0.0]
+        efficiency = self._beam_inject(charge=charge)
+        if not self._ti_kickinj_enabled or not self._ti_pmm_enabled: efficiency = 0
+        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+
+    def _receive_pv_value(self, pv_name, value):
+        if 'TI-EGUN-DELAY' in pv_name:
+            self._prev_ti_egun_delay = self._ti_egun_delay
+            self._ti_egun_delay = value
+        elif 'TI-KICKEX-INC' in pv_name:
+            self._prev_ti_kickex_inc = self._ti_kickex_inc
+            self._ti_kickex_inc = value
+
     def _incoming_bunch_injected_in_si(self, charge):
+        # Change the bunches in which the charge is injected
         rf_frequency = pyaccel.optics.get_rf_frequency(self._accelerator)
-        bunch_offset = round(self._ti_delay * rf_frequency)
+        bunch_offset = round((self._prev_ti_egun_delay + self._prev_ti_kickex_inc) * rf_frequency)
         harmonic_number = self.model_module.harmonic_number
         bunch_charge = [0.0] * harmonic_number
         for i in range(len(charge)):

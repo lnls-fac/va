@@ -1,11 +1,9 @@
 
 import os
 import numpy
-import time
 import mathphys
 import pyaccel
 from . import model
-from . import beam_charge
 from . import magnet
 from . import power_supply
 from . import utils
@@ -15,8 +13,9 @@ UNDEF_VALUE = 0.0
 
 
 class AcceleratorModel(model.Model):
-    def __init__(self, pipe, interval):
-        super().__init__(pipe, interval)
+
+    def __init__(self, pipe):
+        super().__init__(pipe)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
@@ -159,7 +158,7 @@ class AcceleratorModel(model.Model):
             indices.extend(idx)
         return indices
 
-    def _set_vacuum_chamber(self, indices='open'):
+    def _set_vacuum_chamber(self, indices = 'open'):
         hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
         hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
         vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
@@ -222,7 +221,7 @@ class AcceleratorModel(model.Model):
                 m = magnet.VerticalCorrectorMagnet(accelerator, indices, filename)
             elif family_type == 'skew_quadrupole':
                 m = magnet.SkewQuadrupoleMagnet(accelerator, indices, filename)
-            elif family_type in 'septum':
+            elif family_type == 'septum':
                 m = magnet.SeptumMagnet(accelerator, indices, filename)
             else:
                 m = None
@@ -250,21 +249,26 @@ class AcceleratorModel(model.Model):
                 ps = power_supply.IndividualPowerSupply(magnets, model = self)
                 self._power_supplies[ps_name] = ps
 
-    def _get_parameters_from_upstream_accelerator(self, **kwargs):
-        self._injection_parameters = kwargs
+    def _execute_function(self, function=None, **kwargs):
+        if function == 'get_parameters_from_upstream_accelerator':
+            self._get_parameters_from_upstream_accelerator(kwargs)
+        if function == 'get_charge_from_upstream_accelerator':
+            self._get_charge_from_upstream_accelerator(kwargs)
+
+    def _get_parameters_from_upstream_accelerator(self, args_dict):
+        self._injection_parameters = args_dict
         self._upstream_accelerator_state_deprecated = True
 
-    def _send_parameters_to_downstream_accelerator(self, twiss, parameters):
+    def _get_charge_from_upstream_accelerator(self, args_dict):
+        charge = args_dict['charge']
+        self._start_injection(charge=charge)
+
+    def _send_parameters_to_downstream_accelerator(self, args_dict):
         prefix = self._downstream_accelerator_prefix
-        args_dict = parameters
-        args_dict['init_twiss'] = twiss.make_dict()
         function = 'get_parameters_from_upstream_accelerator'
         self._pipe.send(('p', (prefix, function, args_dict)))
 
-    def _send_charge_to_downstream_accelerator(self, charge):
+    def _send_charge_to_downstream_accelerator(self, args_dict):
         prefix = self._downstream_accelerator_prefix
-        args_dict = {}
-        args_dict['charge'] = charge
-
         function = 'get_charge_from_upstream_accelerator'
         self._pipe.send(('p', (prefix, function, args_dict)))

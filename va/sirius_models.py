@@ -9,7 +9,6 @@ from . import linac_model
 from . import tline_model
 from . import booster_model
 from . import ring_model
-from . import timing_model
 from . import model
 
 
@@ -76,5 +75,5 @@ class SiModel(ring_model.RingModel):
     database = pv_module.get_database()
     nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
-    _pmm_angle = model_module.accelerator_data['pmm_nominal_deflection']
+    # _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
+    # _pmm_angle = model_module.accelerator_data['pmm_nominal_deflection']

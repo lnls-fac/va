@@ -1,14 +1,13 @@
 
-import time
 from . import accelerator_model
 from . import beam_charge
-
+from . import utils
 
 class LinacModel(accelerator_model.AcceleratorModel):
 
-    def __init__(self, pipe, interval):
-        super().__init__(pipe, interval)
-        # send value of LITI-EGUN-DELAY to SI
+    def __init__(self, pipe):
+        super().__init__(pipe)
+        # Send value of LITI-EGUN-DELAY to SI
         self._pipe.send(('g', ('SI', 'LITI-EGUN-DELAY')))
 
     # --- methods implementing response of model to get requests
@@ -113,8 +112,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
         if self._si_rf_frequency is None: return
         nr_bunches = 1 if self._single_bunch_mode else self.nr_bunches
         self._ti_egun_delay += (1.0/ self._si_rf_frequency) * nr_bunches
-        # set new value of LITI-EGUN-DELAY in epics memory
+        # Set new value of LITI-EGUN-DELAY in epics memory
         self._pipe.send(('s', ('LITI-EGUN-DELAY', self._ti_egun_delay)))
-        # send new value of LITI-EGUN-DELAY to SI
+        # Send new value of LITI-EGUN-DELAY to SI
         self._pipe.send(('g', ('SI', 'LITI-EGUN-DELAY')))
         self._state_deprecated = True

@@ -16,20 +16,20 @@ class ModelProcess(multiprocessing.Process):
             target=start_and_run_model,
             kwargs={
                 'model': model,
+                'interval': interval,
                 'stop_event': stop_event,
                 'pipe': conn2,
-                'interval': interval,
             }
         )
 
 
-def start_and_run_model(model, stop_event, interval, **kwargs):
+def start_and_run_model(model, interval, stop_event, **kwargs):
     """Start periodic processing of model
 
     Keyword arguments:
     model -- model class
-    stop_event -- multiprocessing.Event for stopping model
     interval -- processing interval [s]
+    stop_event -- multiprocessing.Event for stopping model
     **kwargs -- extra arguments to model __init__
     """
     m = model(**kwargs)

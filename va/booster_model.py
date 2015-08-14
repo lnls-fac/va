@@ -1,5 +1,4 @@
 
-import time
 import pyaccel
 from . import ring_model
 from . import beam_charge
@@ -9,9 +8,9 @@ from . import utils
 
 class BoosterModel(ring_model.RingModel):
 
-    def __init__(self, pipe, interval):
-        super().__init__(pipe, interval)
-        # send value of BOTI-KICKEX-INC to SI
+    def __init__(self, pipe):
+        super().__init__(pipe)
+        # Send value of BOTI-KICKEX-INC to SI
         self._pipe.send(('g', ('SI', 'BOTI-KICKEX-INC')))
 
     # --- methods implementing response of model to get requests
@@ -104,9 +103,9 @@ class BoosterModel(ring_model.RingModel):
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
-        self._beam_dump(message1, message2, c, a)
+        self._beam_dump(message1,message2,c,a)
 
-        # shift accelerator and record names to start in the injection point
+        # Shift accelerator and record names to start in the injection point
         accelerator        = self.model_module.create_accelerator()
         injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
         self._accelerator  = pyaccel.lattice.shift(accelerator, start = injection_point)
@@ -121,7 +120,7 @@ class BoosterModel(ring_model.RingModel):
         self._upstream_accelerator_state_deprecated = False
         self._update_state()
 
-        # Initial values of timing PVs
+        # Initial values of timing pvs
         self._ti_kickinj_enabled = 1
         self._ti_kickinj_delay = 0
         self._ti_kickex_enabled = 1
@@ -170,7 +169,7 @@ class BoosterModel(ring_model.RingModel):
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **_dict)
 
     def _calc_acceleration_loss_fraction(self):
         self._log('calc', 'acceleration efficiency  for '+self.model_module.lattice_version)
@@ -182,7 +181,6 @@ class BoosterModel(ring_model.RingModel):
 
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
-
         _dict = {}
         _dict.update(ejection_parameters)
         _dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
