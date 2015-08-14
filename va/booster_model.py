@@ -14,7 +14,7 @@ class BoosterModel(ring_model.RingModel):
     def _update_state(self, force=False):
         if self._upstream_accelerator_state_deprecated:
             self._upstream_accelerator_state_deprecated = False
-            # injection
+            # Injection
             self._set_kickin('on')
             self._calc_injection_loss_fraction()
             self._set_kickin('off')
@@ -25,13 +25,13 @@ class BoosterModel(ring_model.RingModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            # injection
+            # Injection
             self._set_kickin('on')
             self._calc_injection_loss_fraction()
             self._set_kickin('off')
-            # acceleration
+            # Acceleration
             self._calc_acceleration_loss_fraction()
-            # ejection
+            # Ejection
             self._set_kickex('on')
             self._calc_ejection_loss_fraction()
             self._set_kickex('off')

@@ -38,7 +38,7 @@ class AcceleratorModel(model.Model):
         return None
 
     def _get_pv_static(self, pv_name):
-        # process global parameters
+        # Process global parameters
         if '-BPM-' in pv_name:
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
