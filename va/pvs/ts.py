@@ -127,9 +127,9 @@ def _get_fake_record_names(family_name = None):
         _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORY-'))
         _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORR-'))
         # adds fake SEP pvs for errors
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORX-'))
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORY-'))
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORR-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORR-'))
         #adds fake QUAD pvs for errors
         _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORX-'))
         _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORY-'))
