@@ -8,7 +8,7 @@ from . import beam_charge
 from . import utils
 
 
-UNDEF_VALUE = accelerator_model.UNDEF_VALUE
+UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = False
 _u = mathphys.units
 

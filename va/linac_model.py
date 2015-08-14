@@ -3,6 +3,7 @@ from . import accelerator_model
 from . import beam_charge
 from . import utils
 
+
 class LinacModel(accelerator_model.AcceleratorModel):
 
     def __init__(self, pipe):

@@ -5,7 +5,7 @@ from pcaspy import Driver
 from . import utils
 
 
-PREFIX_LEN = 2
+PREFIX_LEN = utils.PREFIX_LEN
 
 
 class DriverThread(threading.Thread):

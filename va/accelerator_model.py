@@ -9,7 +9,7 @@ from . import power_supply
 from . import utils
 
 
-UNDEF_VALUE = 0.0
+UNDEF_VALUE = utils.UNDEF_VALUE
 
 
 class AcceleratorModel(model.Model):

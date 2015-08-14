@@ -7,6 +7,10 @@ import mathphys
 import va
 
 
+UNDEF_VALUE = 0.0
+PREFIX_LEN = 2
+
+
 def print_banner(prefix, li_pv_names=None,
                          tb_pv_names=None,
                          bo_pv_names=None,
