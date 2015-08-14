@@ -93,7 +93,7 @@ class BoosterModel(ring_model.RingModel):
         args_dict = self._injection_parameters
         args_dict.update(self._get_vacuum_chamber())
         args_dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = injection.charge_loss_fraction_ring(self._accelerator, **args_dict)
+        self._injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **args_dict)
 
     def _calc_acceleration_loss_fraction(self):
         self._log('calc', 'acceleration efficiency  for '+self.model_module.lattice_version)
@@ -109,7 +109,7 @@ class BoosterModel(ring_model.RingModel):
         args_dict = {}
         args_dict.update(ejection_parameters)
         args_dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
-        self._ejection_loss_fraction, twiss, *_ = injection.charge_loss_fraction_line(accelerator,
+        self._ejection_loss_fraction, twiss, *_ = injection.calc_charge_loss_fraction_in_line(accelerator,
             init_twiss=self._twiss[self._kickex_idx[0]], **args_dict)
         self._send_parameters_to_downstream_accelerator(twiss[-1], ejection_parameters)
 

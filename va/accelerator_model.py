@@ -141,7 +141,7 @@ class AcceleratorModel(model.Model):
         self._charge_to_inject = None
 
     def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
+        utils.log('init', 'epics sp memory for %s pvs' % self.prefix)
         sp_pv_list = []
         for pv in self.pv_module.get_read_write_pvs():
             value = self._get_pv(pv)
@@ -173,7 +173,7 @@ class AcceleratorModel(model.Model):
             indices.extend(idx)
         return indices
 
-    def _set_vacuum_chamber(self, indices = 'open'):
+    def _set_vacuum_chamber(self, indices='open'):
         hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
         hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
         vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))

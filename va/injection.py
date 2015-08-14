@@ -4,7 +4,7 @@ import numpy
 import pyaccel
 
 
-def charge_loss_fraction_line(accelerator, **kwargs):
+def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     """Calculate charge loss in a line
 
     Keyword arguments:
@@ -59,7 +59,7 @@ def charge_loss_fraction_line(accelerator, **kwargs):
     return loss_fraction, twiss, m66, transfer_matrices, orbit
 
 
-def charge_loss_fraction_ring(accelerator, **kwargs):
+def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     """Calculate charge loss in a ring
 
     Keyword arguments:

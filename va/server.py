@@ -31,13 +31,14 @@ def run(prefix):
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
 
-    processes = create_model_processes(models)
+    processes = create_model_processes(models, stop_event)
     start_model_processes(processes)
     start_driver_thread(processes, stop_event)
 
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
+    print_exit_message()
     join_processes(processes)
 
 
@@ -81,7 +82,7 @@ def get_pv_names(models):
     return pv_names
 
 
-def create_model_processes(models):
+def create_model_processes(models, stop_event):
     processes = []
     for m in models:
         mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
@@ -101,6 +102,12 @@ def start_driver_thread(processes, stop_event):
     driver_thread.start()
 
 
+def print_exit_message():
+    utils.log('exit', 'stop_event was set')
+
+
 def join_processes(processes):
+    utils.log('join', 'joining processes...')
     for process in processes:
         process.join(JOIN_TIMEOUT)
+    utils.log('join', 'done')
