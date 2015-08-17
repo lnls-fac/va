@@ -82,6 +82,8 @@ class _LocalData:
                 _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.ti:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.rf:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:

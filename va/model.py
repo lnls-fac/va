@@ -74,13 +74,13 @@ class Model:
         self._receive_pv_value(pv_name, value)
 
     def _execute_function(self, data):
-        function, kwargs = data
+        function, args_dict = data
         if function == 'get_parameters_from_upstream_accelerator':
-            self._get_parameters_from_upstream_accelerator(**kwargs)
+            self._get_parameters_from_upstream_accelerator(args_dict)
         if function == 'get_charge_from_upstream_accelerator':
-            self._get_charge_from_upstream_accelerator(**kwargs)
+            self._get_charge_from_upstream_accelerator(args_dict)
         if function == 'receive_timing_signal':
-            self._receive_timing_signal(**kwargs)
+            self._receive_timing_signal(args_dict)
 
     def _update_pvs(self):
         if self._state_deprecated:

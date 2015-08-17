@@ -249,12 +249,6 @@ class AcceleratorModel(model.Model):
                 ps = power_supply.IndividualPowerSupply(magnets, model = self)
                 self._power_supplies[ps_name] = ps
 
-    def _execute_function(self, function=None, **kwargs):
-        if function == 'get_parameters_from_upstream_accelerator':
-            self._get_parameters_from_upstream_accelerator(kwargs)
-        if function == 'get_charge_from_upstream_accelerator':
-            self._get_charge_from_upstream_accelerator(kwargs)
-
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
         self._upstream_accelerator_state_deprecated = True

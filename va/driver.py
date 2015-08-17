@@ -1,4 +1,6 @@
 
+# Review function names
+
 import time
 import threading
 from pcaspy import Driver
@@ -47,13 +49,13 @@ class PCASDriver(Driver):
 
     def _process_request(self, request):
         cmd, data = request
-        if cmd == 's':
+        if cmd == 's': # set PV value in EPICS memory DB
             return self._set_parameter_in_memory(data)
-        elif cmd == 'g':
+        elif cmd == 'g': # get PV value from EPICS memory DB
             return self._send_parameter_to_model(data)
-        elif cmd == 'p':
-            return self._call_model_function(data)
-        elif cmd == 'sp':
+        elif cmd == 'p': # pass to model
+            return self._pass_to_model(data)
+        elif cmd == 'sp': # initialise setpoints
             return self._set_sp_parameters_in_memory(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
@@ -69,7 +71,7 @@ class PCASDriver(Driver):
         self._send_to_model('g', prefix, pv_name, value)
         return False
 
-    def _call_model_function(self, data):
+    def _pass_to_model(self, data):
         prefix, function, args_dict = data
         self._send_to_model('p', prefix, function, args_dict)
         return False

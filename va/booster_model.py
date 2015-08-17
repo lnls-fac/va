@@ -169,7 +169,7 @@ class BoosterModel(ring_model.RingModel):
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **_dict)
+        self._injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
 
     def _calc_acceleration_loss_fraction(self):
         self._log('calc', 'acceleration efficiency  for '+self.model_module.lattice_version)
