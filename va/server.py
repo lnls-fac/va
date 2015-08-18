@@ -15,6 +15,7 @@ JOIN_TIMEOUT = 1.0
 
 def run(prefix):
     """Start virtual accelerator with given PV prefix
+
     Keyword arguments:
     prefix -- prefix to be added to PVs
     """
@@ -37,7 +38,7 @@ def run(prefix):
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
-    print_exit_message()
+    print_stop_event_message()
     join_processes(processes)
 
 
@@ -100,7 +101,7 @@ def start_driver_thread(processes, stop_event):
     driver_thread.start()
 
 
-def print_exit_message():
+def print_stop_event_message():
     utils.log('exit', 'stop_event was set')
 
 
