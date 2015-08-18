@@ -1,6 +1,6 @@
 
 import math
-
+from . import magnet
 
 class PowerSupply(object):
 
@@ -49,10 +49,10 @@ class FamilyPowerSupply(PowerSupply):
         for m in self._magnets:
             m.process()
         # Change strengths of other magnets when accelerator energy is changed
-        if isinstance(list(self._magnets)[0], DipoleMagnet):
+        if isinstance(list(self._magnets)[0], magnet.DipoleMagnet):
             all_power_supplies = self._model._power_supplies.values()
             for ps in all_power_supplies:
-                if not isinstance(list(ps._magnets)[0], DipoleMagnet):
+                if not isinstance(list(ps._magnets)[0], magnet.DipoleMagnet):
                     ps.current = ps._current
 
 
@@ -63,9 +63,9 @@ class IndividualPowerSupply(PowerSupply):
         if len(magnets) > 1:
             raise Exception('Individual Power Supply')
         elif (current is None) and (len(magnets) > 0):
-            magnet = list(magnets)[0]
-            total_current = magnet.current
-            power_supplies = magnet._power_supplies.difference({self})
+            m = list(magnets)[0]
+            total_current = m.current
+            power_supplies = m._power_supplies.difference({self})
             ps_current = 0.0
             for ps in power_supplies:
                 ps_current += ps.current

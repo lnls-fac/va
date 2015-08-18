@@ -63,18 +63,18 @@ class BeamCharge:
             single_particle_lifetime = float('inf')
         else:
             single_particle_lifetime = 1.0 / single_particle_loss_rate
-        # Update bunch charges
+        # updates bunch charges
         prev_total_value = sum(self._charge)
         t0, t1 = self._timestamp, time.time()
+        expf = math.exp(-(t1-t0)/single_particle_lifetime)
+        touf = numpy.multiply(self._charge, self._touschek_coefficient*single_particle_lifetime*(1.0 - expf))
+        new_value = expf*numpy.divide(self._charge, (1.0 + touf))
         for i in range(len(self._charge)):
-            expf = math.exp(-(t1-t0)/single_particle_lifetime)
-            touf = self._touschek_coefficient * single_particle_lifetime * self._charge[i] * (1.0 - expf)
-            new_value = self._charge[i] * expf / (1.0 + touf)
-            if not math.isnan(new_value):
-                self._charge[i] = new_value
+            if not math.isnan(new_value[i]):
+                self._charge[i] = new_value[i]
         new_total_value = sum(self._charge)
         self._accumulated_value = self._accumulated_value + math.fabs((new_total_value - prev_total_value))*(t1-t0)
-        # Update timestamp
+        # updates timestamp
         self._timestamp = t1
         return self._charge[:]
 

@@ -232,7 +232,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         pressure_profile = self.model_module.accelerator_data['pressure_profile']
 
         e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
-                                                            self._twiss, self._summary, Ne1C, coupling, pressure_profile)
+                                           Ne1C, coupling, pressure_profile, self._twiss, self._summary)
         self._beam_charge.set_lifetimes(elastic=e_lifetime,
                                         inelastic=i_lifetime,
                                         quantum=q_lifetime,
