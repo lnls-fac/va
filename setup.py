@@ -19,7 +19,7 @@ setup(
         'Topic :: Scientific/Engineering'
     ],
     packages=['va'],
-    package_data={'va': ['VERSION']},
+    package_data={'va': ['VERSION', 'pvs/*.py']},
     scripts=['scripts/sirius-vaca.py'],
     zip_safe=False
 )
