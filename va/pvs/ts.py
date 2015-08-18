@@ -2,10 +2,13 @@
 import sirius as _sirius
 
 
-# kingdom-dependent parameters
-_model = _sirius.ts
-def _subsys(rn):
-    return 'TS'+rn
+# Kingdom-dependent parameters
+model = _sirius.ts
+prefix = 'TS'
+
+
+def _get_subsystem(rn):
+    return prefix + rn
 
 
 class _LocalData:
@@ -20,9 +23,9 @@ class _LocalData:
     def _init_record_names():
         _fake_record_names = _get_fake_record_names()
         _LocalData.all_record_names = dict()
-        _LocalData.all_record_names.update(_model.record_names.get_record_names())
+        _LocalData.all_record_names.update(model.record_names.get_record_names())
         _LocalData.all_record_names.update(_fake_record_names)
-        record_names = _model.record_names.get_record_names()
+        record_names = model.record_names.get_record_names()
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk = []
         _LocalData.pa = []
@@ -32,6 +35,7 @@ class _LocalData:
         _LocalData.ps_ch = []
         _LocalData.ps_cv = []
         _LocalData.pu = []
+        _LocalData.ti = []
         for record_name in record_names:
             if 'DI-BPM-' in record_name:
                 _LocalData.di_bpms.append(record_name)
@@ -49,6 +53,8 @@ class _LocalData:
                 _LocalData.fk.append(record_name)
             elif 'PU-' in record_name:
                 _LocalData.pu.append(record_name)
+            elif 'TI-' in record_name:
+                _LocalData.ti.append(record_name)
             else:
                 print('Parameter', record_name, 'not found!')
         _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.pu
@@ -60,9 +66,9 @@ class _LocalData:
         for p in _LocalData.di:
             if 'DI-BPM' in p:
                 if 'FAM-X' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-X')]['bpm'])}
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_get_subsystem('DI-BPM-FAM-X')]['bpm'])}
                 elif 'FAM-Y' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_subsys('DI-BPM-FAM-Y')]['bpm'])}
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[_get_subsystem('DI-BPM-FAM-Y')]['bpm'])}
                 else:
                     _LocalData.database[p] = {'type' : 'float', 'count': 2}
             else:
@@ -71,9 +77,11 @@ class _LocalData:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.pa:
             if any([substring in p for substring in ('BLIFETIME',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': _model.harmonic_number, 'value': 0.0}
+                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.ti:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
@@ -95,7 +103,7 @@ class _LocalData:
 
     @staticmethod
     def get_read_write_pvs():
-        return _LocalData.ps + _LocalData.fk + _LocalData.pu
+        return _LocalData.ps + _LocalData.fk + _LocalData.pu + _LocalData.ti
 
     @staticmethod
     def get_dynamical_pvs():
@@ -124,9 +132,9 @@ def _get_fake_record_names(family_name = None):
         _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORY-'))
         _dict.update(get_element_names('bend', prefix = 'TSFK-ERRORR-'))
         # adds fake SEP pvs for errors
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORX-'))
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORY-'))
-        _dict.update(get_element_names('sep', prefix = 'TSFK-ERRORR-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORX-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORY-'))
+        _dict.update(get_element_names('septa', prefix = 'TSFK-ERRORR-'))
         #adds fake QUAD pvs for errors
         _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORX-'))
         _dict.update(get_element_names('quad', prefix = 'TSFK-ERRORY-'))
@@ -138,6 +146,7 @@ def _get_fake_record_names(family_name = None):
 
 
 _LocalData.build_data()
+
 
 # --- Module API ---
 get_all_record_names = _LocalData.get_all_record_names

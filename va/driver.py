@@ -1,229 +1,112 @@
 
-import queue
+# Review function names
+
+import time
+import threading
 from pcaspy import Driver
-import va.pvs.li as pvs_li
-import va.pvs.tb as pvs_tb
-import va.pvs.bo as pvs_bo
-import va.pvs.ts as pvs_ts
-import va.pvs.si as pvs_si
-import va.pvs.ti as pvs_ti
-import va.utils as utils
+from . import utils
+
+
+PREFIX_LEN = utils.PREFIX_LEN
+
+
+class DriverThread(threading.Thread):
+
+    def __init__(self, driver, interval, stop_event):
+        self._driver = driver
+        self._interval = interval
+        self._stop_event = stop_event
+        super().__init__(target=self._main)
+
+    def _main(self):
+        while not self._stop_event.is_set():
+            utils.process_and_wait_interval(
+                self._driver.process,
+                self._interval
+            )
 
 
 class PCASDriver(Driver):
 
-    def  __init__(self, li_model = None,
-                        tb_model = None,
-                        bo_model = None,
-                        ts_model = None,
-                        si_model = None,
-                        ti_model = None):
-
+    def  __init__(self, processes, interval):
         super().__init__()
+        self._interval = interval
+        self._processes = dict()
+        for p in processes:
+            self._processes[p.model_prefix] = p
 
-        # subsystems
-        self.li_model = li_model   # linac
-        self.tb_model = tb_model   # linac-to-booster transport line
-        self.bo_model = bo_model   # booster
-        self.ts_model = ts_model   # booster-to-storage ring transport line
-        self.si_model = si_model   # storage ring
-        self.ti_model = ti_model   # timing
+    # Break into lower level functions?
+    def process(self):
+        has_pv_changed = False
+        for process in self._processes.values():
+            pipe = process.pipe
+            while pipe.poll():
+                request = pipe.recv()
+                has_pv_changed |= self._process_request(request)
 
-        self.queue = queue.Queue()
-        self.li_changed = True
-        self.tb_changed = True
-        self.bo_changed = True
-        self.ts_changed = True
-        self.si_changed = True
-        self.ti_changed = True
+        if has_pv_changed:
+            self.updatePVs()
 
-        # signals models of sybsystem what driver object is using them
-        if self.li_model: self.li_model._driver = self
-        if self.tb_model: self.tb_model._driver = self
-        if self.bo_model: self.bo_model._driver = self
-        if self.ts_model: self.ts_model._driver = self
-        if self.si_model: self.si_model._driver = self
-        if self.ti_model: self.ti_model._driver = self
+    def _process_request(self, request):
+        cmd, data = request
+        if cmd == 's': # set PV value in EPICS memory DB
+            return self._set_parameter_in_memory(data)
+        elif cmd == 'g': # get PV value from EPICS memory DB
+            return self._send_parameter_to_model(data)
+        elif cmd == 'p': # pass to model
+            return self._pass_to_model(data)
+        elif cmd == 'sp': # initialise setpoints
+            return self._set_sp_parameters_in_memory(data)
+        else:
+            utils.log('!cmd', cmd, c='red', a=['bold'])
 
-        self.read_only_pvs  = pvs_li.get_read_only_pvs() + \
-                              pvs_tb.get_read_only_pvs() +\
-                              pvs_bo.get_read_only_pvs() + \
-                              pvs_ts.get_read_only_pvs() + \
-                              pvs_si.get_read_only_pvs() + \
-                              pvs_ti.get_read_only_pvs()
-        self.read_write_pvs = pvs_li.get_read_write_pvs() + \
-                              pvs_tb.get_read_write_pvs() + \
-                              pvs_bo.get_read_write_pvs() + \
-                              pvs_ts.get_read_write_pvs() + \
-                              pvs_si.get_read_write_pvs() + \
-                              pvs_ti.get_read_write_pvs()
-        self.dynamic_pvs    = pvs_li.get_dynamical_pvs() + \
-                              pvs_tb.get_dynamical_pvs() + \
-                              pvs_bo.get_dynamical_pvs() + \
-                              pvs_ts.get_dynamical_pvs() + \
-                              pvs_si.get_dynamical_pvs() + \
-                              pvs_ti.get_dynamical_pvs()
+    def _set_parameter_in_memory(self, data):
+        pv_name, value = data
+        self.setParam(pv_name, value)
+        return True
+
+    def _send_parameter_to_model(self, data):
+        prefix, pv_name = data
+        value = self.getParam(pv_name)
+        self._send_to_model('g', prefix, pv_name, value)
+        return False
+
+    def _pass_to_model(self, data):
+        prefix, function, args_dict = data
+        self._send_to_model('p', prefix, function, args_dict)
+        return False
+
+    def _set_sp_parameters_in_memory(self, data):
+        sp_pv_list = data
+        for pv_name, value in sp_pv_list:
+            self.setParam(pv_name, value)
+        return True
+
+    def _send_to_model(self, cmd, prefix, *args):
+        try:
+            process = self._processes[prefix]
+            process.pipe.send((cmd, (args)))
+        except:
+            utils.log('!pref', prefix, c='red', a=['bold'])
 
     def read(self, reason):
-        utils.log('read',reason,c='yellow')
+        utils.log('read', reason, c='yellow')
         return super().read(reason)
 
     def write(self, reason, value):
-        if reason in self.read_only_pvs + self.dynamic_pvs:
-            utils.log('!write',reason , c='yellow', a=['bold'])
-        else:
-            utils.log('write', reason + ' ' + str(value), c='yellow', a=['bold'])
-            self.queue.put((reason, value))
-            self.setParam(reason, value)  # it is supposed that readback of sp returns whatever was sent as setpoint
+        try:
+            prefix = reason[:PREFIX_LEN]
+            process = self._processes[prefix]
 
-    def update_pvs(self):
-        """Update model PVs, recalculate changed parameters and read them back.
-        """
-        # first process all write requests
-        for i in range(self.queue.qsize()):
-            pv_name, value = self.queue.get()
-            self.set_model_parameter(pv_name, value)
-
-        # then update model states and epics memory
-        self.update_model_state()
-        self.update_epics_from_model()
-        self.updatePVs()  # internal PCASPY routine signaling update of parameters
-
-        self.li_changed = False
-        self.tb_changed = False
-        self.bo_changed = False
-        self.ts_changed = False
-        self.si_changed = False
-        self.ti_changed = False
-
-    def set_model_parameter(self, pv_name, value):
-        """Set model parameter in physical units."""
-        if pv_name.startswith('LI'):
-            self.li_changed = True
-            self.li_model.set_pv(pv_name, value)
-        elif pv_name.startswith('TB'):
-            self.tb_changed = True
-            self.tb_model.set_pv(pv_name, value)
-        elif pv_name.startswith('BO'):
-            self.bo_changed = True
-            self.bo_model.set_pv(pv_name, value)
-        elif pv_name.startswith('TS'):
-            self.ts_changed = True
-            self.ts_model.set_pv(pv_name, value)
-        elif pv_name.startswith('SI'):
-            self.si_changed = True
-            self.si_model.set_pv(pv_name, value)
-        elif pv_name.startswith('TI'):
-            self.ti_changed = True
-            self.ti_model.set_pv(pv_name, value)
-        else:
-            raise Exception('subsystem not found')
-
-    def all_models_defined_ack(self):
-        utils.log('init', 'signaling all models that peers are fully defined')
-        self.li_model.all_models_defined_ack()
-        self.tb_model.all_models_defined_ack()
-        self.bo_model.all_models_defined_ack()
-        self.ts_model.all_models_defined_ack()
-        self.si_model.all_models_defined_ack()
-        self.ti_model.all_models_defined_ack()
-
-    def update_model_state(self):
-        self.li_model.update_state()
-        self.tb_model.update_state()
-        self.bo_model.update_state()
-        self.ts_model.update_state()
-        self.si_model.update_state()
-        self.ti_model.update_state()
-
-    def update_epics_from_model(self):
-        # linac
-        if self.li_changed:
-            for pv in pvs_li.get_read_only_pvs() + pvs_li.get_dynamical_pvs():
-                value = self.li_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_li.get_dynamical_pvs():
-                value = self.li_model.get_pv(pv)
-                self.setParam(pv, value)
-
-        # linac-to-booster transport line
-        if self.tb_changed:
-            for pv in pvs_tb.get_read_only_pvs() + pvs_tb.get_dynamical_pvs():
-                value = self.tb_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_tb.get_dynamical_pvs():
-                value = self.tb_model.get_pv(pv)
-                self.setParam(pv, value)
-
-        # booster
-        if self.bo_changed:
-            for pv in pvs_bo.get_read_only_pvs() + pvs_bo.get_dynamical_pvs():
-                value = self.bo_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_bo.get_dynamical_pvs():
-                value = self.bo_model.get_pv(pv)
-                self.setParam(pv, value)
-
-        # booster-to-storage ring transport line
-        if self.ts_changed:
-            for pv in pvs_ts.get_read_only_pvs() + pvs_ts.get_dynamical_pvs():
-                value = self.ts_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_ts.get_dynamical_pvs():
-                value = self.ts_model.get_pv(pv)
-                self.setParam(pv, value)
-
-        # sirius
-        if self.si_changed:
-            for pv in pvs_si.get_read_only_pvs() + pvs_si.get_dynamical_pvs():
-                value = self.si_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_si.get_dynamical_pvs():
-                value = self.si_model.get_pv(pv)
-                self.setParam(pv, value)
-
-        # timing
-        if self.ti_changed:
-            for pv in pvs_ti.get_read_only_pvs() + pvs_ti.get_dynamical_pvs():
-                value = self.ti_model.get_pv(pv)
-                self.setParam(pv, value)
-        else:
-            for pv in pvs_ti.get_dynamical_pvs():
-                value = self.ti_model.get_pv(pv)
-                self.setParam(pv, value)
-
-    def init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for LI pvs')
-        for pv in pvs_li.get_read_write_pvs():
-            value = self.li_model.get_pv(pv)
-            self.setParam(pv, value)
-
-        utils.log('init', 'epics sp memory for TB pvs')
-        for pv in pvs_tb.get_read_write_pvs():
-            value = self.tb_model.get_pv(pv)
-            self.setParam(pv, value)
-
-        utils.log('init', 'epics sp memory for BO pvs')
-        for pv in pvs_bo.get_read_write_pvs():
-            value = self.bo_model.get_pv(pv)
-            self.setParam(pv, value)
-
-        utils.log('init', 'epics sp memory for TS pvs')
-        for pv in pvs_ts.get_read_write_pvs():
-            value = self.ts_model.get_pv(pv)
-            self.setParam(pv, value)
-
-        utils.log('init', 'epics sp memory for SI pvs')
-        for pv in pvs_si.get_read_write_pvs():
-            value = self.si_model.get_pv(pv)
-            self.setParam(pv, value)
-
-        utils.log('init', 'epics sp memory for TI pvs')
-        for pv in pvs_ti.get_read_write_pvs():
-            value = self.ti_model.get_pv(pv)
-            self.setParam(pv, value)
+            # Move to separate function
+            if reason in process.model.pv_module.get_read_only_pvs() + \
+                    process.model.pv_module.get_dynamical_pvs():
+                utils.log('!write', reason, c='yellow', a=['bold'])
+            else:
+                msg = reason + ' ' + str(value)
+                utils.log('write', msg, c='yellow', a=['bold'])
+                self.setParam(reason, value)
+                self.updatePVs()
+                process.pipe.send(('s', (reason, value)))
+        except:
+            utils.log('!write', reason, c='red', a=['bold'])
