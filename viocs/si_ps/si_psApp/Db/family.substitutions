@@ -1,0 +1,29 @@
+
+file "db/family.db" {
+    pattern { family }
+
+        { "SD3" }
+        { "SD5" }
+        { "SFB" }
+        { "SDB" }
+        { "SD2" }
+        { "SDA" }
+        { "QDA" }
+        { "QF3" }
+        { "QDB1" }
+        { "QF2" }
+        { "QFB" }
+        { "QF1" }
+        { "SD6" }
+        { "QF4" }
+        { "SFA" }
+        { "SD1" }
+        { "SF2" }
+        { "QDB2" }
+        { "SD4" }
+        { "QFA" }
+        { "BEND" }
+        { "SF1" }
+        { "SF3" }
+        { "SF4" }
+}

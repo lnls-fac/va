@@ -13,9 +13,6 @@ USR_CXXFLAGS_DEFAULT += -pedantic
 
 LIBRARY_IOC += si_psSupport
 
-si_psSupport_SRCS += ps_conversion.cpp
-si_psSupport_SRCS += unit_converter.cpp
-
 si_psSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 #=============================
@@ -27,7 +24,6 @@ DBD += si_ps.dbd
 
 # si_ps.dbd will be made up from these files:
 si_ps_DBD += base.dbd
-si_ps_DBD += ps_conversion.dbd
 
 # Include dbd files from all support applications:
 #si_ps_DBD += xxx.dbd

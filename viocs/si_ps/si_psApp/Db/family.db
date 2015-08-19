@@ -1,0 +1,36 @@
+
+record(ai, "VA-SIPS-FAM-NOISELEVEL")
+{
+    field(DESC, "Noise level for family current")
+    field(INP, 0.001)
+    field(EGU, "A")
+}
+
+record(calc, "SIPS-$(family)-FAM-RB")
+{
+    field(DESC, "SIPS-$(family)-FAM current readback")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "VA-SIPS-$(family)-FAM")
+    field(INPB, "VA-SIPS-FAM-NOISELEVEL")
+    field(CALC, "A+B*2*(RNDM-.5)")
+    field(EGU, "A")
+}
+
+record(ao, "SIPS-$(family)-FAM-SP")
+{
+    field(DESC, "SIPS-$(family)-FAM current setpoint")
+    field(SCAN, "Passive")    
+    field(PREC, 10)
+    field(OUT, "VA-SIPS-$(family)-FAM")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-SIPS-$(family)-FAM")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-SIPS-$(family)-FAM")
+    field(LNK1, "SIPS-$(family)-FAM-SP")
+    field(FLNK, "SIPS-$(family)-FAM-SP")
+}
