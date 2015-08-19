@@ -10,6 +10,8 @@ import va
 UNDEF_VALUE = 0.0
 PREFIX_LEN = 2
 
+# Interprocess communication commands - move here
+
 
 def print_banner(prefix, li_pv_names=None,
                          tb_pv_names=None,
