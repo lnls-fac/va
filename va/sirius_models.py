@@ -76,4 +76,4 @@ class SiModel(ring_model.RingModel):
     nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
-    _pmm_angle = model_module.accelerator_data['pmm_nominal_deflection']
+    _pmm_integ_polynom_b = model_module.accelerator_data['pmm_integ_polynom_b']

@@ -73,6 +73,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
 
     init_pos = init_twiss.fixed_point
+
     twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss)
     betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
     if math.isnan(betax[-1]):
@@ -133,7 +134,7 @@ def _process_loss_fraction_args(accelerator, **kwargs):
     if isinstance(init_twiss, dict):
         init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)
     init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, delta_rx, delta_angle)
-
+    
     lattice = accelerator._accelerator.lattice
     if 'hmax' in kwargs and 'hmin' in kwargs:
         hmax = kwargs['hmax']

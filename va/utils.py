@@ -73,7 +73,10 @@ def shift_record_names(accelerator, record_names_dict):
         for k in record_names_dict[key].keys():
             new_dict[key][k]= record_names_dict[key][k]
     length = len(accelerator)
-    start = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'start')[0]
+    try:
+        start = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'start')[0]
+    except:
+        start = 0
     for value in new_dict.values():
         for key in value.keys():
             indices = value[key]
