@@ -6,6 +6,7 @@ import mathphys
 from . import accelerator_model
 from . import beam_charge
 from . import utils
+from . import injection
 
 
 UNDEF_VALUE = utils.UNDEF_VALUE
@@ -139,26 +140,48 @@ class RingModel(accelerator_model.AcceleratorModel):
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
+        if self._upstream_accelerator_state_deprecated:
+            self._upstream_accelerator_state_deprecated = False
+            # Injection
+            self._set_kickin('on')
+            self._calc_onaxis_injection_loss_fraction()
+            self._set_kickin('off')
+            self._set_pmm('on')
+            self._calc_pmm_injection_loss_fraction()
+            self._set_pmm('off')
+
         if force or self._state_deprecated:
             self._state_deprecated = False
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
+            # Injection
+            self._set_kickin('on')
+            self._calc_onaxis_injection_loss_fraction()
+            self._set_kickin('off')
+            self._set_pmm('on')
+            self._calc_pmm_injection_loss_fraction()
+            self._set_pmm('off')
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator = self.model_module.create_accelerator()
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
-        self._set_vacuum_chamber(indices='open')
 
-        self._kickin_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
-        self._pmm_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
+        # Shift accelerator and record names to start in the injection point
+        accelerator        = self.model_module.create_accelerator()
+        injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
+        self._accelerator  = pyaccel.lattice.shift(accelerator, start = injection_point)
+        self._all_pvs      = utils.shift_record_names(self._accelerator, self._all_pvs)
+
+        self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
+        self._pmm_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
+        self._set_vacuum_chamber(indices='open')
 
         # Initial values of timing pvs
         self._ti_kickinj_enabled = 1
         self._ti_kickinj_delay = 0
-        self._ti_pmm_enabled = 1
+        self._ti_pmm_enabled = 0
         self._ti_pmm_delay = 0
         self._ti_egun_delay = 0
         self._ti_kickex_inc = 0
@@ -176,7 +199,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._transfer_matrices = None
         self._summary = None
         self._injection_parameters = None
-        self._injection_loss_fraction = 0.0
+        self._injection_loss_fraction = None
 
    # --- auxilliary methods
 
@@ -248,18 +271,27 @@ class RingModel(accelerator_model.AcceleratorModel):
     def _set_pmm(self, str ='off'):
         for idx in self._pmm_idx:
             if str.lower() == 'on':
-                self._accelerator[idx].hkick_polynom = self._pmm_angle
+                self._accelerator[idx].polynom_b = numpy.array(self._pmm_integ_polynom_b)/self._accelerator[idx].length
             elif str.lower() == 'off':
-                self._accelerator[idx].hkick_polynom = 0.0
+                self._accelerator[idx].polynom_b = [0.0]*len(self._accelerator[idx].polynom_b)
 
-    def _calc_injection_loss_fraction(self):
+    def _calc_pmm_injection_loss_fraction(self):
         if self._injection_parameters is None: return
-        self._log('calc', 'injection efficiency  for '+self.model_module.lattice_version)
+        self._log('calc', 'pmm injection efficiency  for '+self.model_module.lattice_version)
 
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-        self._injection_loss_fraction = utils.charge_loss_fraction_ring(self._accelerator, **_dict)
+        self._pmm_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+
+    def _calc_onaxis_injection_loss_fraction(self):
+        if self._injection_parameters is None: return
+        self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
+
+        _dict = self._injection_parameters
+        _dict.update(self._get_vacuum_chamber())
+        _dict.update(self._get_coordinate_system_parameters())
+        self._onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
 
     def _start_injection(self, charge=None):
         if charge is None: return
@@ -267,9 +299,15 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
         charge = self._incoming_bunch_injected_in_si(charge)
-        if not self._ti_kickinj_enabled or not self._ti_pmm_enabled: charge = [0.0]
-        efficiency = self._beam_inject(charge=charge)
-        if not self._ti_kickinj_enabled or not self._ti_pmm_enabled: efficiency = 0
+        if self._ti_kickinj_enabled and not self._ti_pmm_enabled:
+            self._injection_loss_fraction = self._onaxis_injection_loss_fraction
+            efficiency = self._beam_inject(charge=charge)
+        elif self._ti_kickinj_enabled and not self._ti_pmm_enabled:
+            self._injection_loss_fraction = self._pmm_injection_loss_fraction
+            efficiency = self._beam_inject(charge=charge)
+        else:
+            charge = 0.0
+            efficiency = 0
         self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
 
     def _receive_pv_value(self, pv_name, value):

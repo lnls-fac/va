@@ -1,0 +1,17 @@
+record(ai, "SIRF-VOLTAGE")
+{
+    field(DESC, "SI rf voltage")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INP, "VA-SIRF-VOLTAGE")
+    field(EGU, "V")
+}
+
+record(ai, "SIRF-FREQUENCY")
+{
+    field(DESC, "SI rf frequency")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INP, "VA-SIRF-FREQUENCY")
+    field(EGU, "Hz")
+}

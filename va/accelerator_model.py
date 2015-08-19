@@ -194,6 +194,7 @@ class AcceleratorModel(model.Model):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
         magnet_names = self.model_module.record_names.get_magnet_names()
+        magnet_names = utils.shift_record_names(accelerator, magnet_names)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping()
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping()

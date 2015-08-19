@@ -1,0 +1,4 @@
+epicsEnvSet("ARCH","linux-x86_64")
+epicsEnvSet("IOC","iocsi_rf")
+epicsEnvSet("TOP","/home/fac_files/code/va/viocs/si_rf")
+epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14/base")
