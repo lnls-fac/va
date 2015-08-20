@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -a viocsprojs=("si_bpms" "si_current" "si_lifetime" "si_ps" "si_tune")
+declare -a viocsprojs=("si_bpms" "si_current" "si_lifetime" "si_ps" "si_tune" "si_rf")
 
 for ioc in "${viocsprojs[@]}"
 do
