@@ -97,7 +97,7 @@ ss calc_lifetime{
   }
 
   state calc{
-    when(flag_calc == 1){
+    when(flag_calc == 1  && delay(delta_t)){
       interval = intervals[ind];
       for(i=(measures_size-1);i>(measures_size-1)-interval;i--){
         average_1 += measures[i];
