@@ -135,9 +135,17 @@ class AcceleratorModel(model.Model):
 
     def _beam_inject(self, charge=None):
         if charge is None: return
+
+        initial_charge = self._beam_charge.total_value
+
         efficiency = 1.0 - self._injection_loss_fraction
         charge = [bunch_charge * efficiency for bunch_charge in charge]
         self._beam_charge.inject(charge)
+
+        final_charge = self._beam_charge.total_value
+        if (initial_charge == 0) and (final_charge != initial_charge):
+            self._state_changed = True
+
         return efficiency
 
     def _beam_eject(self):

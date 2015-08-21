@@ -43,6 +43,7 @@ class Model:
         self._pipe = pipe
         self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
+        self._state_changed = False
 
     def process(self):
         self._process_requests()
@@ -83,10 +84,11 @@ class Model:
             self._receive_timing_signal(args_dict)
 
     def _update_pvs(self):
-        if self._state_deprecated:
+        if self._state_changed:
             for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
                 value = self._get_pv(pv)
                 self._pipe.send(('s', (pv, value)))
+            self._state_changed = False
         else:
             for pv in self.pv_module.get_dynamical_pvs():
                 value = self._get_pv(pv)

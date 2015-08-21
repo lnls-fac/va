@@ -164,6 +164,8 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._calc_pmm_injection_loss_fraction()
             self._set_pmm('off')
 
+            self._state_changed = True
+
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
