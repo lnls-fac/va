@@ -20,7 +20,7 @@ record(calc, "SIPS-$(family)-FAM-RB")
 record(ao, "SIPS-$(family)-FAM-SP")
 {
     field(DESC, "SIPS-$(family)-FAM current setpoint")
-    field(SCAN, "Passive")    
+    field(SCAN, "Passive")
     field(PREC, 10)
     field(OUT, "VA-SIPS-$(family)-FAM")
     field(EGU, "A")

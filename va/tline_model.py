@@ -89,6 +89,8 @@ class TLineModel(accelerator_model.AcceleratorModel):
             self._calc_transport_loss_fraction()
             self._ejection_loss_fraction  = 0.0
 
+            self._state_changed = True
+
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator = self.model_module.create_accelerator()
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)

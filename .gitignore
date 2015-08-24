@@ -8,3 +8,5 @@ pid.txt
 build/
 dist/
 *.egg-info/
+
+doc/architecture/*.svg
