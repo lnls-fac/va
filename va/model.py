@@ -7,8 +7,10 @@ from . import utils
 class ModelProcess(multiprocessing.Process):
 
     def __init__(self, model, interval, stop_event):
-        conn1, conn2 = multiprocessing.Pipe()
-        self.pipe = conn1
+        send_queue = multiprocessing.Queue()
+        recv_queue = multiprocessing.Queue()
+        self.send_queue = send_queue
+        self.recv_queue = recv_queue
         self.model = model
         self.model_prefix = model.prefix
 
@@ -18,7 +20,9 @@ class ModelProcess(multiprocessing.Process):
                 'model': model,
                 'interval': interval,
                 'stop_event': stop_event,
-                'pipe': conn2,
+                # Queues are supposed to be exchanged
+                'send_queue': recv_queue,
+                'recv_queue': send_queue
             }
         )
 
@@ -39,8 +43,9 @@ def start_and_run_model(model, interval, stop_event, **kwargs):
 
 class Model:
 
-    def __init__(self, pipe, log_func=utils.log, **kwargs):
-        self._pipe = pipe
+    def __init__(self, send_queue, recv_queue, log_func=utils.log, **kwargs):
+        self._send_queue = send_queue
+        self._recv_queue = recv_queue
         self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
         self._state_changed = False
@@ -51,8 +56,8 @@ class Model:
         self._update_pvs()
 
     def _process_requests(self):
-        while self._pipe.poll():
-            request = self._pipe.recv()
+        while not self._recv_queue.empty():
+            request = self._recv_queue.get()
             self._process_request(request)
 
     def _process_request(self, request):
@@ -87,9 +92,9 @@ class Model:
         if self._state_changed:
             for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
                 value = self._get_pv(pv)
-                self._pipe.send(('s', (pv, value)))
+                self._send_queue.put(('s', (pv, value)))
             self._state_changed = False
         else:
             for pv in self.pv_module.get_dynamical_pvs():
                 value = self._get_pv(pv)
-                self._pipe.send(('s', (pv, value)))
+                self._send_queue.put(('s', (pv, value)))
