@@ -238,6 +238,7 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
+                #print(ps_name)
                 ps = power_supply.FamilyPowerSupply(magnets, model = self)
                 self._power_supplies[ps_name] = ps
 
