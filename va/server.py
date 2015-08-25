@@ -9,7 +9,7 @@ from . import sirius_models
 from . import utils
 
 
-WAIT_TIMEOUT = 0.25
+WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 1.0
 
 
