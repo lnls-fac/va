@@ -48,12 +48,6 @@ class FamilyPowerSupply(PowerSupply):
         self._current = value
         for m in self._magnets:
             m.process()
-        # Change strengths of other magnets when accelerator energy is changed
-        if isinstance(list(self._magnets)[0], magnet.DipoleMagnet):
-            all_power_supplies = self._model._power_supplies.values()
-            for ps in all_power_supplies:
-                if not isinstance(list(ps._magnets)[0], magnet.DipoleMagnet):
-                    ps.current = ps._current
 
 
 class IndividualPowerSupply(PowerSupply):

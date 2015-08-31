@@ -166,23 +166,11 @@ class AcceleratorModel(model.Model):
             indices.extend(idx)
         return indices
 
-    def _set_vacuum_chamber(self, indices = 'open'):
-        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        if indices == 'open':
-            self._hmin = hmin
-            self._hmax = hmax
-            self._vmin = vmin
-            self._vmax = vmax
-        elif indices == 'closed':
-            self._hmin = numpy.append(hmin, hmin[-1])
-            self._hmax = numpy.append(hmax, hmax[-1])
-            self._vmin = numpy.append(vmin, vmin[-1])
-            self._vmax = numpy.append(vmax, vmax[-1])
-        else:
-            raise Exception("invalid value for indices")
+    def _set_vacuum_chamber(self):
+        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
+        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
+        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
+        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
 
     def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
         _dict = {}
@@ -218,20 +206,21 @@ class AcceleratorModel(model.Model):
             family, indices = magnet_names[magnet_name].popitem()
             indices = indices[0]
             family_type = family_mapping[family]
-            if family_type == 'dipole':
-                m = magnet.DipoleMagnet(accelerator, indices, filename)
+            if family_type in ('dipole', 'septum'):
+                if self.prefix == 'BO':
+                    m = magnet.Dipole2PS(accelerator, indices, filename)
+                else:
+                    m = magnet.NormalMagnet(accelerator, indices, filename)
             elif family_type == 'quadrupole':
-                m = magnet.QuadrupoleMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, filename)
             elif family_type == 'sextupole':
-                m = magnet.SextupoleMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, filename)
             elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
-                m = magnet.HorizontalCorrectorMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, filename)
             elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
-                m = magnet.VerticalCorrectorMagnet(accelerator, indices, filename)
+                m = magnet.SkewMagnet(accelerator, indices, filename)
             elif family_type == 'skew_quadrupole':
-                m = magnet.SkewQuadrupoleMagnet(accelerator, indices, filename)
-            elif family_type == 'septum':
-                m = magnet.SeptumMagnet(accelerator, indices, filename)
+                m = magnet.SkewMagnet(accelerator, indices, filename)
             else:
                 m = None
 
@@ -260,11 +249,14 @@ class AcceleratorModel(model.Model):
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
-        self._upstream_accelerator_state_deprecated = True
+        self._calc_injection_efficiency = True
 
     def _get_charge_from_upstream_accelerator(self, args_dict):
         charge = args_dict['charge']
-        self._start_injection(charge=charge)
+        self._received_charge = True
+        self._update_state()
+        self._injection(charge=charge)
+        self._received_charge = False
 
     def _send_parameters_to_downstream_accelerator(self, args_dict):
         prefix = self._downstream_accelerator_prefix

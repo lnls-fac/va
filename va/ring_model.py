@@ -140,23 +140,20 @@ class RingModel(accelerator_model.AcceleratorModel):
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
-        if self._upstream_accelerator_state_deprecated:
-            self._upstream_accelerator_state_deprecated = False
-            # Injection
-            self._set_kickin('on')
-            self._calc_onaxis_injection_loss_fraction()
-            self._set_kickin('off')
-            self._set_pmm('on')
-            self._calc_pmm_injection_loss_fraction()
-            self._set_pmm('off')
 
         if force or self._state_deprecated:
-            self._state_deprecated = False
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            # Injection
+            self._calc_injection_efficiency = True
+            self._state_deprecated = False
+            self._state_changed = True
+
+        # Calculate injection efficiency
+        if self._calc_injection_efficiency and (self._received_charge or
+            self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
+            self._calc_injection_efficiency = False
             self._set_kickin('on')
             self._calc_onaxis_injection_loss_fraction()
             self._set_kickin('off')
@@ -164,7 +161,6 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._calc_pmm_injection_loss_fraction()
             self._set_pmm('off')
 
-            self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -178,7 +174,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._pmm_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
-        self._set_vacuum_chamber(indices='open')
+        self._set_vacuum_chamber()
 
         # Initial values of timing pvs
         self._ti_kickinj_enabled = 1
@@ -188,7 +184,6 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._ti_egun_delay = 0
         self._ti_kickex_inc = 0
         self._state_deprecated = True
-        self._upstream_accelerator_state_deprecated = False
         self._update_state()
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
@@ -202,6 +197,9 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._summary = None
         self._injection_parameters = None
         self._injection_loss_fraction = None
+        self._pmm_injection_loss_fraction = None
+        self._onaxis_injection_loss_fraction = None
+        self._received_charge = False
 
    # --- auxilliary methods
 
@@ -258,10 +256,8 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
                                            Ne1C, coupling, pressure_profile, self._twiss, self._summary)
-        self._beam_charge.set_lifetimes(elastic=e_lifetime,
-                                        inelastic=i_lifetime,
-                                        quantum=q_lifetime,
-                                        touschek_coefficient=t_coeff)
+        self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
+                                        quantum=q_lifetime, touschek_coefficient=t_coeff)
 
     def _set_kickin(self, str ='off'):
         for idx in self._kickin_idx:
@@ -295,11 +291,12 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
         self._onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
 
-    def _start_injection(self, charge=None):
+    def _injection(self, charge=None):
         if charge is None: return
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+
         charge = self._incoming_bunch_injected_in_si(charge)
         if self._ti_kickinj_enabled and not self._ti_pmm_enabled:
             self._injection_loss_fraction = self._onaxis_injection_loss_fraction
