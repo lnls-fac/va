@@ -16,10 +16,10 @@ _u = mathphys.units
 
 class RingModel(accelerator_model.AcceleratorModel):
 
-    def __init__(self, pipe):
-        super().__init__(pipe)
+    def __init__(self, send_queue, recv_queue):
+        super().__init__(send_queue, recv_queue)
         # Send value of SIRF-FREQUENCY to LI
-        self._pipe.send(('g', ('LI', 'SIRF-FREQUENCY')))
+        self._send_queue.put(('g', ('LI', 'SIRF-FREQUENCY')))
 
     # --- methods implementing response of model to get requests
 
@@ -110,7 +110,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             if value != prev_value:
                 self._accelerator[idx[0]].frequency = value
                 self._state_deprecated = True
-            self._pipe.send(('g', ('LI', 'SIRF-FREQUENCY')))
+            self._send_queue.put(('g', ('LI', 'SIRF-FREQUENCY')))
             return True
         return False
 

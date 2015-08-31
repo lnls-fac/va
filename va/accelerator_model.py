@@ -14,8 +14,8 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 
 class AcceleratorModel(model.Model):
 
-    def __init__(self, pipe):
-        super().__init__(pipe)
+    def __init__(self, send_queue, recv_queue):
+        super().__init__(send_queue, recv_queue)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
@@ -131,7 +131,7 @@ class AcceleratorModel(model.Model):
         for pv in self.pv_module.get_read_write_pvs():
             value = self._get_pv(pv)
             sp_pv_list.append((pv,value))
-        self._pipe.send(('sp', sp_pv_list ))
+        self._send_queue.put(('sp', sp_pv_list ))
 
     def _beam_inject(self, charge=None):
         if charge is None: return
@@ -235,6 +235,7 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
+                #print(ps_name)
                 ps = power_supply.FamilyPowerSupply(magnets, model = self)
                 self._power_supplies[ps_name] = ps
 
@@ -261,9 +262,9 @@ class AcceleratorModel(model.Model):
     def _send_parameters_to_downstream_accelerator(self, args_dict):
         prefix = self._downstream_accelerator_prefix
         function = 'get_parameters_from_upstream_accelerator'
-        self._pipe.send(('p', (prefix, function, args_dict)))
+        self._send_queue.put(('p', (prefix, function, args_dict)))
 
     def _send_charge_to_downstream_accelerator(self, args_dict):
         prefix = self._downstream_accelerator_prefix
         function = 'get_charge_from_upstream_accelerator'
-        self._pipe.send(('p', (prefix, function, args_dict)))
+        self._send_queue.put(('p', (prefix, function, args_dict)))

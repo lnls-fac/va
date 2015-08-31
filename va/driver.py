@@ -43,13 +43,13 @@ class PCASDriver(Driver):
         size = self._queue.qsize()
         for i in range(size):
             process, reason, value = self._queue.get()
-            process.pipe.send(('s', (reason, value)))
+            process.send_queue.put(('s', (reason, value)))
 
     def _process_requests(self):
         for process in self._processes.values():
-            pipe = process.pipe
-            while pipe.poll():
-                request = pipe.recv()
+            recv_queue = process.recv_queue
+            while not recv_queue.empty():
+                request = recv_queue.get()
                 self._process_request(request)
 
     def _process_request(self, request):
@@ -86,7 +86,7 @@ class PCASDriver(Driver):
     def _send_to_model(self, cmd, prefix, *args):
         try:
             process = self._processes[prefix]
-            process.pipe.send((cmd, (args)))
+            process.send_queue.put((cmd, (args)))
         except:
             utils.log('!pref', prefix, c='red', a=['bold'])
 

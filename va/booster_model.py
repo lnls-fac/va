@@ -8,10 +8,10 @@ from . import utils
 
 class BoosterModel(ring_model.RingModel):
 
-    def __init__(self, pipe):
-        super().__init__(pipe)
+    def __init__(self, send_queue, recv_queue):
+        super().__init__(send_queue, recv_queue)
         # Send value of BOTI-KICKEX-INC to SI
-        self._pipe.send(('g', ('SI', 'BOTI-KICKEX-INC')))
+        self._send_queue.put(('g', ('SI', 'BOTI-KICKEX-INC')))
 
     # --- methods implementing response of model to get requests
 
@@ -58,7 +58,7 @@ class BoosterModel(ring_model.RingModel):
                 return True
             elif 'KICKEX-INC' in pv_name:
                 self._ti_kickex_inc = value
-                self._pipe.send(('g', ('SI', 'BOTI-KICKEX-INC')))
+                self._send_queue.put(('g', ('SI', 'BOTI-KICKEX-INC')))
                 self._state_deprecated = True
                 return True
             elif 'RAMPPS-ENABLED' in pv_name:

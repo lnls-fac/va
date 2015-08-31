@@ -26,6 +26,7 @@ def run(prefix):
     models = get_models()
     pv_database = get_pv_database(models)
     pv_names = get_pv_names(models)
+    print(list(pv_names['si_pv_names']).index('SIPS-SF2K-FAM'))
     utils.print_banner(prefix, **pv_names)
 
     server = pcaspy.SimpleServer()

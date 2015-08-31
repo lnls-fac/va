@@ -6,10 +6,10 @@ from . import utils
 
 class LinacModel(accelerator_model.AcceleratorModel):
 
-    def __init__(self, pipe):
-        super().__init__(pipe)
+    def __init__(self, send_queue, recv_queue):
+        super().__init__(send_queue, recv_queue)
         # Send value of LITI-EGUN-DELAY to SI
-        self._pipe.send(('g', ('SI', 'LITI-EGUN-DELAY')))
+        self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
 
     # --- methods implementing response of model to get requests
 
@@ -41,7 +41,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
     def _set_pv_timing(self, pv_name, value):
         if 'CYCLE' in pv_name:
             self._cycle = value
-            self._pipe.send(('s', (pv_name, 0)))
+            self._send_queue.put(('s', (pv_name, 0)))
             self._start_injection_cycle()
             self._set_delay_next_cycle()
             self._cycle = 0
@@ -52,7 +52,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
             return True
         elif 'TI-EGUN-DELAY' in pv_name:
             self._ti_egun_delay = value
-            self._pipe.send(('g', ('SI', 'LITI-EGUN-DELAY')))
+            self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
             self._state_deprecated = True
             return True
         return False
@@ -114,7 +114,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         nr_bunches = 1 if self._single_bunch_mode else self.nr_bunches
         self._ti_egun_delay += (1.0/ self._si_rf_frequency) * nr_bunches
         # Set new value of LITI-EGUN-DELAY in epics memory
-        self._pipe.send(('s', ('LITI-EGUN-DELAY', self._ti_egun_delay)))
+        self._send_queue.put(('s', ('LITI-EGUN-DELAY', self._ti_egun_delay)))
         # Send new value of LITI-EGUN-DELAY to SI
-        self._pipe.send(('g', ('SI', 'LITI-EGUN-DELAY')))
+        self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
         self._state_deprecated = True
