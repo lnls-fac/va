@@ -77,31 +77,37 @@ class BoosterModel(ring_model.RingModel):
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
-        if self._upstream_accelerator_state_deprecated:
-            self._upstream_accelerator_state_deprecated = False
-            # Injection
-            self._set_kickin('on')
-            self._calc_injection_loss_fraction()
-            self._set_kickin('off')
 
         if force or self._state_deprecated:
-            self._state_deprecated = False
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            # Injection
+            self._calc_injection_efficiency = True
+            self._calc_acceleration_efficiency = True
+            self._calc_ejection_efficiency = True
+            self._state_changed = True
+            self._state_deprecated = False
+
+        # Calculate injection efficiency
+        if self._calc_injection_efficiency and (self._received_charge or self._injection_loss_fraction is None):
+            self._calc_injection_efficiency = False
             self._set_kickin('on')
             self._calc_injection_loss_fraction()
             self._set_kickin('off')
-            # Acceleration
+
+        # Calculate acceleration efficiency
+        if self._calc_acceleration_efficiency and (self._received_charge or self._acceleration_loss_fraction is None):
+            self._calc_acceleration_efficiency = False
             self._calc_acceleration_loss_fraction()
-            # Ejection
+
+        # Calculate ejection efficiency
+        if self._calc_ejection_efficiency and (self._received_charge or self._ejection_loss_fraction is None):
+            self._calc_ejection_efficiency = False
             self._set_kickex('on')
             self._calc_ejection_loss_fraction()
             self._set_kickex('off')
 
-            self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -116,10 +122,9 @@ class BoosterModel(ring_model.RingModel):
         self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
-        self._set_vacuum_chamber(indices='open')
+        self._set_vacuum_chamber()
 
         self._state_deprecated = True
-        self._upstream_accelerator_state_deprecated = False
         self._update_state()
 
         # Initial values of timing pvs
@@ -194,11 +199,12 @@ class BoosterModel(ring_model.RingModel):
         args_dict['init_twiss'] = twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
 
-    def _start_injection(self, charge=None):
+    def _injection(self, charge=None):
         if charge is None: return
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+
         if not self._ti_kickinj_enabled: charge = [0.0]
         efficiency = self._beam_inject(charge=charge)
         if not self._ti_kickinj_enabled: efficiency = 0
