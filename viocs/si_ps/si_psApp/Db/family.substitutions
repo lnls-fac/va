@@ -2,28 +2,28 @@
 file "db/family.db" {
     pattern { family }
 
-        { "SD3" }
-        { "SD5" }
-        { "SFB" }
-        { "SDB" }
-        { "SD2" }
-        { "SDA" }
         { "QDA" }
-        { "QF3" }
         { "QDB1" }
-        { "QF2" }
-        { "QFB" }
-        { "QF1" }
-        { "SD6" }
-        { "QF4" }
-        { "SFA" }
-        { "SD1" }
-        { "SF2" }
         { "QDB2" }
-        { "SD4" }
+        { "QF1" }
+        { "QF2" }
+        { "QF3" }
+        { "QF4" }
         { "QFA" }
+        { "QFB" }
+        { "SD1J" }
+        { "SD2J" }
+        { "SD3J" }
+        { "SD1K" }
+        { "SD2K" }
+        { "SD3K" }
+        { "SDA" }
+        { "SDB" }
+        { "SF1J" }
+        { "SF2J" }
+        { "SF1K" }
+        { "SF2K" }
+        { "SFA" }
+        { "SFB" }
         { "BEND" }
-        { "SF1" }
-        { "SF3" }
-        { "SF4" }
 }
