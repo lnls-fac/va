@@ -6,7 +6,11 @@ from . import utils
 
 class ModelProcess(multiprocessing.Process):
 
-    def __init__(self, model, interval, stop_event):
+    def __init__(self, model, interval, stop_event, finalisation):
+        """Initialise, start and manage model and model processing.
+
+        Keyword arguments: see start_and_run_model
+        """
         send_queue = multiprocessing.Queue()
         recv_queue = multiprocessing.Queue()
         self.send_queue = send_queue
@@ -22,23 +26,30 @@ class ModelProcess(multiprocessing.Process):
                 'stop_event': stop_event,
                 # Queues are supposed to be exchanged
                 'send_queue': recv_queue,
-                'recv_queue': send_queue
+                'recv_queue': send_queue,
+                'finalisation': finalisation,
             }
         )
 
 
-def start_and_run_model(model, interval, stop_event, **kwargs):
+def start_and_run_model(model, interval, stop_event, finalisation, **kwargs):
     """Start periodic processing of model
 
     Keyword arguments:
     model -- model class
     interval -- processing interval [s]
-    stop_event -- multiprocessing.Event for stopping model
+    stop_event -- event to stop processing
+    finalisation -- barrier to wait before finalisation
     **kwargs -- extra arguments to model __init__
     """
     m = model(**kwargs)
     while not stop_event.is_set():
         utils.process_and_wait_interval(m.process, interval)
+    else:
+        finalisation.wait()
+        m.empty_queues()
+        finalisation.wait()
+        m.finalise()
 
 
 class Model:
@@ -98,3 +109,15 @@ class Model:
             for pv in self.pv_module.get_dynamical_pvs():
                 value = self._get_pv(pv)
                 self._send_queue.put(('s', (pv, value)))
+
+    def empty_queues(self):
+        while not self._send_queue.empty():
+            self._send_queue.get()
+        while not self._recv_queue.empty():
+            self._recv_queue.get()
+
+    def finalise(self):
+        self._send_queue.close()
+        self._send_queue.join_thread()
+        self._recv_queue.close()
+        self._recv_queue.join_thread()

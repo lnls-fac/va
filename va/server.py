@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import signal
 import multiprocessing
 import pcaspy
@@ -10,7 +11,7 @@ from . import utils
 
 
 WAIT_TIMEOUT = 0.1
-JOIN_TIMEOUT = 1.0
+JOIN_TIMEOUT = 10.0
 
 
 def run(prefix):
@@ -23,19 +24,23 @@ def run(prefix):
     stop_event = multiprocessing.Event() # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
+
     models = get_models()
     pv_database = get_pv_database(models)
     pv_names = get_pv_names(models)
-    print(list(pv_names['si_pv_names']).index('SIPS-SF2K-FAM'))
     utils.print_banner(prefix, **pv_names)
 
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
 
-    processes = create_model_processes(models, stop_event)
-    start_model_processes(processes)
-    start_driver_thread(processes, stop_event)
+    num_parties = len(models) + 1 # number of parties for barrier
+    finalisation = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
 
+    processes = create_model_processes(models, stop_event, finalisation)
+    start_model_processes(processes)
+    start_driver_thread(processes, stop_event, finalisation)
+
+    wait_for_initialisation(JOIN_TIMEOUT)
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
@@ -82,10 +87,10 @@ def get_pv_names(models):
     return pv_names
 
 
-def create_model_processes(models, stop_event):
+def create_model_processes(models, stop_event, finalisation):
     processes = []
     for m in models:
-        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event)
+        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event, finalisation)
         processes.append(mp)
 
     return processes
@@ -96,10 +101,21 @@ def start_model_processes(processes):
         p.start()
 
 
-def start_driver_thread(processes, stop_event):
+def start_driver_thread(processes, stop_event, finalisation):
     pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT)
-    driver_thread = driver.DriverThread(pcas_driver, WAIT_TIMEOUT, stop_event)
+    driver_thread = driver.DriverThread(
+        pcas_driver,
+        WAIT_TIMEOUT,
+        stop_event,
+        finalisation
+    )
     driver_thread.start()
+
+
+def wait_for_initialisation(interval):
+    utils.log('start', 'waiting %d s for model initialisation' % interval)
+    time.sleep(JOIN_TIMEOUT)
+    utils.log('start', 'starting server')
 
 
 def print_stop_event_message():

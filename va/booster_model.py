@@ -8,8 +8,8 @@ from . import utils
 
 class BoosterModel(ring_model.RingModel):
 
-    def __init__(self, send_queue, recv_queue):
-        super().__init__(send_queue, recv_queue)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # Send value of BOTI-KICKEX-INC to SI
         self._send_queue.put(('g', ('SI', 'BOTI-KICKEX-INC')))
 

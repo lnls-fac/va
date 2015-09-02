@@ -6,8 +6,8 @@ from . import utils
 
 class LinacModel(accelerator_model.AcceleratorModel):
 
-    def __init__(self, send_queue, recv_queue):
-        super().__init__(send_queue, recv_queue)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # Send value of LITI-EGUN-DELAY to SI
         self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
 

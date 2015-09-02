@@ -10,10 +10,19 @@ PREFIX_LEN = utils.PREFIX_LEN
 
 class DriverThread(threading.Thread):
 
-    def __init__(self, driver, interval, stop_event):
+    def __init__(self, driver, interval, stop_event, finalisation):
+        """Driver processing management
+
+        Keyword arguments:
+        driver -- pcaspy Driver object
+        interval -- processing interval [s]
+        stop_event -- event to stop processing
+        finalisation -- barrier to wait before finalisation
+        """
         self._driver = driver
         self._interval = interval
         self._stop_event = stop_event
+        self._finalisation = finalisation
         super().__init__(target=self._main)
 
     def _main(self):
@@ -22,6 +31,10 @@ class DriverThread(threading.Thread):
                 self._driver.process,
                 self._interval
             )
+        else:
+            self._finalisation.wait()
+            self._finalisation.wait()
+            self._driver.finalise()
 
 
 class PCASDriver(Driver):
@@ -89,6 +102,13 @@ class PCASDriver(Driver):
             process.send_queue.put((cmd, (args)))
         except:
             utils.log('!pref', prefix, c='red', a=['bold'])
+
+    def finalise(self):
+        for p in self._processes.values():
+            p.send_queue.close()
+            p.send_queue.join_thread()
+            p.recv_queue.close()
+            p.recv_queue.join_thread()
 
     def read(self, reason):
         utils.log('read', reason, c='yellow')

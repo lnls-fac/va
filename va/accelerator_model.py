@@ -14,8 +14,8 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 
 class AcceleratorModel(model.Model):
 
-    def __init__(self, send_queue, recv_queue):
-        super().__init__(send_queue, recv_queue)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()

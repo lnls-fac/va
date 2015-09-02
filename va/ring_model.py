@@ -16,8 +16,8 @@ _u = mathphys.units
 
 class RingModel(accelerator_model.AcceleratorModel):
 
-    def __init__(self, send_queue, recv_queue):
-        super().__init__(send_queue, recv_queue)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # Send value of SIRF-FREQUENCY to LI
         self._send_queue.put(('g', ('LI', 'SIRF-FREQUENCY')))
 
