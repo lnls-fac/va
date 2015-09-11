@@ -1,0 +1,38 @@
+record(calc, "BODI-CURRENT")
+{
+    field(DESC, "BO current")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "VA-BODI-CURRENT")
+    field(INPB, "VA-BODI-CURRENT-NOISELEVEL")
+    field(CALC, "A + (1e-3)*B*(RNDM*2.0 - 1.0)")
+    field(EGU, "mA")
+}
+
+record(ai, "VA-BODI-CURRENT-NOISELEVEL")
+{
+    field(DESC, "Noise level for beam current")
+    field(INP, 10)
+    field(EGU, "uA")
+}
+
+record(aSub, "ADD-NOISE-BODI-BCURRENT")
+{
+    field(SCAN, ".1 second")
+    field(SNAM, "add_noise")
+    field(INPA, "VA-BODI-BCURRENT")
+    field(INPB, "VA-BODI-CURRENT-NOISELEVEL")
+    field(NOA, 864)
+    field(NOB, 1)
+    field(NOVA, 864)
+    field(FLNK, "BODI-BCURRENT")
+}
+
+record(waveform, "BODI-BCURRENT")
+{
+    field(DESC, "BO bunch current")
+    field(INP, "ADD-NOISE-BODI-BCURRENT.A")
+    field(NELM, 864)
+    field(FTVL, "DOUBLE")
+    field(EGU, "mA")
+}

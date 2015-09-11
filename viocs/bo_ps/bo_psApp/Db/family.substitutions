@@ -1,0 +1,11 @@
+
+file "db/family.db" {
+    pattern { family }
+
+        { "QD-FAM" }
+        { "QF-FAM" }
+        { "SD-FAM" }
+        { "SF-FAM" }
+        { "BEND-FAM-A" }
+        { "BEND-FAM-B" }
+}

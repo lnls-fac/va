@@ -1,0 +1,35 @@
+record(ai, "BORF-VOLTAGE-RB")
+{
+    field(DESC, "BO rf voltage")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INP, "VA-BORF-VOLTAGE")
+    field(EGU, "V")
+}
+
+record(ao, "BORF-VOLTAGE-SP")
+{
+    field(DESC, "BO rf voltage")
+    field(PREC, 10)
+    field(DOL, 2500000)
+    field(OUT, "VA-BORF-VOLTAGE")
+    field(EGU, "V")
+}
+
+record(ai, "BORF-FREQUENCY-RB")
+{
+    field(DESC, "BO rf frequency")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INP, "VA-BORF-FREQUENCY")
+    field(EGU, "Hz")
+}
+
+record(ao, "BORF-FREQUENCY-SP")
+{
+    field(DESC, "BO rf frequency")
+    field(PREC, 10)
+    field(DOL, 499657952.052106857299804688)
+    field(OUT, "VA-BORF-FREQUENCY")
+    field(EGU, "Hz")
+}

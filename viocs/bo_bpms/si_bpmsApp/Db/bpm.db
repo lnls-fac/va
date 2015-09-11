@@ -1,0 +1,95 @@
+
+record(ai, "VA-BODI-BPM-NOISELEVEL")
+{
+    field(DESC, "Noise level for bpm")
+    field(INP, .1)
+    field(EGU, "um")
+}
+
+record(waveform, "BODI-BPM-$(sector)$(pos)")
+{
+    field(DESC, "BO BPM sector $(sector) pos $(pos)")
+    field(SCAN, ".1 second")
+    field(NELM, 2)
+    field(FTVL, "DOUBLE")
+    field(INP, "VA-BODI-BPM-$(sector)$(pos)  NPP NMS")
+    field(EGU, "m")
+    field(FLNK, "BODI-BPM-$(sector)$(pos)-X-TEMP")
+}
+
+record(subArray, "BODI-BPM-$(sector)$(pos)-X-TEMP")
+{
+    field(SCAN, "Passive")
+    field(MALM, 2)
+    field(NELM, 1)
+    field(INDX, 0)
+    field(FTVL, "DOUBLE")
+    field(INP, "BODI-BPM-$(sector)$(pos) PP NMS")
+    field(EGU, "m")
+    field(FLNK, "BODI-BPM-$(sector)$(pos)-Y-TEMP")
+}
+
+record(subArray, "BODI-BPM-$(sector)$(pos)-Y-TEMP")
+{
+    field(SCAN, "Passive")
+    field(MALM, 2)
+    field(NELM, 1)
+    field(INDX, 1)
+    field(FTVL, "DOUBLE")
+    field(INP, "BODI-BPM-$(sector)$(pos) PP NMS")
+    field(EGU, "m")
+    field(FLNK, "BODI-BPM-$(sector)$(pos)-X")
+}
+
+record(calc, "BODI-BPM-$(sector)$(pos)-X")
+{
+    field(DESC, "BO BPM sector $(sector) pos $(pos) x")
+    field(INPA, "BODI-BPM-$(sector)$(pos)-X-TEMP")
+    field(INPB, "VA-BODI-BPM-NOISELEVEL")
+    field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(EGU, "um")
+    field(FLNK, "BODI-BPM-$(sector)$(pos)-Y")
+}
+
+record(calc, "BODI-BPM-$(sector)$(pos)-Y")
+{
+    field(DESC, "BO BPM sector $(sector) pos $(pos) y")
+    field(INPA, "BODI-BPM-$(sector)$(pos)-Y-TEMP")
+    field(INPB, "VA-BODI-BPM-NOISELEVEL")
+    field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(EGU, "um")
+}
+
+record(aSub, "ADD-NOISE-BODI-BPM")
+{
+    field(SCAN, ".1 second")
+    field(SNAM, "add_noise")
+    field(INPA, "VA-BODI-BPM-FAM-X")
+    field(INPB, "VA-BODI-BPM-FAM-Y")
+    field(INPC, "VA-BODI-BPM-NOISELEVEL")
+    field(NOA, 180)
+    field(NOB, 180)
+    field(NOC, 1)
+    field(NOVA, 180)
+    field(NOVB, 180)
+    field(FLNK, "BODI-BPM-FAM-X")
+}
+
+record(waveform, "BODI-BPM-FAM-X")
+{
+    field(DESC, "BO BPM FAM X")
+    field(INP, "ADD-NOISE-BODI-BPM.A")
+    field(NELM, 180)
+    field(FTVL, "DOUBLE")
+    field(EGU, "um")
+    field(FLNK, "BODI-BPM-FAM-Y")
+}
+
+record(waveform, "BODI-BPM-FAM-Y")
+{
+    field(DESC, "BO BPM FAM Y")
+    field(INP, "ADD-NOISE-BODI-BPM.B")
+    field(NELM, 180)
+    field(FTVL, "DOUBLE")
+    field(EGU, "um")
+}
