@@ -172,6 +172,9 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._accelerator  = pyaccel.lattice.shift(accelerator, start = injection_point)
         self._all_pvs      = utils.shift_record_names(self._accelerator, self._all_pvs)
 
+        if TRACK6D:
+            pyaccel.tracking.set6dtracking(self._accelerator)
+
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._pmm_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
         self._set_vacuum_chamber()
