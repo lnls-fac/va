@@ -15,6 +15,7 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 class AcceleratorModel(model.Model):
 
     def __init__(self, **kwargs):
+        self._injection_parameters = None
         super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
