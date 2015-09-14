@@ -80,15 +80,10 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
         if math.isnan(betax[-1]):
             loss_fraction = 1.0
             return loss_fraction
-    except numpy.linalg.linalg.LinAlgError:
-        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        return 1.0
-    except pyaccel.optics.OpticsException:
-        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        return 1.0
-    except pyaccel.tracking.TrackingException:
-        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        return 1.0
+    except (numpy.linalg.linalg.LinAlgError, pyaccel.optics.OpticsException,
+            pyaccel.tracking.TrackingException):
+        loss_fraction = 1.0
+        return loss_fraction
 
     de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
     de_probability = numpy.zeros(len(de))
