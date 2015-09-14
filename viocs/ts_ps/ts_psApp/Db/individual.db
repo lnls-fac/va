@@ -1,0 +1,36 @@
+
+record(ai, "VA-TSPS-NOISELEVEL")
+{
+    field(DESC, "Noise level for individual current")
+    field(INP, 0.001)
+    field(EGU, "A")
+}
+
+record(calc, "TSPS-$(family)-$(pos)-RB")
+{
+    field(DESC, "TSPS-$(family)-$(pos) current readback")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "VA-TSPS-$(family)-$(pos)")
+    field(INPB, "VA-TSPS-NOISELEVEL")
+    field(CALC, "A+B*2*(RNDM-.5)")
+    field(EGU, "A")
+}
+
+record(ao, "TSPS-$(family)-$(pos)-SP")
+{
+    field(DESC, "TSPS-$(family)-$(pos) current setpoint")
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    field(OUT, "VA-TSPS-$(family)-$(pos)")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-TSPS-$(family)-$(pos)")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-TSPS-$(family)-$(pos)")
+    field(LNK1, "TSPS-$(family)-$(pos)-SP")
+    field(FLNK, "TSPS-$(family)-$(pos)-SP")
+}

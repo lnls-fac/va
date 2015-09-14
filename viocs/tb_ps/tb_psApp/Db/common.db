@@ -1,0 +1,5 @@
+
+record(event, "EVENT-TBPS-SP-INIT")
+{
+    field(VAL, 123)
+}

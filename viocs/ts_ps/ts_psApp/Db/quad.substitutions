@@ -1,0 +1,12 @@
+
+file "db/individual.db" {
+    pattern { family, pos }
+        { "QF", "01-A"}
+        { "QF", "01-B"}
+        { "QD", "02"}
+        { "QF", "02"}
+        { "QF", "03"}
+        { "QD", "04-A"}
+        { "QF", "04"}
+        { "QD", "04-B"}
+}

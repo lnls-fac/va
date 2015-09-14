@@ -1,0 +1,7 @@
+
+file "db/septa.db" {
+    pattern { family, pos }
+        { "SEPTUMEXT", "01" }
+        { "SEPTUMTHICK", "04"}
+        { "SEPTUMTHIN", "04"}
+}

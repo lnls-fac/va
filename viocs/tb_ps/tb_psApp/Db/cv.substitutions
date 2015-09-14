@@ -1,0 +1,10 @@
+
+file "db/individual.db" {
+    pattern { family, pos }
+        { "CV", "02-A" }
+        { "CV", "02-B" }
+        { "CV", "03-A" }
+        { "CV", "03-B" }
+        { "CV", "05-A" }
+        { "CV", "05-B" }
+}

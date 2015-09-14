@@ -1,0 +1,8 @@
+
+file "db/individual.db" {
+    pattern { family, pos }
+        { "CH", "01" }
+        { "CH", "02" }
+        { "CH", "03" }
+        { "CH", "04" }
+}
