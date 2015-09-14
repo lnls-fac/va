@@ -74,11 +74,21 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
 
     init_pos = init_twiss.fixed_point
 
-    twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss)
-    betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
-    if math.isnan(betax[-1]):
-        loss_fraction = 1.0
-        return loss_fraction
+    try:
+        twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss)
+        betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+        if math.isnan(betax[-1]):
+            loss_fraction = 1.0
+            return loss_fraction
+    except numpy.linalg.linalg.LinAlgError:
+        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        return 1.0
+    except pyaccel.optics.OpticsException:
+        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        return 1.0
+    except pyaccel.tracking.TrackingException:
+        self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        return 1.0
 
     de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
     de_probability = numpy.zeros(len(de))
@@ -114,7 +124,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
         min_emit_x = numpy.amin([emit_x_inf, emit_x_sup])
         min_emit_y = numpy.amin([emit_y_inf, emit_y_sup])
         min_emit = min_emit_x + min_emit_y if min_emit_x*min_emit_y !=0 else 0.0
-        lf = math.exp(- min_emit/emittance)
+        lf = math.exp(-min_emit/emittance)
         lost_fraction[i] = lf if lf <1 else 1.0
         total_lost_fraction += de_probability[i]*lost_fraction[i]
 
@@ -134,7 +144,7 @@ def _process_loss_fraction_args(accelerator, **kwargs):
     if isinstance(init_twiss, dict):
         init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)
     init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, delta_rx, delta_angle)
-    
+
     lattice = accelerator._accelerator.lattice
     if 'hmax' in kwargs and 'hmin' in kwargs:
         hmax = kwargs['hmax']

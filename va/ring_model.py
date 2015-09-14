@@ -152,7 +152,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         # Calculate injection efficiency
         if self._calc_injection_efficiency and (self._received_charge or
-            self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
+                self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
             self._calc_injection_efficiency = False
             self._set_kickin('on')
             self._calc_onaxis_injection_loss_fraction()
@@ -198,7 +198,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._m66 = None
         self._transfer_matrices = None
         self._summary = None
-        self._injection_parameters = None
+        # self._injection_parameters = None
         self._injection_loss_fraction = None
         self._pmm_injection_loss_fraction = None
         self._onaxis_injection_loss_fraction = None
