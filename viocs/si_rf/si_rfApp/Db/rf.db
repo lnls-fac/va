@@ -1,18 +1,15 @@
+
+record(event, "EVENT-SIRF-SP-INIT")
+{
+    field(VAL, 123)
+}
+
 record(ai, "SIRF-VOLTAGE-RB")
 {
     field(DESC, "SI rf voltage")
     field(SCAN, ".1 second")
     field(PREC, 10)
     field(INP, "VA-SIRF-VOLTAGE")
-    field(EGU, "V")
-}
-
-record(ao, "SIRF-VOLTAGE-SP")
-{
-    field(DESC, "SI rf voltage")
-    field(PREC, 10)
-    field(DOL, 2500000)
-    field(OUT, "VA-SIRF-VOLTAGE")
     field(EGU, "V")
 }
 
@@ -27,9 +24,36 @@ record(ai, "SIRF-FREQUENCY-RB")
 
 record(ao, "SIRF-FREQUENCY-SP")
 {
-    field(DESC, "SI rf frequency")
+    field(DESC, "SI rf frequency setpoint")
+    field(SCAN, "Passive")
     field(PREC, 10)
-    field(DOL, 499657952.052106857299804688)
     field(OUT, "VA-SIRF-FREQUENCY")
     field(EGU, "Hz")
+}
+
+record(seq, "SEQ-SIRF-FREQUENCY")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-SIRF-FREQUENCY")
+    field(LNK1, "SIRF-FREQUENCY-SP")
+    field(FLNK, "SIRF-FREQUENCY-SP")
+}
+
+record(ao, "SIRF-VOLTAGE-SP")
+{
+    field(DESC, "SI rf voltage")
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    field(OUT, "VA-SIRF-VOLTAGE")
+    field(EGU, "V")
+}
+
+record(seq, "SEQ-SIRF-VOLTAGE")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-SIRF-VOLTAGE")
+    field(LNK1, "SIRF-VOLTAGE-SP")
+    field(FLNK, "SIRF-VOLTAGE-SP")
 }

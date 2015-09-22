@@ -2,7 +2,7 @@
 record(ai, "VA-SIPS-NOISELEVEL")
 {
     field(DESC, "Noise level for individual current")
-    field(INP, 0.001)
+    field(INP, 0.0000000001)
     field(EGU, "A")
 }
 

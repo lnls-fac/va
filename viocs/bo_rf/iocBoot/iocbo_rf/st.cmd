@@ -13,3 +13,6 @@ dbLoadRecords("db/rf.db")
 
 cd ${TOP}/iocBoot/${IOC}
 iocInit
+
+## Start any sequence programs
+seq rf_sp_init

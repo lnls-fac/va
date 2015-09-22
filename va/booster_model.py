@@ -5,6 +5,7 @@ from . import beam_charge
 from . import injection
 from . import utils
 
+TRACK6D = ring_model.TRACK6D 
 
 class BoosterModel(ring_model.RingModel):
 
@@ -118,6 +119,9 @@ class BoosterModel(ring_model.RingModel):
         injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
         self._accelerator  = pyaccel.lattice.shift(accelerator, start = injection_point)
         self._all_pvs      = utils.shift_record_names(self._accelerator, self._all_pvs)
+
+        if TRACK6D:
+            pyaccel.tracking.set6dtracking(self._accelerator)
 
         self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')

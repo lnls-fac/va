@@ -96,8 +96,6 @@ class Model:
             self._get_parameters_from_upstream_accelerator(args_dict)
         if function == 'get_charge_from_upstream_accelerator':
             self._get_charge_from_upstream_accelerator(args_dict)
-        if function == 'receive_timing_signal':
-            self._receive_timing_signal(args_dict)
 
     def _update_pvs(self):
         if self._state_changed:
