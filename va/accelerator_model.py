@@ -168,22 +168,19 @@ class AcceleratorModel(model.Model):
         return indices
 
     def _set_vacuum_chamber(self, indices = 'open'):
-        hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
-        if indices == 'open':
-            self._hmin = hmin
-            self._hmax = hmax
-            self._vmin = vmin
-            self._vmax = vmax
-        elif indices == 'closed':
+        if indices not in ['open', 'closed']:
+            raise Exception("invalid value for indices")
+
+        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
+        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
+        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
+        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
+
+        if indices == 'closed':
             self._hmin = numpy.append(hmin, hmin[-1])
             self._hmax = numpy.append(hmax, hmax[-1])
             self._vmin = numpy.append(vmin, vmin[-1])
             self._vmax = numpy.append(vmax, vmax[-1])
-        else:
-            raise Exception("invalid value for indices")
 
     def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
         _dict = {}
@@ -199,14 +196,20 @@ class AcceleratorModel(model.Model):
         _dict['delta_angle'] = self._delta_angle
         return _dict
 
+    def _append_marker(self):
+        marker = pyaccel.elements.marker('marker')
+        marker.hmin, marker.hmax = self._accelerator[-1].hmin, self._accelerator[-1].hmax
+        marker.vmin, marker.vmax = self._accelerator[-1].vmin, self._accelerator[-1].vmax
+        self._accelerator.append(marker)
+
     def _init_magnets_and_power_supplies(self):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
-        magnet_names = self.model_module.record_names.get_magnet_names()
+        magnet_names = self.model_module.record_names.get_magnet_names(self._accelerator)
         magnet_names = utils.shift_record_names(accelerator, magnet_names)
         family_mapping = self.model_module.family_mapping
-        excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping()
-        _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping()
+        excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
+        _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)
 
         self._magnets = dict()
         for magnet_name in magnet_names.keys():
@@ -248,7 +251,6 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
-                #print(ps_name)
                 ps = power_supply.FamilyPowerSupply(magnets, model = self)
                 self._power_supplies[ps_name] = ps
 

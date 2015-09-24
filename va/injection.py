@@ -102,8 +102,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
         pos[4] += de[i]
         orbit, *_ = pyaccel.tracking.linepass(accelerator, pos, indices = 'open')
         if indices == 'closed':
-            orb, *_ = pyaccel.tracking.linepass(accelerator, pos)
-            orb = numpy.array([orb])
+            orb, *_ = pyaccel.tracking.linepass(accelerator[-1:], particles=orbit[:,-1])
             orbit  = numpy.append(orbit,orb.transpose(),axis=1)
 
         if math.isnan(orbit[0,-1]):

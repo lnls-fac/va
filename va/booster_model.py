@@ -116,10 +116,11 @@ class BoosterModel(ring_model.RingModel):
         self._beam_dump(message1,message2,c,a)
 
         # Shift accelerator and record names to start in the injection point
-        accelerator        = self.model_module.create_accelerator()
-        injection_point    = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'sept_in')[0]
-        self._accelerator  = pyaccel.lattice.shift(accelerator, start = injection_point)
-        self._all_pvs      = utils.shift_record_names(self._accelerator, self._all_pvs)
+        self._accelerator  = self.model_module.create_accelerator()
+        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
+        self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
+        self._append_marker()
+        self._all_pvs = utils.shift_record_names(self._accelerator, self._all_pvs)
 
         if TRACK6D:
             pyaccel.tracking.set6dtracking(self._accelerator)

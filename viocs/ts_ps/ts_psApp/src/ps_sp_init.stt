@@ -5,7 +5,7 @@ assign event_proc to "EVENT-TSPS-SP-INIT.PROC";
 
 ss ss1 {
     state init {
-        when (delay(1.0)) {
+        when (delay(3.0)) {
             event_proc = 1;
             pvPut(event_proc);
         } exit
