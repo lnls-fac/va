@@ -3,7 +3,6 @@ import math
 import numpy
 import pyaccel
 
-
 def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     """Calculate charge loss in a line
 
@@ -22,7 +21,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
-    twiss, m66, transfer_matrices, orbit = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss)
+    twiss, m66, transfer_matrices, orbit = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
     betax, etax, betay, etay = pyaccel.optics.get_twiss(twiss, ('betax','etax','betay','etay'))
     emitx = emittance * 1 / (1 + coupling)
     emity = emittance * coupling / (1 + coupling)
@@ -74,8 +73,15 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
 
     init_pos = init_twiss.fixed_point
 
+    if len(hmax) == len(accelerator):
+        indices = 'open'
+    elif len(hmax) == len(accelerator)+1:
+        indices = 'closed'
+    else:
+        raise Exception('Mismatch between size of accelerator object and size of vacuum chamber')
+
     try:
-        twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss)
+        twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices=indices)
         betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
         if math.isnan(betax[-1]):
             loss_fraction = 1.0
@@ -95,6 +101,10 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
         pos = [p for p in init_pos]
         pos[4] += de[i]
         orbit, *_ = pyaccel.tracking.linepass(accelerator, pos, indices = 'open')
+        if indices == 'closed':
+            orb, *_ = pyaccel.tracking.linepass(accelerator, pos)
+            orb = numpy.array([orb])
+            orbit  = numpy.append(orbit,orb.transpose(),axis=1)
 
         if math.isnan(orbit[0,-1]):
             lost_fraction[i] = 1.0

@@ -10,7 +10,8 @@ from . import injection
 
 
 UNDEF_VALUE = utils.UNDEF_VALUE
-TRACK6D = False
+TRACK6D = True
+indices = 'closed'
 _u = mathphys.units
 
 
@@ -48,6 +49,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         elif 'DI-TUNEH' in pv_name:
             charge = self._beam_charge.total_value
             if self._twiss is None or charge == 0.0: return UNDEF_VALUE
+            print('mux ',self._twiss[-1].mux)
             tune_value = self._twiss[-1].mux / 2.0 / math.pi
             return tune_value
         elif 'DI-TUNEV' in pv_name:
@@ -177,7 +179,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._pmm_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
-        self._set_vacuum_chamber()
+        self._set_vacuum_chamber(indices=indices)
 
         # Initial values of timing pvs
         self._ti_kickinj_enabled = 1
@@ -211,10 +213,11 @@ class RingModel(accelerator_model.AcceleratorModel):
         try:
             self._log('calc', 'closed orbit for '+self.model_module.lattice_version)
             if TRACK6D:
-                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
+                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices=indices)
             else:
-                self._orbit = numpy.zeros((6,len(self._accelerator)))
-                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
+                n = len(self._accelerator)+1 if indices == 'closed' else len(self._accelerator)
+                self._orbit = numpy.zeros((6,n))
+                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices=indices)
         # Beam is lost
         except pyaccel.tracking.TrackingException:
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
@@ -226,7 +229,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66, self._transfer_matrices, self._orbit = \
-                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
+                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0], indices=indices)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')

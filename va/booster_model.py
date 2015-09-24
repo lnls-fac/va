@@ -5,7 +5,8 @@ from . import beam_charge
 from . import injection
 from . import utils
 
-TRACK6D = ring_model.TRACK6D 
+TRACK6D = ring_model.TRACK6D
+indices = ring_model.indices
 
 class BoosterModel(ring_model.RingModel):
 
@@ -126,7 +127,7 @@ class BoosterModel(ring_model.RingModel):
         self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
-        self._set_vacuum_chamber()
+        self._set_vacuum_chamber(indices=indices)
 
         self._state_deprecated = True
         self._update_state()

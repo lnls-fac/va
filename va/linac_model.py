@@ -66,7 +66,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._accelerator = self.model_module.create_accelerator()
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
-        self._set_vacuum_chamber()
+        self._set_vacuum_chamber(indices='open')
         # Initial values of timing pvs
         self._ti_cycle = 0
         self._ti_egun_enabled = 1

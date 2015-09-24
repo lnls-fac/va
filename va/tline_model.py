@@ -94,7 +94,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._accelerator = self.model_module.create_accelerator()
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
-        self._set_vacuum_chamber()
+        self._set_vacuum_chamber(indices='open')
         self._transport_loss_fraction = 0.0
 
         # initial values of timing pvs
