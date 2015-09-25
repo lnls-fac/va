@@ -78,12 +78,11 @@ class Magnet(object):
             raise Exception('Integrated field should be increasing or decreasing function of the current')
         return current
 
-
     def _get_value(self):
         value = 0.0
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            value += polynom[self._main_harmonic - 1]*self._accelerator[i].length
+            value += polynom[self._main_harmonic-1]*self._accelerator[i].length
 
         if self._main_harmonic == 1 and self._polynom == 'polynom_b':
             integrated_field = (value - self._nominal_angle)*self._accelerator.brho

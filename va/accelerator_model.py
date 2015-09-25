@@ -1,5 +1,6 @@
 
 import os
+import enum
 import numpy
 import mathphys
 import pyaccel
@@ -10,6 +11,12 @@ from . import utils
 
 
 UNDEF_VALUE = utils.UNDEF_VALUE
+
+
+class Plane(enum.IntEnum):
+    horizontal = 0
+    vertical = 1
+    longitudinal = 2
 
 
 class AcceleratorModel(model.Model):
@@ -206,7 +213,7 @@ class AcceleratorModel(model.Model):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
         magnet_names = self.model_module.record_names.get_magnet_names(self._accelerator)
-        magnet_names = utils.shift_record_names(accelerator, magnet_names)
+        #magnet_names = utils.shift_record_names(accelerator, magnet_names)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)
@@ -251,16 +258,10 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
-                ps = power_supply.FamilyPowerSupply(magnets, model = self)
+                ps = power_supply.FamilyPowerSupply(magnets, model=self)
                 self._power_supplies[ps_name] = ps
-
-        for ps_name in ps2magnet.keys():
-            magnets = set()
-            for magnet_name in ps2magnet[ps_name]:
-                if magnet_name in self._magnets:
-                    magnets.add(self._magnets[magnet_name])
-            if not '-FAM' in ps_name:
-                ps = power_supply.IndividualPowerSupply(magnets, model = self)
+            else:
+                ps = power_supply.IndividualPowerSupply(magnets, model=self)
                 self._power_supplies[ps_name] = ps
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):

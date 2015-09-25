@@ -13,6 +13,7 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 _u = mathphys.units
 TRACK6D = True
 indices = 'open'
+Plane = accelerator_model.Plane
 
 
 class RingModel(accelerator_model.AcceleratorModel):
@@ -47,17 +48,11 @@ class RingModel(accelerator_model.AcceleratorModel):
         if value is not None:
             return value
         elif 'DI-TUNEH' in pv_name:
-            charge = self._beam_charge.total_value
-            if self._twiss is None or charge == 0.0: return UNDEF_VALUE
-            tune_value = self._twiss[-1].mux / 2.0 / math.pi
-            return tune_value
+            return self._get_tune_component(Plane.horizontal)
         elif 'DI-TUNEV' in pv_name:
-            charge = self._beam_charge.total_value
-            if self._twiss is None or charge == 0.0: return UNDEF_VALUE
-            tune_value = self._twiss[-1].muy / 2.0 / math.pi
-            return tune_value
+            return self._get_tune_component(Plane.vertical)
         elif 'DI-TUNES' in pv_name:
-            return UNDEF_VALUE
+            return self._get_tune_component(Plane.longitudinal)
         elif 'RF-FREQUENCY' in pv_name:
             return pyaccel.optics.get_rf_frequency(self._accelerator)
         elif 'RF-VOLTAGE' in pv_name:
@@ -79,6 +74,12 @@ class RingModel(accelerator_model.AcceleratorModel):
             return UNDEF_VALUE
         else:
             return None
+
+    def _get_tune_component(self, plane):
+        charge = self._beam_charge.total_value
+        if charge == 0.0 or self._tunes == None: return UNDEF_VALUE
+        real_tune = self._tunes[plane].real
+        return real_tune
 
     def _get_pv_timing(self, pv_name):
         if 'TI-' in pv_name:
@@ -170,7 +171,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         # Shift accelerator and record names to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
         injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
-        self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
+        self._accelerator  = pyaccel.lattice.shift(self._accelerator, start=injection_point)
         self._append_marker()
         self._all_pvs = utils.shift_record_names(self._accelerator, self._all_pvs)
 
@@ -198,6 +199,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._orbit = None
         self._twiss = None
         self._m66 = None
+        self._tunes = None
         self._transfer_matrices = None
         self._summary = None
         # self._injection_parameters = None
@@ -230,6 +232,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66, self._transfer_matrices, self._orbit = \
                 pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0], indices=indices)
+            self._tunes = pyaccel.optics.get_frac_tunes(m66=self._m66)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')

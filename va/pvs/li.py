@@ -9,6 +9,7 @@ prefix = 'LI'
 accelerator = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 
+
 def _get_subsystem(rn):
     return prefix + rn
 
@@ -88,7 +89,7 @@ def _get_fake_record_names(accelerator, family_name=None):
         family_data = _families.get_family_data(accelerator)
     else:
         family_data = accelerator
-        
+
     if family_name == None:
         families = ['lifk']
         record_names_dict = {}

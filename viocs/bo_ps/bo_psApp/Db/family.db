@@ -29,7 +29,7 @@ record(ao, "BOPS-$(family)-SP")
 record(seq, "SEQ-BOPS-$(family)")
 {
     field(SCAN, "Event")
-    field(EVNT, 123)
+    field(EVNT, 125)
     field(DOL1, "VA-BOPS-$(family)")
     field(LNK1, "BOPS-$(family)-SP")
     field(FLNK, "BOPS-$(family)-SP")

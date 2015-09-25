@@ -8,6 +8,7 @@ prefix = 'BO'
 accelerator = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 
+
 def _get_subsystem(rn):
     return prefix + rn
 

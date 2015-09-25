@@ -1,5 +1,5 @@
 
 record(event, "EVENT-BOPS-SP-INIT")
 {
-    field(VAL, 123)
+    field(VAL, 125)
 }

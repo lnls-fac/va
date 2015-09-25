@@ -24,7 +24,6 @@ def run(prefix):
     stop_event = multiprocessing.Event() # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
-
     models = get_models()
     pv_database = get_pv_database(models)
     pv_names = get_pv_names(models)
@@ -34,11 +33,13 @@ def run(prefix):
     server.createPV(prefix, pv_database)
 
     num_parties = len(models) + 1 # number of parties for barrier
-    finalisation = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
+    finalisation_barrier = multiprocessing.Barrier(num_parties,
+        timeout=JOIN_TIMEOUT)
 
-    processes = create_model_processes(models, stop_event, finalisation)
+    processes = create_model_processes(models, stop_event,
+        finalisation_barrier)
     start_model_processes(processes)
-    start_driver_thread(processes, stop_event, finalisation)
+    start_driver_thread(processes, stop_event, finalisation_barrier)
 
     wait_for_initialisation(JOIN_TIMEOUT)
     while not stop_event.is_set():
@@ -87,10 +88,11 @@ def get_pv_names(models):
     return pv_names
 
 
-def create_model_processes(models, stop_event, finalisation):
+def create_model_processes(models, stop_event, finalisation_barrier):
     processes = []
     for m in models:
-        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event, finalisation)
+        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event,
+            finalisation_barrier)
         processes.append(mp)
 
     return processes
@@ -101,13 +103,13 @@ def start_model_processes(processes):
         p.start()
 
 
-def start_driver_thread(processes, stop_event, finalisation):
+def start_driver_thread(processes, stop_event, finalisation_barrier):
     pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT)
     driver_thread = driver.DriverThread(
         pcas_driver,
         WAIT_TIMEOUT,
         stop_event,
-        finalisation
+        finalisation_barrier
     )
     driver_thread.start()
 
