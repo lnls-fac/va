@@ -1,7 +1,7 @@
 
 record(event, "EVENT-SIRF-SP-INIT")
 {
-    field(VAL, 123)
+    field(VAL, 128)
 }
 
 record(ai, "SIRF-VOLTAGE-RB")
@@ -34,7 +34,7 @@ record(ao, "SIRF-FREQUENCY-SP")
 record(seq, "SEQ-SIRF-FREQUENCY")
 {
     field(SCAN, "Event")
-    field(EVNT, 123)
+    field(EVNT, 128)
     field(DOL1, "VA-SIRF-FREQUENCY")
     field(LNK1, "SIRF-FREQUENCY-SP")
     field(FLNK, "SIRF-FREQUENCY-SP")
@@ -52,7 +52,7 @@ record(ao, "SIRF-VOLTAGE-SP")
 record(seq, "SEQ-SIRF-VOLTAGE")
 {
     field(SCAN, "Event")
-    field(EVNT, 123)
+    field(EVNT, 128)
     field(DOL1, "VA-SIRF-VOLTAGE")
     field(LNK1, "SIRF-VOLTAGE-SP")
     field(FLNK, "SIRF-VOLTAGE-SP")

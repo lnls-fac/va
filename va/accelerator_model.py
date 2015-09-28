@@ -260,7 +260,14 @@ class AcceleratorModel(model.Model):
             if '-FAM' in ps_name:
                 ps = power_supply.FamilyPowerSupply(magnets, model=self)
                 self._power_supplies[ps_name] = ps
-            else:
+
+        # It is necessary to initalise all family power supplies before
+        for ps_name in ps2magnet.keys():
+            magnets = set()
+            for magnet_name in ps2magnet[ps_name]:
+                if magnet_name in self._magnets:
+                    magnets.add(self._magnets[magnet_name])
+            if not '-FAM' in ps_name:
                 ps = power_supply.IndividualPowerSupply(magnets, model=self)
                 self._power_supplies[ps_name] = ps
 

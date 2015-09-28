@@ -52,7 +52,7 @@ class FamilyPowerSupply(PowerSupply):
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, current = None):
+    def __init__(self, magnets, model, current=None):
         super().__init__(magnets, model=model)
         if len(magnets) > 1:
             raise Exception('Individual Power Supply')
