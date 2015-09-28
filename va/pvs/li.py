@@ -59,6 +59,10 @@ class _LocalData:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
 
     @staticmethod
+    def get_all_record_names():
+        return _LocalData.all_record_names
+
+    @staticmethod
     def _init_dynamical_pvs():
         _LocalData.dynamical_pvs = []
 
@@ -103,6 +107,7 @@ def _get_fake_record_names(accelerator, family_name=None):
 _LocalData.build_data()
 
 # --- Module API ---
+get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs
 get_read_write_pvs = _LocalData.get_read_write_pvs
