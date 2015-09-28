@@ -106,6 +106,10 @@ class _LocalData:
                 _LocalData.pa.remove(pv)
 
     @staticmethod
+    def get_all_record_names():
+        return _LocalData.all_record_names
+
+    @staticmethod
     def get_database():
         return _LocalData.database
 
@@ -168,6 +172,7 @@ _LocalData.build_data()
 
 
 # --- Module API ---
+get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs
 get_read_write_pvs = _LocalData.get_read_write_pvs
