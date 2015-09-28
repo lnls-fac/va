@@ -168,14 +168,18 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
 
-        # Shift accelerator and record names to start in the injection point
+        # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
         injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
         self._accelerator  = pyaccel.lattice.shift(self._accelerator, start=injection_point)
+        # Append marker to accelerator
         self._append_marker()
-        self._all_pvs = utils.shift_record_names(self._accelerator, self._all_pvs)
+        # Create record names dictionary
+        self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
+        self._all_pvs.update(self.pv_module._get_fake_record_names(self._accelerator))
 
         if TRACK6D:
+            # Set radiation and cavity on
             pyaccel.tracking.set6dtracking(self._accelerator)
 
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')

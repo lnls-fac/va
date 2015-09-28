@@ -57,7 +57,6 @@ class Model:
     def __init__(self, send_queue, recv_queue, log_func=utils.log, **kwargs):
         self._send_queue = send_queue
         self._recv_queue = recv_queue
-        self._all_pvs = self.pv_module.get_all_record_names()
         self._log = log_func
         self._state_changed = False
 

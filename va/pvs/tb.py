@@ -93,10 +93,6 @@ class _LocalData:
         _LocalData.dynamical_pvs = []
 
     @staticmethod
-    def get_all_record_names():
-        return _LocalData.all_record_names
-
-    @staticmethod
     def get_database():
         return _LocalData.database
 
@@ -115,7 +111,7 @@ class _LocalData:
 def _get_fake_record_names(accelerator, family_name=None):
 
     if not isinstance(accelerator, dict):
-        family_data = _families.get_family_data(accelerator)
+        family_data = model.get_family_data(accelerator)
     else:
         family_data = accelerator
 
@@ -157,7 +153,6 @@ _LocalData.build_data()
 
 
 # --- Module API ---
-get_all_record_names = _LocalData.get_all_record_names
 get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs
 get_read_write_pvs = _LocalData.get_read_write_pvs
