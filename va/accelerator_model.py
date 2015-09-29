@@ -163,7 +163,7 @@ class AcceleratorModel(model.Model):
         self._beam_charge.dump()
         return final_charge, efficiency
 
-   # --- auxilliary methods
+   # --- auxiliary methods
 
     def _get_elements_indices(self, pv_name):
         """Get flattened indices of element in the model"""

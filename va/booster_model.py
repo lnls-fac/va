@@ -156,7 +156,7 @@ class BoosterModel(ring_model.RingModel):
         final_charge = self._beam_charge.value
         return efficiency
 
-    # --- auxilliary methods
+    # --- auxiliary methods
 
     def _get_equilibrium_at_maximum_energy(self):
         eq = dict()
