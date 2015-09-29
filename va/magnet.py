@@ -84,8 +84,8 @@ class Magnet(object):
             polynom = getattr(self._accelerator[i], self._polynom)
             value += polynom[self._main_harmonic-1]*self._accelerator[i].length
 
-        if self._main_harmonic == 1 and self._polynom == 'polynom_b':
-            integrated_field = (value - self._nominal_angle)*self._accelerator.brho
+        if self._nominal_angle != 0:
+            integrated_field = (value + self._nominal_angle)*self._accelerator.brho
         else:
             integrated_field = value*self._accelerator.brho
 
