@@ -91,7 +91,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._injection_loss_fraction = 0.0
         self._ejection_loss_fraction = 0.0
 
-    # --- auxilliary methods
+    # --- auxiliary methods
 
     def _start_injection_cycle(self):
         if not self._cycle: return

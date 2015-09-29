@@ -127,7 +127,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._ejection_loss_fraction  = 0.0
         self._transport_loss_fraction = None
 
-    # --- auxilliary methods
+    # --- auxiliary methods
 
     def _beam_transport(self):
         efficiency = 1.0 - self._transport_loss_fraction

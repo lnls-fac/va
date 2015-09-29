@@ -212,7 +212,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._onaxis_injection_loss_fraction = None
         self._received_charge = False
 
-   # --- auxilliary methods
+   # --- auxiliary methods
 
     def _calc_closed_orbit(self):
         # Calculate closed orbit when there is beam
