@@ -12,7 +12,6 @@ from . import injection
 UNDEF_VALUE = utils.UNDEF_VALUE
 _u = mathphys.units
 TRACK6D = True
-indices = 'open'
 Plane = accelerator_model.Plane
 
 
@@ -184,7 +183,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
         self._pmm_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'pmm')
-        self._set_vacuum_chamber(indices=indices)
+        self._set_vacuum_chamber()
 
         # Initial values of timing pvs
         self._ti_kickinj_enabled = 1
@@ -219,11 +218,10 @@ class RingModel(accelerator_model.AcceleratorModel):
         try:
             self._log('calc', 'closed orbit for '+self.model_module.lattice_version)
             if TRACK6D:
-                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices=indices)
+                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
             else:
-                n = len(self._accelerator)+1 if indices == 'closed' else len(self._accelerator)
-                self._orbit = numpy.zeros((6,n))
-                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices=indices)
+                self._orbit = numpy.zeros((6,len(self._accelerator)))
+                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         # Beam is lost
         except pyaccel.tracking.TrackingException:
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
@@ -235,7 +233,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66, self._transfer_matrices, self._orbit = \
-                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0], indices=indices)
+                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
             self._tunes = pyaccel.optics.get_frac_tunes(m66=self._m66)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
