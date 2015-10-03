@@ -4,11 +4,12 @@ from . import magnet
 
 class PowerSupply(object):
 
-    def __init__(self, magnets, model):
+    def __init__(self, magnets, model, ps_name):
         """Gets and sets current [A]
         Connected magnets are processed after current is set.
         """
         self._model = model
+        self._ps_name = ps_name
         self._magnets = magnets
         for m in magnets:
             m.add_power_supply(self)
@@ -26,9 +27,9 @@ class PowerSupply(object):
 
 class FamilyPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, current=None):
+    def __init__(self, magnets, model, ps_name, current=None):
         """Initialises current from average integrated field in magnets"""
-        super().__init__(magnets, model=model)
+        super().__init__(magnets, model=model, ps_name=ps_name)
         if (current is None) and (len(magnets) > 0):
             total_current = 0.0
             n = 0
@@ -46,14 +47,36 @@ class FamilyPowerSupply(PowerSupply):
     @current.setter
     def current(self, value):
         self._current = value
-        for m in self._magnets:
-            m.process()
+
+        if isinstance(list(self._magnets)[0], magnet.BoosterDipoleMagnet):
+            change_energy = True
+            # Change the accelerator energy
+            for m in self._magnets:
+                m.process(change_energy=change_energy)
+                change_energy = False
+            all_power_supplies = self._model._power_supplies.values()
+            for ps in all_power_supplies:
+                # Change strengths of other magnets when accelerator energy is changed
+                if not isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
+                    for m in ps._magnets:
+                        m.renormalize_magnet()
+                # Change current of the other bend power supply to the same value
+                elif isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet) and ps._current!=value:
+                    ps._current = value
+                    for m in ps._magnets:
+                        m.process(change_energy=change_energy)
+                    # Update pv
+                    self._model._send_queue.put(('s', (ps._ps_name, value)))
+        else:
+            for m in self._magnets:
+                m.process()
+
 
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, current=None):
-        super().__init__(magnets, model=model)
+    def __init__(self, magnets, model, ps_name, current=None):
+        super().__init__(magnets, model=model, ps_name=ps_name)
         if len(magnets) > 1:
             raise Exception('Individual Power Supply')
         elif (current is None) and (len(magnets) > 0):

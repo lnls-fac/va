@@ -222,7 +222,7 @@ class AcceleratorModel(model.Model):
             family_type = family_mapping[family]
             if family_type in ('dipole', 'septum'):
                 if self.prefix == 'BO':
-                    m = magnet.Dipole2PS(accelerator, indices, filename)
+                    m = magnet.BoosterDipoleMagnet(accelerator, indices, filename)
                 else:
                     m = magnet.NormalMagnet(accelerator, indices, filename)
             elif family_type == 'quadrupole':
@@ -249,7 +249,7 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if '-FAM' in ps_name:
-                ps = power_supply.FamilyPowerSupply(magnets, model=self)
+                ps = power_supply.FamilyPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
 
         # It is necessary to initalise all family power supplies before
@@ -259,7 +259,7 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if not '-FAM' in ps_name:
-                ps = power_supply.IndividualPowerSupply(magnets, model=self)
+                ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):
