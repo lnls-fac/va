@@ -92,7 +92,7 @@ class AcceleratorModel(model.Model):
         if self._set_pv_timing(pv_name, value): return
 
     def _set_pv_magnets(self, pv_name, value):
-        if 'PS' in pv_name or 'PU' in pv_name:
+        if ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             ps = self._power_supplies[pv_name]
             prev_value = ps.current
             if value != prev_value:

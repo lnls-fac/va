@@ -24,7 +24,7 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _get_fake_record_names(family_data)
+        _fake_record_names = get_fake_record_names(family_data)
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(model.record_names.get_record_names(family_data))
         _LocalData.all_record_names.update(_fake_record_names)
@@ -112,7 +112,7 @@ class _LocalData:
     def get_dynamical_pvs():
         return _LocalData.dynamical_pvs
 
-def _get_fake_record_names(accelerator, family_name = None):
+def get_fake_record_names(accelerator, family_name = None):
 
     if not isinstance(accelerator, dict):
         family_data = model.get_family_data(accelerator)
@@ -123,7 +123,7 @@ def _get_fake_record_names(accelerator, family_name = None):
         families = ['tsfk']
         record_names_dict = {}
         for i in range(len(families)):
-            record_names_dict.update(_get_fake_record_names(family_data, families[i]))
+            record_names_dict.update(get_fake_record_names(family_data, families[i]))
         return record_names_dict
 
     if family_name.lower() == 'tsfk':

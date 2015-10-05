@@ -1,6 +1,6 @@
 
+import time
 import sirius as _sirius
-
 
 # Kingdom-dependent parameters
 model = _sirius.si
@@ -24,7 +24,7 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = _get_fake_record_names(family_data)
+        _fake_record_names = get_fake_record_names(family_data)
         _LocalData.all_record_names = dict()
         _LocalData.all_record_names.update(model.record_names.get_record_names(family_data))
         _LocalData.all_record_names.update(_fake_record_names)
@@ -128,7 +128,7 @@ class _LocalData:
         return _LocalData.dynamical_pvs
 
 
-def _get_fake_record_names(accelerator, family_name=None):
+def get_fake_record_names(accelerator, family_name=None):
 
     if not isinstance(accelerator, dict):
         family_data = model.get_family_data(accelerator)
@@ -139,7 +139,7 @@ def _get_fake_record_names(accelerator, family_name=None):
         families = ['sifk',]
         record_names_dict = dict()
         for i in range(len(families)):
-            record_names_dict.update(_get_fake_record_names(family_data, families[i]))
+            record_names_dict.update(get_fake_record_names(family_data, families[i]))
 
         return record_names_dict
 
@@ -149,12 +149,10 @@ def _get_fake_record_names(accelerator, family_name=None):
         get_element_names = _sirius.si.record_names.get_element_names
 
         # Add fake CF pvs for errors
-        cf_rn = get_element_names(family_data, 'chf', prefix='SIFK-ERRORX-')
-        cf_rn.update(get_element_names(family_data, 'chf', prefix='SIFK-ERRORY-'))
-        cf_rn.update(get_element_names(family_data, 'chf', prefix='SIFK-ERRORR-'))
-        for key in cf_rn.keys():
-            value = cf_rn[key]['chf']
-            _dict[str.replace(key, '-CHF-', '-CF-')] = {'cf':value}
+        _dict = {}
+        _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORX-'))
+        _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORY-'))
+        _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORR-'))
         # Add fake BEND pvs for errors
         _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORX-'))
         _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORY-'))
@@ -167,6 +165,21 @@ def _get_fake_record_names(accelerator, family_name=None):
         _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORX-'))
         _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORY-'))
         _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORR-'))
+
+        # Add fake CV pvs for errors
+        sext = get_element_names(family_data, 'sext')
+        cv   = get_element_names(family_data, 'cv')
+        indices = []
+        for d in sext.values():
+            for idx in d.values():
+                indices += [idx]
+        for key in cv.keys():
+            for idx in cv[key].values():
+                if idx not in indices:
+                    d = {'SIFK-ERRORX-'+ key : {'cv': idx},
+                         'SIFK-ERRORY-'+ key : {'cv': idx},
+                         'SIFK-ERRORR-'+ key : {'cv': idx}}
+                    _dict.update(d)
 
         return _dict
     else:

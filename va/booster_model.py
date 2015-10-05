@@ -123,7 +123,7 @@ class BoosterModel(ring_model.RingModel):
         self._append_marker()
         # Create record names dictionary
         self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
-        self._all_pvs.update(self.pv_module._get_fake_record_names(self._accelerator))
+        self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
 
         if TRACK6D:
             # Set radiation and cavity on

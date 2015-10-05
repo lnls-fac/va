@@ -2,12 +2,13 @@
 
 import sirius
 
+accelerator = sirius.si.create_accelerator()
 
 selected_families = (
-    'CHF',
-    'CHS',
-    'CVF',
-    'CVS',
+    'FCH',
+    'CH',
+    'FCV',
+    'CV',
     'QDA',
     'QDB1',
     'QDB2',
@@ -35,7 +36,7 @@ selected_families = (
 )
 
 
-record_names_dict = sirius.si.record_names.get_record_names()
+record_names_dict = sirius.si.record_names.get_record_names(accelerator)
 record_names = list(record_names_dict.keys())
 record_names.sort()
 
