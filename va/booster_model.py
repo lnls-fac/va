@@ -193,9 +193,11 @@ class BoosterModel(ring_model.RingModel):
         self._acceleration_loss_fraction = 0.0
 
     def _calc_ejection_loss_fraction(self):
-        if self._twiss is None: return
-        self._log('calc', 'ejection efficiency  for '+self.model_module.lattice_version)
+        if self._twiss is None:
+            self._ejection_loss_fraction = 1.0
+            return
 
+        self._log('calc', 'ejection efficiency  for '+self.model_module.lattice_version)
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
         _dict = {}

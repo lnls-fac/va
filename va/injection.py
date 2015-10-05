@@ -21,8 +21,16 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
-    twiss, m66, transfer_matrices, orbit = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
-    betax, etax, betay, etay = pyaccel.optics.get_twiss(twiss, ('betax','etax','betay','etay'))
+    try:
+        twiss, m66, transfer_matrices, orbit = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
+        betax, etax, betay, etay = pyaccel.optics.get_twiss(twiss, ('betax','etax','betay','etay'))
+        if math.isnan(betax[-1]):
+            loss_fraction = 1.0
+            return (loss_fraction, None, None, None, None)
+    except (numpy.linalg.linalg.LinAlgError, pyaccel.optics.OpticsException, pyaccel.tracking.TrackingException):
+        loss_fraction = 1.0
+        return (loss_fraction, None, None, None, None)
+
     emitx = emittance * 1 / (1 + coupling)
     emity = emittance * coupling / (1 + coupling)
     sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
