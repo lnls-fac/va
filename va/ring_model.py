@@ -236,8 +236,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         try:
         # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
-            self._twiss, self._m66, self._transfer_matrices, self._orbit = \
-                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
+            self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
             self._tunes = pyaccel.optics.get_frac_tunes(m66=self._m66)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
@@ -255,7 +254,6 @@ class RingModel(accelerator_model.AcceleratorModel):
                                          accelerator=self._accelerator,
                                          twiss=self._twiss,
                                          m66=self._m66,
-                                         transfer_matrices=self._transfer_matrices,
                                          closed_orbit=self._orbit)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
