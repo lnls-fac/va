@@ -6,8 +6,10 @@ class Magnet(object):
 
     def __init__(self, accelerator, indices, exc_curve_filename):
         """Magnet with power supplies
+
         Reads current from power supplies and sets Accelerator elements fields
-        using value converted with excitation curve."""
+        using value converted with excitation curve.
+        """
         self._power_supplies = set()
         self._accelerator = accelerator
         self._prev_brho = accelerator.brho
@@ -107,7 +109,6 @@ class Magnet(object):
         else:
             raise Exception('Integrated field should be increasing or decreasing function of the current')
         return current
-
 
     def _get_value(self):
         # Get the integrated field correspondent to the main harmonic value
