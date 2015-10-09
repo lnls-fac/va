@@ -30,7 +30,10 @@ class Magnet(object):
             total_angle  += angle
 
             polynom = getattr(self._accelerator[idx], self._polynom)
-            field_profile[i] = polynom[self._main_harmonic-1]*length + angle
+            if self._main_harmonic == 0:
+                field_profile[i] = polynom[self._main_harmonic-1]*length + angle
+            else:
+                field_profile[i] = polynom[self._main_harmonic-1]*length
 
             # Resize polynom_a and polynom_b
             if len(self._accelerator[idx].polynom_b) < numpy.amax(self._harmonics):
@@ -49,11 +52,12 @@ class Magnet(object):
         if len(self._indices) == 1:
             self._field_profile = [1]
         else:
-            try:
+            nonzero,*_ = numpy.nonzero(field_profile)
+            if len(nonzero)>0:
                 # If the magnet is segmented, all the magnet's multipoles will be set
                 # following the main harmonic initial field profile
                 self._field_profile = field_profile/numpy.sum(field_profile)
-            except ZeroDivisionError:
+            else:
                 # If the main harmonic initial field is zero,
                 # all segments are assigned the same polynom value.
                 self._field_profile = numpy.array([1/len(self._indices)]*len(self._indices))

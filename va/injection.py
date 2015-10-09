@@ -22,14 +22,14 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     coupling = kwargs['global_coupling']
 
     try:
-        twiss, m66, transfer_matrices, orbit = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
+        twiss, m66 = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
         betax, etax, betay, etay = pyaccel.optics.get_twiss(twiss, ('betax','etax','betay','etay'))
         if math.isnan(betax[-1]):
             loss_fraction = 1.0
-            return (loss_fraction, None, None, None, None)
+            return (loss_fraction, None, None)
     except (numpy.linalg.linalg.LinAlgError, pyaccel.optics.OpticsException, pyaccel.tracking.TrackingException):
         loss_fraction = 1.0
-        return (loss_fraction, None, None, None, None)
+        return (loss_fraction, None, None)
 
     emitx = emittance * 1 / (1 + coupling)
     emity = emittance * coupling / (1 + coupling)
@@ -60,7 +60,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
                            0.5*math.erf(min_yfrac_sup/sqrt2)
     surviving_fraction = x_surviving_fraction * y_surviving_fraction
     loss_fraction = 1.0 - surviving_fraction
-    return loss_fraction, twiss, m66, transfer_matrices, orbit
+    return loss_fraction, twiss, m66
 
 
 def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
@@ -78,8 +78,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     vmin              -- [m]
     """
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
-
-    init_pos = init_twiss.fixed_point
+    init_pos = pyaccel.optics.get_orbit_from_twiss(init_twiss)
 
     if len(hmax) == len(accelerator):
         indices = 'open'
@@ -155,7 +154,16 @@ def _process_loss_fraction_args(accelerator, **kwargs):
 
     if isinstance(init_twiss, dict):
         init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)
-    init_twiss.fixed_point = _transform_to_local_coordinates(init_twiss.fixed_point, delta_rx, delta_angle)
+
+    prev_fixed_point = pyaccel.optics.get_orbit_from_twiss(init_twiss)
+    new_fixed_point = _transform_to_local_coordinates(prev_fixed_point, delta_rx, delta_angle)
+
+    init_twiss.rx = new_fixed_point[0]
+    init_twiss.px = new_fixed_point[1]
+    init_twiss.ry = new_fixed_point[2]
+    init_twiss.py = new_fixed_point[3]
+    init_twiss.de = new_fixed_point[4]
+    init_twiss.dl = new_fixed_point[5]
 
     lattice = accelerator._accelerator.lattice
     if 'hmax' in kwargs and 'hmin' in kwargs:
