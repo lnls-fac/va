@@ -43,7 +43,6 @@ class TestBendMagnet(unittest.TestCase):
         bl = self.bend_magnet.value
         current = self.bend_magnet.current
         ps = _get_mock_power_supply(current=current)
-
         self.bend_magnet.add_power_supply(ps)
         self.bend_magnet.process()
 
@@ -63,7 +62,6 @@ class TestBendMagnet(unittest.TestCase):
         current = self.bend_magnet.current
         current_factor = 1.1
         ps = _get_mock_power_supply(current=current_factor*current)
-
         self.bend_magnet.add_power_supply(ps)
         self.bend_magnet.process()
 
@@ -141,7 +139,6 @@ class TestMultipoleMagnet(unittest.TestCase):
         current = self.sf.current
         current_factor = 1.1
         ps = _get_mock_power_supply(current=current_factor*current)
-
         self.sf.add_power_supply(ps)
         self.sf.process()
 
@@ -150,9 +147,80 @@ class TestMultipoleMagnet(unittest.TestCase):
         expected_bl = (400.0/200.0)*current_factor*current
         self.assertAlmostEqual(bl, expected_bl, 8)
 
+        # Check strength
         expected_strength = expected_bl/self.sf_length/BRHO
         sf_strength = self.accelerator[0].polynom_b[2]
         self.assertAlmostEqual(sf_strength, expected_strength, 8)
+
+    def test_sextupole_with_orbit_corrector(self):
+        bl = self.sf.value
+        sextupole_current = self.sf.current
+        ps = _get_mock_power_supply(current=sextupole_current)
+        self.sf.add_power_supply(ps)
+        self.sf.process()
+
+        # Add corrector to sf
+        corrector = va.magnet.NormalMagnet(
+            self.accelerator,
+            [0],
+            os.path.join(EXCITATION_CURVE_DIR, 'corrector.txt')
+        )
+
+        corrector_current = 5.0
+        ps = _get_mock_power_supply(current=corrector_current)
+        corrector.add_power_supply(ps)
+        corrector.process()
+
+        # Check sextupole integrated field is still the same
+        sextupole_bl = self.sf.value
+        sextupole_expected_bl = (400.0/200.0)*sextupole_current
+        self.assertAlmostEqual(sextupole_bl, sextupole_expected_bl, 8)
+
+        # Check corrector integrated
+        corrector_bl = corrector.value
+        # Excitation curve maps I: [-10, 10] <-> BL: [-0.01, 0.01]
+        corrector_expected_bl = corrector_current/1000
+        self.assertAlmostEqual(corrector_bl, corrector_expected_bl, 8)
+
+        # Check corrector strength
+        expected_strength = corrector_expected_bl/self.sf_length/BRHO
+        corrector_strength = self.accelerator[0].polynom_b[0]
+        self.assertAlmostEqual(corrector_strength, expected_strength, 8)
+
+    def test_sextupole_with_skew_corrector(self):
+        bl = self.sd.value
+        sextupole_current = self.sd.current
+        ps = _get_mock_power_supply(current=sextupole_current)
+        self.sd.add_power_supply(ps)
+        self.sd.process()
+
+        # Add corrector to sd
+        skew = va.magnet.SkewMagnet(
+            self.accelerator,
+            [1],
+            os.path.join(EXCITATION_CURVE_DIR, 'skew.txt')
+        )
+
+        skew_current = -5.0
+        ps = _get_mock_power_supply(current=skew_current)
+        skew.add_power_supply(ps)
+        skew.process()
+
+        # Check sextupole integrated field is still the same
+        sextupole_bl = self.sd.value
+        sextupole_expected_bl = -(350.0/200.0)*sextupole_current
+        self.assertAlmostEqual(sextupole_bl, sextupole_expected_bl, 8)
+
+        # Check skew integrated
+        skew_kl = skew.value
+        # Excitation curve maps I: [-10, 10] <-> KL: [-0.5, 0.5]
+        skew_expected_kl = skew_current/20
+        self.assertAlmostEqual(skew_kl, skew_expected_kl, 8)
+
+        # Check skew strength
+        expected_strength = skew_expected_kl/self.sd_length/BRHO
+        skew_strength = self.accelerator[1].polynom_a[1]
+        self.assertAlmostEqual(skew_strength, expected_strength, 8)
 
 
 def _get_mock_power_supply(current):
