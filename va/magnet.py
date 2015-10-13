@@ -23,46 +23,50 @@ class Magnet(object):
 
         total_length = 0.0
         total_angle  = 0.0
-        field_profile = numpy.zeros(len(self._indices))
-        for i in range(len(self._indices)):
-            idx = self._indices[i]
-            length = self._accelerator[idx].length
-            angle = self._accelerator[idx].angle
-            total_length += length
-            total_angle  += angle
+        len_i = len(self._indices)
+        len_h = numpy.amax(self._harmonics)
+        max_len = numpy.amax([len(self._accelerator[self._indices[0]].polynom_b), len_h])
+        self._field_profile_a = numpy.zeros((len_i, max_len))
+        self._field_profile_b = numpy.zeros((len_i, max_len))
 
-            polynom = getattr(self._accelerator[idx], self._polynom)
-            if self._main_harmonic == 0:
-                field_profile[i] = polynom[self._main_harmonic-1]*length + angle
-            else:
-                field_profile[i] = polynom[self._main_harmonic-1]*length
+        for i in range(len_i):
+            idx = self._indices[i]
+            total_length += self._accelerator[idx].length
+            total_angle  += self._accelerator[idx].angle
 
             # Resize polynom_a and polynom_b
-            if len(self._accelerator[idx].polynom_b) < numpy.amax(self._harmonics):
+            if len(self._accelerator[idx].polynom_b) < len_h:
                 pb = self._accelerator[idx].polynom_b
-                pb.resize(numpy.amax(self._harmonics), refcheck=False)
+                pb.resize(len_h, refcheck=False)
                 self._accelerator[idx].polynom_b = pb
-            if len(self._accelerator[idx].polynom_a) < numpy.amax(self._harmonics):
+            if len(self._accelerator[idx].polynom_a) < len_h:
                 pa = self._accelerator[idx].polynom_a
-                pa.resize(numpy.amax(self._harmonics), refcheck=False)
+                pa.resize(len_h, refcheck=False)
                 self._accelerator[idx].polynom_a = pa
+
+            self._field_profile_b[i,:] = self._accelerator[idx].polynom_b*self._accelerator[idx].length
+            self._field_profile_a[i,:] = self._accelerator[idx].polynom_a*self._accelerator[idx].length
+            if self._main_harmonic == 1: self._field_profile_b[i,0] += self._accelerator[idx].angle
 
         self._length = total_length
         self._nominal_angle = total_angle
 
-        # Main harmonic field profile
-        if len(self._indices) == 1:
-            self._field_profile = [1]
+        # field profiles
+        if len_i == 1:
+            self._field_profile_b = [1]*max_len
+            self._field_profile_a = [1]*max_len
         else:
-            nonzero,*_ = numpy.nonzero(field_profile)
-            if len(nonzero)>0:
-                # If the magnet is segmented, all the magnet's multipoles will be set
-                # following the main harmonic initial field profile
-                self._field_profile = field_profile/numpy.sum(field_profile)
-            else:
-                # If the main harmonic initial field is zero,
-                # all segments are assigned the same polynom value.
-                self._field_profile = numpy.array([1/len(self._indices)]*len(self._indices))
+            for n in range(max_len):
+                nonzero_b,*_ = numpy.nonzero(self._field_profile_b[:,n-1])
+                nonzero_a,*_ = numpy.nonzero(self._field_profile_a[:, n-1])
+                if len(nonzero_a)>0:
+                    self._field_profile_a[:,n-1] = self._field_profile_a[:,n-1]/numpy.sum(self._field_profile_a[:,n-1])
+                else:
+                    self._field_profile_a[:,n-1] = numpy.array([1/len_i]*len_i)
+                if len(nonzero_b)>0:
+                    self._field_profile_b[:,n-1] = self._field_profile_b[:,n-1]/numpy.sum(self._field_profile_b[:,n-1])
+                else:
+                    self._field_profile_b[:,n-1] = numpy.array([1/len_i]*len_i)
 
     def add_power_supply(self, power_supply):
         self._power_supplies.add(power_supply)
@@ -142,8 +146,8 @@ class Magnet(object):
             if len(self._accelerator[idx].polynom_a) > numpy.amax(self._harmonics):
                 delta_ifa.resize(len(self._accelerator[idx].polynom_a), refcheck=False)
 
-            delta_polynom_b = self._field_profile[i]*delta_ifb/(length*self._accelerator.brho)
-            delta_polynom_a = self._field_profile[i]*delta_ifa/(length*self._accelerator.brho)
+            delta_polynom_b = self._field_profile_b[i,:]*delta_ifb/(length*self._accelerator.brho)
+            delta_polynom_a = self._field_profile_a[i,:]*delta_ifa/(length*self._accelerator.brho)
 
             self._accelerator[idx].polynom_b += delta_polynom_b
             self._accelerator[idx].polynom_a += delta_polynom_a
