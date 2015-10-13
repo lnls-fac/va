@@ -53,8 +53,8 @@ class Magnet(object):
 
         # field profiles
         if len_i == 1:
-            self._field_profile_b = [1]*max_len
-            self._field_profile_a = [1]*max_len
+            self._field_profile_b = numpy.array([[1]*max_len])
+            self._field_profile_a = numpy.array([[1]*max_len])
         else:
             for n in range(max_len):
                 nonzero_b,*_ = numpy.nonzero(self._field_profile_b[:,n-1])
