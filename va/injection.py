@@ -23,7 +23,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
 
     try:
         twiss, m66 = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
-        betax, etax, betay, etay = pyaccel.optics.get_twiss(twiss, ('betax','etax','betay','etay'))
+        betax, etax, betay, etay = twiss.betax, twiss.etax, twiss.betay, twiss.etay
         if math.isnan(betax[-1]):
             loss_fraction = 1.0
             return (loss_fraction, None, None)
@@ -37,7 +37,8 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     sigmay = numpy.sqrt(betay * emity + (etax * energy_spread)**2)
     h_vc = hmax - hmin
     v_vc = vmax - vmin
-    rx, ry = pyaccel.optics.get_twiss(twiss, ('rx','ry'))
+    co = twiss.co
+    rx, ry = co[0,:], co[2,:]
     xlim_inf, xlim_sup = rx - hmin, hmax - rx
     ylim_inf, ylim_sup = ry - vmin, vmax - ry
     xlim_inf[xlim_inf < 0] = 0
@@ -78,7 +79,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     vmin              -- [m]
     """
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
-    init_pos = pyaccel.optics.get_orbit_from_twiss(init_twiss)
+    init_pos = init_twiss.co
 
     if len(hmax) == len(accelerator):
         indices = 'open'
@@ -89,7 +90,7 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
 
     try:
         twiss,*_ = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices=indices)
-        betax , betay, etax, etay = pyaccel.optics.get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+        betax , betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
         if math.isnan(betax[-1]):
             loss_fraction = 1.0
             return loss_fraction
@@ -155,15 +156,9 @@ def _process_loss_fraction_args(accelerator, **kwargs):
     if isinstance(init_twiss, dict):
         init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)
 
-    prev_fixed_point = pyaccel.optics.get_orbit_from_twiss(init_twiss)
-    new_fixed_point = _transform_to_local_coordinates(prev_fixed_point, delta_rx, delta_angle)
+    fixed_point = _transform_to_local_coordinates(init_twiss.co, delta_rx, delta_angle)
 
-    init_twiss.rx = new_fixed_point[0]
-    init_twiss.px = new_fixed_point[1]
-    init_twiss.ry = new_fixed_point[2]
-    init_twiss.py = new_fixed_point[3]
-    init_twiss.de = new_fixed_point[4]
-    init_twiss.dl = new_fixed_point[5]
+    init_twiss.co = fixed_point
 
     lattice = accelerator._accelerator.lattice
     if 'hmax' in kwargs and 'hmin' in kwargs:

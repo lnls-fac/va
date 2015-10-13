@@ -146,7 +146,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
         self._transport_loss_fraction, self._twiss, self._m66 = \
             injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
-        self._orbit = pyaccel.optics.get_orbit_from_twiss(self._twiss)
+        self._orbit = self._twiss.co
         args_dict = {}
         args_dict.update(self._injection_parameters)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
