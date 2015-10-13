@@ -24,7 +24,7 @@ class Magnet(object):
         total_length = 0.0
         total_angle  = 0.0
         len_i = len(self._indices)
-        len_h = numpy.amax(self._harmonics)
+        len_h = numpy.amax(self._harmonics) + 1
         max_len = numpy.amax([len(self._accelerator[self._indices[0]].polynom_b), len_h])
         self._field_profile_a = numpy.zeros((len_i, max_len))
         self._field_profile_b = numpy.zeros((len_i, max_len))
@@ -46,7 +46,7 @@ class Magnet(object):
 
             self._field_profile_b[i,:] = self._accelerator[idx].polynom_b*self._accelerator[idx].length
             self._field_profile_a[i,:] = self._accelerator[idx].polynom_a*self._accelerator[idx].length
-            if self._main_harmonic == 1: self._field_profile_b[i,0] += self._accelerator[idx].angle
+            if self._main_harmonic == 0: self._field_profile_b[i,0] += self._accelerator[idx].angle
 
         self._length = total_length
         self._nominal_angle = total_angle
@@ -57,16 +57,16 @@ class Magnet(object):
             self._field_profile_a = numpy.array([[1]*max_len])
         else:
             for n in range(max_len):
-                nonzero_b,*_ = numpy.nonzero(self._field_profile_b[:,n-1])
-                nonzero_a,*_ = numpy.nonzero(self._field_profile_a[:, n-1])
-                if len(nonzero_a)>0:
-                    self._field_profile_a[:,n-1] = self._field_profile_a[:,n-1]/numpy.sum(self._field_profile_a[:,n-1])
+                nonzero_b,*_ = numpy.nonzero(self._field_profile_b[:,n])
+                nonzero_a,*_ = numpy.nonzero(self._field_profile_a[:,n])
+                if len(nonzero_a) > 0:
+                    self._field_profile_a[:,n] = self._field_profile_a[:,n]/numpy.sum(self._field_profile_a[:,n])
                 else:
-                    self._field_profile_a[:,n-1] = numpy.array([1/len_i]*len_i)
-                if len(nonzero_b)>0:
-                    self._field_profile_b[:,n-1] = self._field_profile_b[:,n-1]/numpy.sum(self._field_profile_b[:,n-1])
+                    self._field_profile_a[:,n] = numpy.array([1/len_i]*len_i)
+                if len(nonzero_b) > 0:
+                    self._field_profile_b[:,n] = self._field_profile_b[:,n]/numpy.sum(self._field_profile_b[:,n])
                 else:
-                    self._field_profile_b[:,n-1] = numpy.array([1/len_i]*len_i)
+                    self._field_profile_b[:,n] = numpy.array([1/len_i]*len_i)
 
     def add_power_supply(self, power_supply):
         self._power_supplies.add(power_supply)
@@ -119,7 +119,7 @@ class Magnet(object):
         value = 0.0
         for i in self._indices:
             polynom = getattr(self._accelerator[i], self._polynom)
-            value += polynom[self._main_harmonic-1]*self._accelerator[i].length
+            value += polynom[self._main_harmonic]*self._accelerator[i].length
 
         if self._nominal_angle != 0:
             integrated_field = (value + self._nominal_angle)*self._accelerator.brho
@@ -134,8 +134,8 @@ class Magnet(object):
         delta_ifa = numpy.zeros(numpy.amax(self._harmonics))
         j = 0
         for n in self._harmonics:
-            delta_ifb[n-1] = delta_integrated_fields[j]
-            delta_ifa[n-1] = delta_integrated_fields[j+1]
+            delta_ifb[n] = delta_integrated_fields[j]
+            delta_ifa[n] = delta_integrated_fields[j+1]
             j += 2
 
         for i in range(len(self._indices)):
