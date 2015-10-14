@@ -25,7 +25,9 @@ class Magnet(object):
         total_angle  = 0.0
         len_i = len(self._indices)
         len_h = numpy.amax(self._harmonics) + 1
-        max_len = numpy.amax([len(self._accelerator[self._indices[0]].polynom_b), len_h])
+        len_p = min(len(self._accelerator[self._indices[0]].polynom_b),
+                    len(self._accelerator[self._indices[0]].polynom_a))
+        max_len = max(len_p, len_h)
         self._field_profile_a = numpy.zeros((len_i, max_len))
         self._field_profile_b = numpy.zeros((len_i, max_len))
 
@@ -35,13 +37,12 @@ class Magnet(object):
             total_angle  += self._accelerator[idx].angle
 
             # Resize polynom_a and polynom_b
-            if len(self._accelerator[idx].polynom_b) < len_h:
+            if len_p < len_h:
                 pb = self._accelerator[idx].polynom_b
-                pb.resize(len_h, refcheck=False)
-                self._accelerator[idx].polynom_b = pb
-            if len(self._accelerator[idx].polynom_a) < len_h:
                 pa = self._accelerator[idx].polynom_a
+                pb.resize(len_h, refcheck=False)
                 pa.resize(len_h, refcheck=False)
+                self._accelerator[idx].polynom_b = pb
                 self._accelerator[idx].polynom_a = pa
 
             self._field_profile_b[i,:] = self._accelerator[idx].polynom_b*self._accelerator[idx].length
@@ -143,11 +144,10 @@ class Magnet(object):
             idx = self._indices[i]
             length = self._accelerator[idx].length
 
-            len_p = len(self._accelerator[idx].polynom_b)
+            len_p  = min(len(self._accelerator[idx].polynom_b),len(self._accelerator[idx].polynom_a))
             len_fp = len(self._field_profile_b[i,:])
             field_profile_b = numpy.array([self._field_profile_b[i,j] for j in range(len_fp)])
             field_profile_a = numpy.array([self._field_profile_a[i,j] for j in range(len_fp)])
-
             if len_p > len_h:
                 delta_ifb.resize(len_p, refcheck=False)
                 delta_ifa.resize(len_p, refcheck=False)
@@ -157,6 +157,7 @@ class Magnet(object):
 
             delta_polynom_b = field_profile_b*delta_ifb/(length*self._accelerator.brho)
             delta_polynom_a = field_profile_a*delta_ifa/(length*self._accelerator.brho)
+
             self._accelerator[idx].polynom_b += delta_polynom_b
             self._accelerator[idx].polynom_a += delta_polynom_a
 
