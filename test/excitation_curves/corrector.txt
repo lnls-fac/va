@@ -1,6 +1,6 @@
 # Dipole
-# harmonics       1
-# main_harmonic   1
+# harmonics       0
+# main_harmonic   0
 # units           Ampere Tm Tm
 #
 -10 -0.01   0

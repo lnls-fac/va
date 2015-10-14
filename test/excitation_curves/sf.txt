@@ -1,6 +1,6 @@
 # Sextupole
-# harmonics       3
-# main_harmonic   3
+# harmonics       2
+# main_harmonic   2
 # units           Ampere T/m T/m
 #
 0       0       0

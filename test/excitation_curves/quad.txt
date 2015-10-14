@@ -1,0 +1,7 @@
+# Quadrupole
+# harmonics       1 4 9 13
+# main_harmonic   1
+# units           Ampere T T
+#
+0       0       0   0           0   0           0   0           0
++126.92 -4.6972 0   +5.1574e4   0   -6.2970e11  0   -15.8056e16 0

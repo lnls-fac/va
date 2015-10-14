@@ -1,6 +1,6 @@
 # Skew qradupole
-# harmonics       2
-# main_harmonic   2
+# harmonics       1
+# main_harmonic   1
 # units           Ampere T T
 #
 -10 0   -0.5

@@ -2,6 +2,7 @@
 import os
 import unittest
 import unittest.mock
+# import numpy
 import pyaccel
 import va
 
@@ -10,12 +11,24 @@ EXCITATION_CURVE_DIR = 'excitation_curves'
 BRHO = 10.006922710777445
 
 
+# def _read_excitation_curves():
+#     curves = dict()
+#     curve_dir = './excitation_curves'
+#     curve_file_names = os.listdir(curve_dir)
+#
+#     for fn in curve_file_names:
+#         data = numpy.read()
+#
+#     return curve_files
+
+
 class TestBendMagnet(unittest.TestCase):
 
     def setUp(self):
         self.accelerator = pyaccel.accelerator.Accelerator(
             energy=3.0e9,
         )
+
         self.angle = 0.05
         self.bend = pyaccel.elements.rbend(
             fam_name='bend',
@@ -23,7 +36,6 @@ class TestBendMagnet(unittest.TestCase):
             angle=self.angle
         )
         self.accelerator.append(self.bend)
-        BRHO = 10.006922710777445
 
         self.bend_magnet = va.magnet.NormalMagnet(
             self.accelerator,
@@ -81,7 +93,7 @@ class TestBendMagnet(unittest.TestCase):
         self.assertAlmostEqual(bend_magnet_strength, expected_strength, 8)
 
 
-class TestMultipoleMagnet(unittest.TestCase):
+class TestSextupoleMagnet(unittest.TestCase):
 
     def setUp(self):
         self.accelerator = pyaccel.accelerator.Accelerator(
@@ -90,7 +102,7 @@ class TestMultipoleMagnet(unittest.TestCase):
 
         self.sf_strength = 100.0
         self.sf_length = 0.2
-        self.sf = pyaccel.elements.sextupole(
+        self.sf_element = pyaccel.elements.sextupole(
             fam_name='sf',
             length=self.sf_length,
             S=self.sf_strength
@@ -98,14 +110,14 @@ class TestMultipoleMagnet(unittest.TestCase):
 
         self.sd_strength = -50.0
         self.sd_length = 0.15
-        self.sd = pyaccel.elements.sextupole(
+        self.sd_element = pyaccel.elements.sextupole(
             fam_name='sd',
             length=self.sd_length,
             S=self.sd_strength
         )
 
-        self.accelerator.append(self.sf)
-        self.accelerator.append(self.sd)
+        self.accelerator.append(self.sf_element)
+        self.accelerator.append(self.sd_element)
 
         self.sf = va.magnet.NormalMagnet(
             self.accelerator,
@@ -223,6 +235,43 @@ class TestMultipoleMagnet(unittest.TestCase):
         self.assertAlmostEqual(skew_strength, expected_strength, 8)
 
 
+class TestMultipoleMagnet(unittest.TestCase):
+
+    def setUp(self):
+        self.accelerator = pyaccel.accelerator.Accelerator(
+            energy=3.0e9,
+        )
+
+        # Focusing quadrupole
+        self.quad_length = 0.15
+        self.quad_strength = 2.0
+        self.quad_element = pyaccel.elements.quadrupole(
+            fam_name='quad',
+            length=self.quad_length,
+            K=self.quad_strength
+        )
+        self.accelerator.append(self.quad_element)
+
+        self.quad = va.magnet.NormalMagnet(
+            self.accelerator,
+            [0],
+            os.path.join(EXCITATION_CURVE_DIR, 'quad.txt')
+        )
+
+    def test_something(self):
+        gl = self.quad.value
+        quad_current = self.quad.current
+        ps = _get_mock_power_supply(current=quad_current)
+        self.quad.add_power_supply(ps)
+        self.quad.process()
+
+        # print()
+        # print(gl)
+        # print(quad_current)
+        # print(self.accelerator[0].K)
+        # print(self.accelerator[0].polynom_b)
+
+
 def _get_mock_power_supply(current):
     ps = unittest.mock.MagicMock()
     ps_current = unittest.mock.PropertyMock(return_value=current)
@@ -235,6 +284,11 @@ def bend_magnet_suite():
     return suite
 
 
+def sextupole_magnet_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestSextupoleMagnet)
+    return suite
+
+
 def multipole_magnet_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestMultipoleMagnet)
     return suite
@@ -243,5 +297,6 @@ def multipole_magnet_suite():
 def get_suite():
     suite_list = []
     suite_list.append(bend_magnet_suite())
+    suite_list.append(sextupole_magnet_suite())
     suite_list.append(multipole_magnet_suite())
     return unittest.TestSuite(suite_list)
