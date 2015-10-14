@@ -130,8 +130,9 @@ class Magnet(object):
 
     def _set_value(self, delta_integrated_fields):
         # Add the changes to the magnet multipoles (Don't overwrite previous multipole errors)
-        delta_ifb = numpy.zeros(numpy.amax(self._harmonics))
-        delta_ifa = numpy.zeros(numpy.amax(self._harmonics))
+        len_h = numpy.amax(self._harmonics) + 1
+        delta_ifb = numpy.zeros(len_h)
+        delta_ifa = numpy.zeros(len_h)
         j = 0
         for n in self._harmonics:
             delta_ifb[n] = delta_integrated_fields[j]
@@ -141,14 +142,21 @@ class Magnet(object):
         for i in range(len(self._indices)):
             idx = self._indices[i]
             length = self._accelerator[idx].length
-            if len(self._accelerator[idx].polynom_b) > numpy.amax(self._harmonics):
-                delta_ifb.resize(len(self._accelerator[idx].polynom_b), refcheck=False)
-            if len(self._accelerator[idx].polynom_a) > numpy.amax(self._harmonics):
-                delta_ifa.resize(len(self._accelerator[idx].polynom_a), refcheck=False)
 
-            delta_polynom_b = self._field_profile_b[i,:]*delta_ifb/(length*self._accelerator.brho)
-            delta_polynom_a = self._field_profile_a[i,:]*delta_ifa/(length*self._accelerator.brho)
+            len_p = len(self._accelerator[idx].polynom_b)
+            len_fp = len(self._field_profile_b[i,:])
+            field_profile_b = numpy.array([self._field_profile_b[i,j] for j in range(len_fp)])
+            field_profile_a = numpy.array([self._field_profile_a[i,j] for j in range(len_fp)])
 
+            if len_p > len_h:
+                delta_ifb.resize(len_p, refcheck=False)
+                delta_ifa.resize(len_p, refcheck=False)
+            if len_p > len_fp:
+                field_profile_b.resize(len_p, refcheck=False)
+                field_profile_a.resize(len_p, refcheck=False)
+
+            delta_polynom_b = field_profile_b*delta_ifb/(length*self._accelerator.brho)
+            delta_polynom_a = field_profile_a*delta_ifa/(length*self._accelerator.brho)
             self._accelerator[idx].polynom_b += delta_polynom_b
             self._accelerator[idx].polynom_a += delta_polynom_a
 
