@@ -1,6 +1,8 @@
 
 import numpy
 import mathphys
+import va.excitation_curve
+
 
 class Magnet(object):
 
