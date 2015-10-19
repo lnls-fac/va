@@ -24,7 +24,7 @@ class ExcitationCurve:
         return self._harmonics
 
     def get_field_from_current(self, current):
-        if self._type == 'normal':
+        if self._curve_type == 'normal':
             fields = self._i_to_f_normal_fields
         else:
             fields = self._i_to_f_skew_fields
@@ -114,9 +114,9 @@ class ExcitationCurve:
 
     def _read_curve_type_from_words(self, words):
         if len(words) <= 2:
-            self._type = 'normal'
+            self._curve_type = 'normal'
         elif words[2] in ('normal', 'skew'):
-            self._type = words[2]
+            self._curve_type = words[2]
         else:
             raise ValueError("invalid curve type: '" + words[2] + "'")
 
@@ -165,7 +165,7 @@ class ExcitationCurve:
             raise ValueError(msg)
 
     def _prepare_f_to_i_interpolation_table(self, current, fields):
-        if self._type == 'normal':
+        if self._curve_type == 'normal':
             self._prepare_f_to_i_normal_interpolation_table(current, fields)
         else:
             self._prepare_f_to_i_skew_interpolation_table(current, fields)
