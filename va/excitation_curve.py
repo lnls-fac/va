@@ -138,6 +138,7 @@ class ExcitationCurve:
         self._prepare_f_to_i_interpolation_table(current, fields)
 
     def _prepare_i_to_f_interpolation_table(self, current, fields):
+        # Field tables alternate normal and skew components
         if _numpy.all(_numpy.diff(current) > 0):
             self._i_to_f_current = current
             self._i_to_f_normal_fields = fields[:, 0::2]
@@ -151,11 +152,11 @@ class ExcitationCurve:
             raise ValueError(msg)
 
     def _prepare_f_to_i_interpolation_table(self, current, fields):
-        # Field tables alternate normal and skew components
         self._prepare_f_to_i_normal_interpolation_table(current, fields)
         self._prepare_f_to_i_skew_interpolation_table(current, fields)
 
     def _prepare_f_to_i_normal_interpolation_table(self, current, fields):
+        # Field tables alternate normal and skew components
         normal_field = fields[:, 2*self._main_harmonic_index]
         if _numpy.all(_numpy.diff(normal_field) > 0):
             self._f_to_i_normal_current = current
@@ -168,6 +169,7 @@ class ExcitationCurve:
             raise ValueError(msg)
 
     def _prepare_f_to_i_skew_interpolation_table(self, current, fields):
+        # Field tables alternate normal and skew components
         skew_field = fields[:, 2*self._main_harmonic_index+1]
         if _numpy.all(_numpy.diff(skew_field) > 0):
             self._f_to_i_skew_current = current

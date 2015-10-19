@@ -11,17 +11,6 @@ EXCITATION_CURVE_DIR = 'excitation_curves'
 BRHO = 10.006922710777445
 
 
-# def _read_excitation_curves():
-#     curves = dict()
-#     curve_dir = './excitation_curves'
-#     curve_file_names = os.listdir(curve_dir)
-#
-#     for fn in curve_file_names:
-#         data = numpy.read()
-#
-#     return curve_files
-
-
 class TestBendMagnet(unittest.TestCase):
 
     def setUp(self):

@@ -20,12 +20,12 @@ class TestInitException(unittest.TestCase):
         with self.assertRaises(ValueError):
             curve = ExcitationCurve(file_name)
 
-    def test_init_missing_main_harmonic(self):
+    def test_init_no_main_harmonic(self):
         file_name = os.path.join(EXC_CURVE_DIR, 'bad_test_main_harmonic.txt')
         with self.assertRaises(AttributeError):
             curve = ExcitationCurve(file_name)
 
-    def test_init_missing_harmonics(self):
+    def test_init_no_harmonics(self):
         file_name = os.path.join(EXC_CURVE_DIR, 'bad_test_harmonics.txt')
         with self.assertRaises(AttributeError):
             curve = ExcitationCurve(file_name)
