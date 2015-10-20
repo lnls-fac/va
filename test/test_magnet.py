@@ -33,9 +33,9 @@ class TestBendMagnet(unittest.TestCase):
         )
 
     def test_magnet_initial_values(self):
-        expected_bl = self.angle*BRHO
+        expected_bl = -self.angle*BRHO
         # Excitation curve maps I: [0, 1000] <-> BL: [0, 1]
-        expected_current = 1000*expected_bl
+        expected_current = -1000*expected_bl
 
         self.assertAlmostEqual(self.bend_magnet.value, expected_bl, 8)
         self.assertAlmostEqual(self.bend_magnet.current, expected_current, 8)
@@ -49,7 +49,7 @@ class TestBendMagnet(unittest.TestCase):
 
         # Check integrated field
         bl = self.bend_magnet.value
-        expected_bl = current/1000
+        expected_bl = -current/1000
         self.assertAlmostEqual(bl, expected_bl, 8)
 
         # Angle must still have nominal value
@@ -68,14 +68,14 @@ class TestBendMagnet(unittest.TestCase):
 
         # Check integrated field
         bl = self.bend_magnet.value
-        expected_bl = current_factor*current/1000
+        expected_bl = -current_factor*current/1000
         self.assertAlmostEqual(bl, expected_bl, 8)
 
         # Angle must still have nominal value
         self.assertEqual(self.accelerator[0].angle, self.angle)
 
         # Difference must be put in polynom_b[0]
-        delta_deflection_angle = bl/BRHO - self.angle
+        delta_deflection_angle = -bl/BRHO - self.angle
         length = self.accelerator[0].length
         expected_strength = delta_deflection_angle/length
         bend_magnet_strength = self.accelerator[0].polynom_b[0]
@@ -120,14 +120,14 @@ class TestSextupoleMagnet(unittest.TestCase):
         )
 
     def test_sextupole_initial_values(self):
-        expected_sf_bl = self.sf_strength*self.sf_length*BRHO
-        expected_sd_bl = self.sd_strength*self.sd_length*BRHO
+        expected_sf_bl = -self.sf_strength*self.sf_length*BRHO
+        expected_sd_bl = -self.sd_strength*self.sd_length*BRHO
 
         # Excitation curve maps I: [0, 200] <-> BL: [0, 400]
-        expected_sf_current = (200.0/400.0)*expected_sf_bl
+        expected_sf_current = -(200.0/400.0)*expected_sf_bl
 
         # Excitation curve maps I: [0, 200] <-> BL: [0, -350]
-        expected_sd_current = -(200.0/350.0)*expected_sd_bl
+        expected_sd_current = (200.0/350.0)*expected_sd_bl
 
         self.assertAlmostEqual(self.sf.value, expected_sf_bl, 8)
         self.assertAlmostEqual(self.sf.current, expected_sf_current, 8)
@@ -145,11 +145,11 @@ class TestSextupoleMagnet(unittest.TestCase):
 
         # Check integrated field
         bl = self.sf.value
-        expected_bl = (400.0/200.0)*current_factor*current
+        expected_bl = -(400.0/200.0)*current_factor*current
         self.assertAlmostEqual(bl, expected_bl, 8)
 
         # Check strength
-        expected_strength = expected_bl/self.sf_length/BRHO
+        expected_strength = -expected_bl/self.sf_length/BRHO
         sf_strength = self.accelerator[0].polynom_b[2]
         self.assertAlmostEqual(sf_strength, expected_strength, 8)
 
@@ -174,17 +174,17 @@ class TestSextupoleMagnet(unittest.TestCase):
 
         # Check sextupole integrated field is still the same
         sextupole_bl = self.sf.value
-        sextupole_expected_bl = (400.0/200.0)*sextupole_current
+        sextupole_expected_bl = -(400.0/200.0)*sextupole_current
         self.assertAlmostEqual(sextupole_bl, sextupole_expected_bl, 8)
 
         # Check corrector integrated
         corrector_bl = corrector.value
         # Excitation curve maps I: [-10, 10] <-> BL: [-0.01, 0.01]
-        corrector_expected_bl = corrector_current/1000
+        corrector_expected_bl = -corrector_current/1000
         self.assertAlmostEqual(corrector_bl, corrector_expected_bl, 8)
 
         # Check corrector strength
-        expected_strength = corrector_expected_bl/self.sf_length/BRHO
+        expected_strength = -corrector_expected_bl/self.sf_length/BRHO
         corrector_strength = self.accelerator[0].polynom_b[0]
         self.assertAlmostEqual(corrector_strength, expected_strength, 8)
 
@@ -209,17 +209,17 @@ class TestSextupoleMagnet(unittest.TestCase):
 
         # Check sextupole integrated field is still the same
         sextupole_bl = self.sd.value
-        sextupole_expected_bl = -(350.0/200.0)*sextupole_current
+        sextupole_expected_bl = (350.0/200.0)*sextupole_current
         self.assertAlmostEqual(sextupole_bl, sextupole_expected_bl, 8)
 
         # Check skew integrated
         skew_kl = skew.value
         # Excitation curve maps I: [-10, 10] <-> KL: [-0.5, 0.5]
-        skew_expected_kl = skew_current/20
+        skew_expected_kl = -skew_current/20
         self.assertAlmostEqual(skew_kl, skew_expected_kl, 8)
 
         # Check skew strength
-        expected_strength = skew_expected_kl/self.sd_length/BRHO
+        expected_strength = -skew_expected_kl/self.sd_length/BRHO
         skew_strength = self.accelerator[1].polynom_a[1]
         self.assertAlmostEqual(skew_strength, expected_strength, 8)
 
