@@ -1,7 +1,7 @@
 
 import numpy
 import mathphys
-from . import excitation_curve
+import va.excitation_curve
 
 class Magnet(object):
 
@@ -21,7 +21,7 @@ class Magnet(object):
             self._indices = indices
         self._nr_segs = len(self._indices)
 
-        self._excitation_curve = excitation_curve.ExcitationCurve(exc_curve_filename)
+        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename)
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
         total_length = 0.0
