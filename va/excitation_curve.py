@@ -37,6 +37,8 @@ class ExcitationCurve:
         return (self._f_to_i_field[0], self._f_to_i_field[-1])
 
     def get_field_from_current(self, current):
+        self._check_value_in_range(current, self.current_range)
+
         if self._curve_type == 'normal':
             fields = self._i_to_f_normal_fields
         else:
@@ -45,14 +47,23 @@ class ExcitationCurve:
         field_array = self._get_main_field_column(fields)
         return self._interpolate_current(current, field_array)
 
+    def _check_value_in_range(self, value, value_range):
+        low = value_range[0]
+        high = value_range[1]
+        if not low <= value <= high:
+            msg = 'value out of range (%f, %f)' % (low, high)
+            raise ValueError(msg)
+
     def _get_main_field_column(self, fields_table):
         return fields_table[:, self._main_harmonic_index]
 
     def get_normal_fields_from_current(self, current):
+        self._check_value_in_range(current, self.current_range)
         fields_array = self._i_to_f_normal_fields
         return self._get_fields_from_current(current, fields_array)
 
     def get_skew_fields_from_current(self, current):
+        self._check_value_in_range(current, self.current_range)
         fields_array = self._i_to_f_skew_fields
         return self._get_fields_from_current(current, fields_array)
 
@@ -68,18 +79,12 @@ class ExcitationCurve:
         return _numpy.interp(current, current_array, field_array)
 
     def get_current_from_field(self, main_field):
+        self._check_value_in_range(main_field, self.field_range)
         field_array = self._f_to_i_field
         current_array =  self._f_to_i_current
 
         return self._interpolate_main_field(main_field, field_array,
             current_array)
-
-    # def get_current_from_skew_main_field(self, main_field):
-    #     field_array = self._f_to_i_skew_main_field
-    #     current_array =  self._f_to_i_skew_current
-    #
-    #     return self._interpolate_main_field(main_field, field_array,
-    #         current_array)
 
     def _interpolate_main_field(self, field, field_array, current_array):
         return _numpy.interp(field, field_array, current_array)

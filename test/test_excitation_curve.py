@@ -80,6 +80,29 @@ class TestCurveAttributes(unittest.TestCase):
             self.curve.field_range = (0.0, 1.0)
 
 
+class TestCurveRange(unittest.TestCase):
+
+    def setUp(self):
+        file_name = os.path.join(EXC_CURVE_DIR, 'testnormal.txt')
+        self.curve = ExcitationCurve(file_name)
+
+    def test_get_field_current_out(self):
+        with self.assertRaises(ValueError):
+            self.curve.get_field_from_current(101.0)
+
+    def test_get_normal_current_out(self):
+        with self.assertRaises(ValueError):
+            self.curve.get_normal_fields_from_current(102.0)
+
+    def test_get_skew_current_out(self):
+        with self.assertRaises(ValueError):
+            self.curve.get_skew_fields_from_current(103.0)
+
+    def test_get_current_field_out(self):
+        with self.assertRaises(ValueError):
+            self.curve.get_current_from_field(-1.1)
+
+
 class TestNormalCurve(unittest.TestCase):
 
     def setUp(self):
@@ -290,6 +313,11 @@ def curve_attributes_suite():
     return suite
 
 
+def curve_range_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCurveRange)
+    return suite
+
+
 def normal_curve_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestNormalCurve)
     return suite
@@ -304,6 +332,7 @@ def get_suite():
     suite_list = []
     suite_list.append(init_exception_suite())
     suite_list.append(curve_attributes_suite())
+    suite_list.append(curve_range_suite())
     suite_list.append(normal_curve_suite())
     suite_list.append(skew_curve_suite())
     return unittest.TestSuite(suite_list)
