@@ -181,7 +181,6 @@ class ExcitationCurve:
             self._f_to_i_field = normal_field[::-1]
 
         else:
-            print(self._magnet)
             msg = 'main field must be strictly increasing or decreasing'
             raise ValueError(msg)
 
@@ -195,6 +194,5 @@ class ExcitationCurve:
             self._f_to_i_current = current[::-1]
             self._f_to_i_field = skew_field[::-1]
         else:
-            print(self._magnet)
             msg = 'main field must be strictly increasing or decreasing'
             raise ValueError(msg)
