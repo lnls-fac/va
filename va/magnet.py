@@ -104,10 +104,7 @@ class Magnet(object):
 
     @property
     def current(self):
-        if self._polynom == 'polynom_b':
-            current = self._excitation_curve.get_current_from_normal_main_field(self.value)
-        else:
-            current = self._excitation_curve.get_current_from_skew_main_field(self.value)
+        current = self._excitation_curve.get_current_from_field(self.value)
         return current
 
     def _get_value(self):
