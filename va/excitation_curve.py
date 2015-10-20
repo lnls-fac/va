@@ -2,7 +2,7 @@
 import numpy as _numpy
 
 
-HEADER_CHAR = '#'
+_HEADER_CHAR = '#'
 
 
 class ExcitationCurve:
@@ -84,7 +84,7 @@ class ExcitationCurve:
     def _process_excitation_curve_file_lines(self, lines):
         conversion_data = []
         for line in lines:
-            if line.startswith(HEADER_CHAR):
+            if line.startswith(_HEADER_CHAR):
                 self._process_header_line(line)
             else:
                 conversion_data.append([float(word) for word in line.split()])
@@ -101,7 +101,7 @@ class ExcitationCurve:
 
     def _get_words_from_header_line(self, line):
         lowercase_header_line = line.lower()
-        lowercase_line = lowercase_header_line.strip(HEADER_CHAR)
+        lowercase_line = lowercase_header_line.strip(_HEADER_CHAR)
         words = lowercase_line.split()
 
         return words
