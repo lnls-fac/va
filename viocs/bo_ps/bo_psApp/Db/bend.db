@@ -1,0 +1,41 @@
+
+record(calc, "BOPS-BEND-FAM-RB")
+{
+    field(DESC, "BOPS-BEND simultaneous current readback")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "BOPS-BEND-FAM-A-RB")
+    field(INPB, "BOPS-BEND-FAM-B-RB")
+    field(CALC, ".5*(A+B)")
+    field(EGU, "A")
+}
+
+record(ao, "BOPS-BEND-FAM-SP")
+{
+    field(DESC, "BOPS-BEND simultaneous current setpoint")
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    #field(OUT, "SEQ-BOPS-BEND-FAM-SP")
+    field(FLNK, "SEQ-BOPS-BEND-FAM-SP PP")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-BOPS-BEND-FAM-SP")
+{
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    field(DOL1, "BOPS-BEND-FAM-SP")
+    field(DOL2, "BOPS-BEND-FAM-SP")
+    field(LNK1, "BOPS-BEND-FAM-A-SP PP")
+    field(LNK2, "BOPS-BEND-FAM-B-SP PP")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-BOPS-BEND-FAM-SP-INIT")
+{
+    field(SCAN, "Event")
+    field(EVNT, 125)
+    field(DOL1, "VA-BOPS-BEND-FAM-A")
+    field(LNK1, "BOPS-BEND-FAM-SP")
+    field(FLNK, "BOPS-BEND-FAM-SP")
+}

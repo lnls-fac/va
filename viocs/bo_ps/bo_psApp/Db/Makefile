@@ -14,6 +14,7 @@ DB += common.db
 DB += family.db
 DB += family.substitutions
 DB += individual.db
+DB += bend.db
 DB += ch.substitutions
 DB += cv.substitutions
 

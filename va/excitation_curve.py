@@ -24,6 +24,18 @@ class ExcitationCurve:
     def harmonics(self):
         return self._harmonics
 
+    @property
+    def curve_type(self):
+        return self._curve_type
+
+    @property
+    def current_range(self):
+        return (self._i_to_f_current[0], self._i_to_f_current[-1])
+
+    @property
+    def field_range(self):
+        return (self._f_to_i_field[0], self._f_to_i_field[-1])
+
     def get_field_from_current(self, current):
         if self._curve_type == 'normal':
             fields = self._i_to_f_normal_fields
