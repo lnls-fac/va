@@ -13,6 +13,7 @@ bo_ps_registerRecordDeviceDriver pdbbase
 
 ## Load record instances
 dbLoadRecords("db/common.db")
+dbLoadRecords("db/bend.db")
 dbLoadTemplate("db/family.substitutions")
 dbLoadTemplate("db/ch.substitutions")
 dbLoadTemplate("db/cv.substitutions")
