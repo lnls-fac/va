@@ -13,6 +13,7 @@ class ExcitationCurve:
         Keyword argument:
         magnet -- magnet excitation curve file name
         """
+        self._magnet = magnet
         self._load_excitation_curve(magnet)
 
     @property
@@ -151,12 +152,11 @@ class ExcitationCurve:
         self._prepare_f_to_i_interpolation_table(current, fields)
 
     def _prepare_i_to_f_interpolation_table(self, current, fields):
-        # Field tables alternate normal and skew components
-        if _numpy.all(_numpy.diff(current) > 0):
+        if _numpy.all(_numpy.diff(current) >= 0):
             self._i_to_f_current = current
             self._i_to_f_normal_fields = fields[:, 0::2]
             self._i_to_f_skew_fields = fields[:, 1::2]
-        elif _numpy.all(_numpy.diff(current) < 0):
+        elif _numpy.all(_numpy.diff(current) <= 0):
             self._i_to_f_current = current[::-1]
             self._i_to_f_normal_fields = fields[::-1, 0::2]
             self._i_to_f_skew_fields = fields[::-1, 1::2]
@@ -173,12 +173,13 @@ class ExcitationCurve:
     def _prepare_f_to_i_normal_interpolation_table(self, current, fields):
         # Field tables alternate normal and skew components
         normal_field = fields[:, 2*self._main_harmonic_index]
-        if _numpy.all(_numpy.diff(normal_field) > 0):
+        if _numpy.all(_numpy.diff(normal_field) >= 0):
             self._f_to_i_current = current
             self._f_to_i_field = normal_field
-        elif _numpy.all(_numpy.diff(normal_field) < 0):
+        elif _numpy.all(_numpy.diff(normal_field) <= 0):
             self._f_to_i_current = current[::-1]
             self._f_to_i_field = normal_field[::-1]
+
         else:
             msg = 'main field must be strictly increasing or decreasing'
             raise ValueError(msg)
@@ -186,10 +187,10 @@ class ExcitationCurve:
     def _prepare_f_to_i_skew_interpolation_table(self, current, fields):
         # Field tables alternate normal and skew components
         skew_field = fields[:, 2*self._main_harmonic_index+1]
-        if _numpy.all(_numpy.diff(skew_field) > 0):
+        if _numpy.all(_numpy.diff(skew_field) >= 0):
             self._f_to_i_current = current
             self._f_to_i_field = skew_field
-        elif _numpy.all(_numpy.diff(skew_field) < 0):
+        elif _numpy.all(_numpy.diff(skew_field) <= 0):
             self._f_to_i_current = current[::-1]
             self._f_to_i_field = skew_field[::-1]
         else:
