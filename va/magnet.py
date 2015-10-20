@@ -83,6 +83,7 @@ class Magnet(object):
 
         delta_normal_fields = numpy.array(new_normal_fields) - numpy.array(prev_normal_fields)
         delta_skew_fields   = numpy.array(new_skew_fields) - numpy.array(prev_skew_fields)
+
         self.value = [delta_normal_fields, delta_skew_fields]
 
     def renormalize_magnet(self):
@@ -124,7 +125,7 @@ class Magnet(object):
     def _set_value(self, integrated_fields):
         normal_fields = self._fill_with_zeros(integrated_fields[0])
         skew_fields   = self._fill_with_zeros(integrated_fields[1])
-
+        
         len_polynom  = min(len(self._accelerator[self._indices[0]].polynom_b),
                        len(self._accelerator[self._indices[0]].polynom_a))
 
@@ -146,7 +147,7 @@ class Magnet(object):
         field = numpy.zeros(self._len_fields)
         for j in range(len(self._excitation_curve.harmonics)):
             n = self._excitation_curve.harmonics[j]
-            field[n] = integrated_field[j]
+            field[n] = integrated_field[n]
         return field
 
 class BoosterDipoleMagnet(Magnet):

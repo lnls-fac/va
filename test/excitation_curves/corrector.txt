@@ -3,5 +3,5 @@
 # main_harmonic   0
 # units           Ampere Tm Tm
 #
--10 -0.01   0
-+10 +0.01   0
+-10 +0.01   0
++10 -0.01   0
