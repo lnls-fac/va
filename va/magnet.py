@@ -130,23 +130,23 @@ class Magnet(object):
 
         for i in range(self._nr_segs):
             idx = self._indices[i]
-            if len_polynom > self._len_profile:
-                field_profile_b = resize_polynom(self._field_profile_b[i,:], len_polynom)
-                field_profile_a = resize_polynom(self._field_profile_a[i,:], len_polynom)
-            if len_polynom > self._len_fields:
-                normal_fields = resize_polynom(normal_fields, len_polynom)
-                skew_fields   = resize_polynom(skew_fields,   len_polynom)
 
-            delta_polynom_b = - field_profile_b*normal_fields/ (self._accelerator[idx].length*self._accelerator.brho)
-            delta_polynom_a = - field_profile_a*skew_fields  / (self._accelerator[idx].length*self._accelerator.brho)
+            field_profile_b = resize_polynom(self._field_profile_b[i,:], len_polynom)
+            field_profile_a = resize_polynom(self._field_profile_a[i,:], len_polynom)
+            normal_fields   = resize_polynom(normal_fields, len_polynom)
+            skew_fields     = resize_polynom(skew_fields,   len_polynom)
+
+            delta_polynom_b = - field_profile_b*normal_fields/(self._accelerator[idx].length*self._accelerator.brho)
+            delta_polynom_a = - field_profile_a*skew_fields  /(self._accelerator[idx].length*self._accelerator.brho)
 
             self._accelerator[idx].polynom_b += delta_polynom_b
             self._accelerator[idx].polynom_a += delta_polynom_a
 
     def _fill_with_zeros(self, integrated_field):
         field = numpy.zeros(self._len_fields)
-        for n in self._excitation_curve.harmonics:
-            field[n] = integrated_fields[j]
+        for j in range(len(self._excitation_curve.harmonics)):
+            n = self._excitation_curve.harmonics[j]
+            field[n] = integrated_field[j]
         return field
 
 class BoosterDipoleMagnet(Magnet):
@@ -203,7 +203,8 @@ class SkewMagnet(Magnet):
 
 def resize_polynom(polynom, length):
     p = numpy.array([x for x in polynom])
-    p.resize(length, refcheck=False)
+    if len(polynom) < length:
+        p.resize(length, refcheck=False)
     return p
 
 
