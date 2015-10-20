@@ -36,26 +36,58 @@ class TestInitException(unittest.TestCase):
             curve = ExcitationCurve(file_name)
 
 
+class TestCurveAttributes(unittest.TestCase):
+
+    def setUp(self):
+        file_name = os.path.join(EXC_CURVE_DIR, 'testnormal.txt')
+        self.curve = ExcitationCurve(file_name)
+
+    def test_get_main_harmonic(self):
+        self.assertEqual(self.curve.main_harmonic, 1)
+
+    def test_set_main_harmonicl(self):
+        with self.assertRaises(AttributeError):
+            self.curve.main_harmonic = 0
+
+    def test_get_harmonics(self):
+        comparison = set(self.curve.harmonics) == set([1, 4, 9, 13])
+        self.assertTrue(comparison)
+
+    def test_set_harmonics(self):
+        with self.assertRaises(AttributeError):
+            self.curve.harmonics = [0, 1, 2, 3]
+
+    def test_set_curve_type(self):
+        with self.assertRaises(AttributeError):
+            self.curve.curve_type = 'new_type'
+
+    def test_get_current_range(self):
+        current_range = self.curve.current_range
+        self.assertEqual(current_range[0], 0.0)
+        self.assertEqual(current_range[1], 100.0)
+
+    def test_set_current_range(self):
+        with self.assertRaises(AttributeError):
+            self.curve.current_range = (0.0, 1.0)
+
+    def test_get_field_range(self):
+        field_range = self.curve.field_range
+        self.assertEqual(field_range[0], -1.0)
+        self.assertEqual(field_range[1], 0.0)
+
+    def test_set_field_range(self):
+        with self.assertRaises(AttributeError):
+            self.curve.field_range = (0.0, 1.0)
+
+
 class TestNormalCurve(unittest.TestCase):
 
     def setUp(self):
         file_name = os.path.join(EXC_CURVE_DIR, 'testnormal.txt')
         self.curve = ExcitationCurve(file_name)
 
-    def test_read_main_harmonic_normal(self):
-        self.assertEqual(self.curve.main_harmonic, 1)
-
-    def test_write_main_harmonic_normal(self):
-        with self.assertRaises(AttributeError):
-            self.curve.main_harmonic = 0
-
-    def test_read_harmonics_normal(self):
-        comparison = set(self.curve.harmonics) == set([1, 4, 9, 13])
-        self.assertTrue(comparison)
-
-    def test_write_harmonics_normal(self):
-        with self.assertRaises(AttributeError):
-            self.curve.harmonics = [0, 1, 2, 3]
+    def test_get_curve_type_normal(self):
+        self.assertEqual(self.curve.curve_type, 'normal')
 
     def test_get_normal_field(self):
         # First current interval
@@ -154,20 +186,8 @@ class TestSkewCurve(unittest.TestCase):
         file_name = os.path.join(EXC_CURVE_DIR, 'testskew.txt')
         self.curve = ExcitationCurve(file_name)
 
-    def test_read_main_harmonic_skew(self):
-        self.assertEqual(self.curve.main_harmonic, 1)
-
-    def test_write_main_harmonic_skew(self):
-        with self.assertRaises(AttributeError):
-            self.curve.main_harmonic = 0
-
-    def test_read_harmonics_skew(self):
-        comparison = set(self.curve.harmonics) == set([1, 4, 9, 13])
-        self.assertTrue(comparison)
-
-    def test_write_harmonics_skew(self):
-        with self.assertRaises(AttributeError):
-            self.curve.harmonics = [0, 1, 2, 3]
+    def test_get_curve_type_skew(self):
+        self.assertEqual(self.curve.curve_type, 'skew')
 
     def test_get_skew_field(self):
         # First current interval
@@ -265,6 +285,11 @@ def init_exception_suite():
     return suite
 
 
+def curve_attributes_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCurveAttributes)
+    return suite
+
+
 def normal_curve_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestNormalCurve)
     return suite
@@ -278,6 +303,7 @@ def skew_curve_suite():
 def get_suite():
     suite_list = []
     suite_list.append(init_exception_suite())
+    suite_list.append(curve_attributes_suite())
     suite_list.append(normal_curve_suite())
     suite_list.append(skew_curve_suite())
     return unittest.TestSuite(suite_list)
