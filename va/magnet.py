@@ -157,7 +157,6 @@ class BoosterDipoleMagnet(Magnet):
         e0 = mathphys.constants.electron_rest_energy*mathphys.constants._joule_2_eV
         self._light_speed = mathphys.constants.light_speed
         self._electron_rest_energy_ev = e0
-        self._energy = self._accelerator.energy
 
     def process(self, change_energy = False):
         prev_current = self.current
@@ -166,7 +165,7 @@ class BoosterDipoleMagnet(Magnet):
 
         current = 0.0
         for ps in self._power_supplies:
-            current += ps.current
+            current += ps.current/2.0
         new_normal_fields = self._excitation_curve.get_normal_fields_from_current(current)
         new_skew_fields   = self._excitation_curve.get_skew_fields_from_current(current)
 
@@ -174,8 +173,8 @@ class BoosterDipoleMagnet(Magnet):
         delta_skew_fields   = numpy.array(new_skew_fields) - numpy.array(prev_skew_fields)
 
         if change_energy:
-            delta_energy = self._light_speed*(- [0]/self._nominal_angle)
-            energy = self._energy + delta_energy
+            delta_energy = self._light_speed*(- delta_normal_fields[0]/self._nominal_angle)
+            energy = self._accelerator.energy + delta_energy
             # Avoid division by zero and math domain error
             if energy > self._electron_rest_energy_ev:
                 self._accelerator.energy = energy

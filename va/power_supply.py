@@ -46,28 +46,30 @@ class FamilyPowerSupply(PowerSupply):
 
     @current.setter
     def current(self, value):
-        self._current = value
-
         if isinstance(list(self._magnets)[0], magnet.BoosterDipoleMagnet):
-            change_energy = True
-            # Change the accelerator energy
-            for m in self._magnets:
-                m.process(change_energy=change_energy)
-                change_energy = False
             all_power_supplies = self._model._power_supplies.values()
+            booster_bend_ps = []
             for ps in all_power_supplies:
-                # Change strengths of other magnets when accelerator energy is changed
-                if not isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
-                    for m in ps._magnets:
-                        m.renormalize_magnet()
-                # Change current of the other bend power supply to the same value
-                elif isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet) and ps._current!=value:
+                if isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
+                    booster_bend_ps.append(ps)
                     ps._current = value
-                    for m in ps._magnets:
-                        m.process(change_energy=change_energy)
+
+            # Change the accelerator energy
+            change_energy = True
+            for ps in booster_bend_ps:
+                for m in ps._magnets:
+                    m.process(change_energy=change_energy)
+                    change_energy = False
+                if ps != self:
                     # Update pv
                     self._model._send_queue.put(('s', (ps._ps_name, value)))
+
+            # Change strengths of all magnets when accelerator energy is changed
+            for ps in all_power_supplies:
+                for m in ps._magnets: m.renormalize_magnet()
+
         else:
+            self._current = value
             for m in self._magnets:
                 m.process()
 
