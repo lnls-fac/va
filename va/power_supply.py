@@ -2,6 +2,7 @@
 import math
 from . import magnet
 
+
 class PowerSupply(object):
 
     def __init__(self, magnets, model, ps_name):
@@ -72,7 +73,6 @@ class FamilyPowerSupply(PowerSupply):
             self._current = value
             for m in self._magnets:
                 m.process()
-
 
 
 class IndividualPowerSupply(PowerSupply):

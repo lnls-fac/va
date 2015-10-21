@@ -45,7 +45,7 @@ class TestCurveAttributes(unittest.TestCase):
     def test_get_main_harmonic(self):
         self.assertEqual(self.curve.main_harmonic, 1)
 
-    def test_set_main_harmonicl(self):
+    def test_set_main_harmonic(self):
         with self.assertRaises(AttributeError):
             self.curve.main_harmonic = 0
 
