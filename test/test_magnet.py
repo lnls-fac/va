@@ -34,15 +34,10 @@ class TestBendMagnet(unittest.TestCase):
 
     def test_magnet_initial_values(self):
         expected_bl = -self.angle*BRHO
-        # Excitation curve maps I: [0, 1000] <-> BL: [0, 1]
-        expected_current = -1000*expected_bl
-
         self.assertAlmostEqual(self.bend_magnet.value, expected_bl, 8)
-        self.assertAlmostEqual(self.bend_magnet.current, expected_current, 8)
 
     def test_bend_magnet_nominal_value(self):
-        bl = self.bend_magnet.value
-        current = self.bend_magnet.current
+        current = 500.34613553887596
         ps = _get_mock_power_supply(current=current)
         self.bend_magnet.add_power_supply(ps)
         self.bend_magnet.process()
@@ -59,8 +54,7 @@ class TestBendMagnet(unittest.TestCase):
         self.assertAlmostEqual(bend_magnet_strength, 0.0, 15)
 
     def test_bend_magnet_changed_value(self):
-        bl = self.bend_magnet.value
-        current = self.bend_magnet.current
+        current = 850.0
         current_factor = 1.1
         ps = _get_mock_power_supply(current=current_factor*current)
         self.bend_magnet.add_power_supply(ps)
@@ -122,22 +116,11 @@ class TestSextupoleMagnet(unittest.TestCase):
     def test_sextupole_initial_values(self):
         expected_sf_bl = -self.sf_strength*self.sf_length*BRHO
         expected_sd_bl = -self.sd_strength*self.sd_length*BRHO
-
-        # Excitation curve maps I: [0, 200] <-> BL: [0, 400]
-        expected_sf_current = -(200.0/400.0)*expected_sf_bl
-
-        # Excitation curve maps I: [0, 200] <-> BL: [0, -350]
-        expected_sd_current = (200.0/350.0)*expected_sd_bl
-
         self.assertAlmostEqual(self.sf.value, expected_sf_bl, 8)
-        self.assertAlmostEqual(self.sf.current, expected_sf_current, 8)
-
         self.assertAlmostEqual(self.sd.value, expected_sd_bl, 8)
-        self.assertAlmostEqual(self.sd.current, expected_sd_current, 8)
 
     def test_sextupole_changed_value(self):
-        bl = self.sf.value
-        current = self.sf.current
+        current = 100.0
         current_factor = 1.1
         ps = _get_mock_power_supply(current=current_factor*current)
         self.sf.add_power_supply(ps)
@@ -154,8 +137,7 @@ class TestSextupoleMagnet(unittest.TestCase):
         self.assertAlmostEqual(sf_strength, expected_strength, 8)
 
     def test_sextupole_with_orbit_corrector(self):
-        bl = self.sf.value
-        sextupole_current = self.sf.current
+        sextupole_current = 125.0
         ps = _get_mock_power_supply(current=sextupole_current)
         self.sf.add_power_supply(ps)
         self.sf.process()
@@ -189,8 +171,7 @@ class TestSextupoleMagnet(unittest.TestCase):
         self.assertAlmostEqual(corrector_strength, expected_strength, 8)
 
     def test_sextupole_with_skew_corrector(self):
-        bl = self.sd.value
-        sextupole_current = self.sd.current
+        sextupole_current = 100.0
         ps = _get_mock_power_supply(current=sextupole_current)
         self.sd.add_power_supply(ps)
         self.sd.process()
@@ -248,17 +229,10 @@ class TestMultipoleMagnet(unittest.TestCase):
         )
 
     def test_something(self):
-        gl = self.quad.value
-        quad_current = self.quad.current
+        quad_current = 95.1
         ps = _get_mock_power_supply(current=quad_current)
         self.quad.add_power_supply(ps)
         self.quad.process()
-
-        # print()
-        # print(gl)
-        # print(quad_current)
-        # print(self.accelerator[0].K)
-        # print(self.accelerator[0].polynom_b)
 
 
 def _get_mock_power_supply(current):

@@ -35,7 +35,7 @@ class FamilyPowerSupply(PowerSupply):
             total_current = 0.0
             n = 0
             for m in magnets:
-                total_current += m.current
+                total_current += m.get_current_from_field()
                 n += 1
             self._current = total_current/n
         else:
@@ -83,7 +83,7 @@ class IndividualPowerSupply(PowerSupply):
             raise Exception('Individual Power Supply')
         elif (current is None) and (len(magnets) > 0):
             m = list(magnets)[0]
-            total_current = m.current
+            total_current = m.get_current_from_field()
             power_supplies = m._power_supplies.difference({self})
             ps_current = 0.0
             for ps in power_supplies:
