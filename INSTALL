@@ -15,7 +15,7 @@ REQUIREMENTS
 - pcaspy 0.5 (>=0.5.1)
 - mathphys 0.4 (>=0.4.0)
 - pyaccel 0.10 (>=0.10.0)
-- sirius 0.8 (>=0.8.0)
+- sirius 0.10 (>=0.10.0)
 
 
 INSTALLATION
