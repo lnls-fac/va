@@ -13,7 +13,6 @@ class ExcitationCurve:
         Keyword argument:
         magnet -- magnet excitation curve file name
         """
-        self._magnet = magnet
         self._load_excitation_curve(magnet)
 
     @property
@@ -38,13 +37,7 @@ class ExcitationCurve:
 
     def get_field_from_current(self, current):
         self._check_value_in_range(current, self.current_range)
-
-        if self._curve_type == 'normal':
-            fields = self._i_to_f_normal_fields
-        else:
-            fields = self._i_to_f_skew_fields
-
-        field_array = self._get_main_field_column(fields)
+        field_array = self._i_to_f_main_field
         return self._interpolate_current(current, field_array)
 
     def _check_value_in_range(self, value, value_range):
@@ -54,20 +47,16 @@ class ExcitationCurve:
             msg = 'value out of range (%f, %f)' % (low, high)
             raise ValueError(msg)
 
-    def _get_main_field_column(self, fields_table):
-        return fields_table[:, self._main_harmonic_index]
-
     def get_normal_fields_from_current(self, current):
-        self._check_value_in_range(current, self.current_range)
         fields_array = self._i_to_f_normal_fields
         return self._get_fields_from_current(current, fields_array)
 
     def get_skew_fields_from_current(self, current):
-        self._check_value_in_range(current, self.current_range)
         fields_array = self._i_to_f_skew_fields
         return self._get_fields_from_current(current, fields_array)
 
     def _get_fields_from_current(self, current, fields_array):
+        self._check_value_in_range(current, self.current_range)
         fields = _numpy.zeros(self._highest_harmonic+1)
         for h, i in zip(self._harmonics, range(len(self._harmonics))):
             fields[h] = self._interpolate_current(current, fields_array[:, i])
@@ -132,7 +121,7 @@ class ExcitationCurve:
 
     def _read_curve_type_from_words(self, words):
         if len(words) <= 2:
-            self._curve_type = 'normal'
+            self._curve_type = 'normal' # default
         elif words[2] in ('normal', 'skew'):
             self._curve_type = words[2]
         else:
@@ -145,8 +134,10 @@ class ExcitationCurve:
     def _check_harmonics(self):
         if not hasattr(self, '_main_harmonic'):
             raise AttributeError('missing main_harmonic')
+
         if not hasattr(self, '_harmonics'):
             raise AttributeError('missing harmonics')
+
         self._main_harmonic_index = self._harmonics.index(self._main_harmonic)
 
     def _build_interpolation_tables_from_conversion_data(self, data):
@@ -165,51 +156,40 @@ class ExcitationCurve:
 
     def _prepare_interpolation_tables(self, current, fields):
         # Interpolation requires increasing x
-        self._prepare_i_to_f_interpolation_table(current, fields)
-        self._prepare_f_to_i_interpolation_table(current, fields)
+        main_index = self._get_main_field_index()
+        self._prepare_i_to_f_interpolation_table(current, fields, main_index)
+        self._prepare_f_to_i_interpolation_table(current, fields, main_index)
 
-    def _prepare_i_to_f_interpolation_table(self, current, fields):
+    def _get_main_field_index(self):
+        if self._curve_type == 'normal':
+            return 2*self._main_harmonic_index
+        else:
+            return 2*self._main_harmonic_index + 1
+
+    def _prepare_i_to_f_interpolation_table(self, current, fields, main_index):
         if _numpy.all(_numpy.diff(current) >= 0):
             self._i_to_f_current = current
             self._i_to_f_normal_fields = fields[:, 0::2]
             self._i_to_f_skew_fields = fields[:, 1::2]
+            self._i_to_f_main_field = fields[:, main_index]
         elif _numpy.all(_numpy.diff(current) <= 0):
             self._i_to_f_current = current[::-1]
             self._i_to_f_normal_fields = fields[::-1, 0::2]
             self._i_to_f_skew_fields = fields[::-1, 1::2]
+            self._i_to_f_main_field = fields[::-1, main_index]
         else:
             msg = 'current must be strictly increasing or decreasing'
             raise ValueError(msg)
 
-    def _prepare_f_to_i_interpolation_table(self, current, fields):
-        if self._curve_type == 'normal':
-            self._prepare_f_to_i_normal_interpolation_table(current, fields)
-        else:
-            self._prepare_f_to_i_skew_interpolation_table(current, fields)
-
-    def _prepare_f_to_i_normal_interpolation_table(self, current, fields):
+    def _prepare_f_to_i_interpolation_table(self, current, fields, main_index):
         # Field tables alternate normal and skew components
-        normal_field = fields[:, 2*self._main_harmonic_index]
-        if _numpy.all(_numpy.diff(normal_field) >= 0):
+        field = fields[:, main_index]
+        if _numpy.all(_numpy.diff(field) >= 0):
             self._f_to_i_current = current
-            self._f_to_i_field = normal_field
-        elif _numpy.all(_numpy.diff(normal_field) <= 0):
+            self._f_to_i_field = field
+        elif _numpy.all(_numpy.diff(field) <= 0):
             self._f_to_i_current = current[::-1]
-            self._f_to_i_field = normal_field[::-1]
-
-        else:
-            msg = 'main field must be strictly increasing or decreasing'
-            raise ValueError(msg)
-
-    def _prepare_f_to_i_skew_interpolation_table(self, current, fields):
-        # Field tables alternate normal and skew components
-        skew_field = fields[:, 2*self._main_harmonic_index+1]
-        if _numpy.all(_numpy.diff(skew_field) >= 0):
-            self._f_to_i_current = current
-            self._f_to_i_field = skew_field
-        elif _numpy.all(_numpy.diff(skew_field) <= 0):
-            self._f_to_i_current = current[::-1]
-            self._f_to_i_field = skew_field[::-1]
+            self._f_to_i_field = field[::-1]
         else:
             msg = 'main field must be strictly increasing or decreasing'
             raise ValueError(msg)
