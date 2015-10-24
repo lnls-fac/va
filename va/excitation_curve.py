@@ -167,30 +167,37 @@ class ExcitationCurve:
             return 2*self._main_harmonic_index + 1
 
     def _prepare_i_to_f_interpolation_table(self, current, fields, main_index):
-        if _numpy.all(_numpy.diff(current) >= 0):
-            self._i_to_f_current = current
-            self._i_to_f_normal_fields = fields[:, 0::2] # even columns
-            self._i_to_f_skew_fields = fields[:, 1::2] # odd columns
-            self._i_to_f_main_field = fields[:, main_index]
-        elif _numpy.all(_numpy.diff(current) <= 0):
-            # Current is decreasing, reverse values
-            self._i_to_f_current = current[::-1]
-            self._i_to_f_normal_fields = fields[::-1, 0::2] # even columns
-            self._i_to_f_skew_fields = fields[::-1, 1::2] # odd columns
-            self._i_to_f_main_field = fields[::-1, main_index]
-        else:
-            msg = 'current must be strictly increasing or decreasing'
-            raise ValueError(msg)
+        i, f = self._get_strictly_increasing_x_array(current, fields)
+
+        self._i_to_f_current = i
+        self._i_to_f_normal_fields = f[:, 0::2] # even columns
+        self._i_to_f_skew_fields = f[:, 1::2] # odd columns
+        self._i_to_f_main_field = f[:, main_index]
 
     def _prepare_f_to_i_interpolation_table(self, current, fields, main_index):
         field = fields[:, main_index]
-        if _numpy.all(_numpy.diff(field) >= 0):
-            self._f_to_i_current = current
-            self._f_to_i_field = field
-        elif _numpy.all(_numpy.diff(field) <= 0):
-            # Main field is decreasing, reverse values
-            self._f_to_i_current = current[::-1]
-            self._f_to_i_field = field[::-1]
+        f, i = self._get_strictly_increasing_x_array(field, current)
+
+        self._f_to_i_field = f
+        self._f_to_i_current = i
+
+    def _get_strictly_increasing_x_array(self, x_array, y_array):
+        if self._is_strictly_increasing(x_array):
+            x, y = x_array, y_array
+        elif self._is_strictly_decreasing(x_array):
+            x, y = self._reverse(x_array, y_array)
         else:
-            msg = 'main field must be strictly increasing or decreasing'
+            msg = 'x array must be strictly increasing or decreasing'
             raise ValueError(msg)
+
+        return x, y
+
+    def _is_strictly_increasing(self, array):
+        return _numpy.all(_numpy.diff(array) > 0)
+
+    def _is_strictly_decreasing(self, array):
+        return _numpy.all(_numpy.diff(array) < 0)
+
+    def _reverse(self, *args):
+        result = [arg[::-1] for arg in args]
+        return tuple(result)
