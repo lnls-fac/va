@@ -40,13 +40,6 @@ class ExcitationCurve:
         field_array = self._i_to_f_main_field
         return self._interpolate_current(current, field_array)
 
-    def _check_value_in_range(self, value, value_range):
-        low = value_range[0]
-        high = value_range[1]
-        if not low <= value <= high:
-            msg = 'value out of range (%f, %f)' % (low, high)
-            raise ValueError(msg)
-
     def get_normal_fields_from_current(self, current):
         fields_array = self._i_to_f_normal_fields
         return self._get_fields_from_current(current, fields_array)
@@ -55,18 +48,6 @@ class ExcitationCurve:
         fields_array = self._i_to_f_skew_fields
         return self._get_fields_from_current(current, fields_array)
 
-    def _get_fields_from_current(self, current, fields_array):
-        self._check_value_in_range(current, self.current_range)
-        fields = _numpy.zeros(self._highest_harmonic+1)
-        for h, i in zip(self._harmonics, range(len(self._harmonics))):
-            fields[h] = self._interpolate_current(current, fields_array[:, i])
-
-        return fields
-
-    def _interpolate_current(self, current, field_array):
-        current_array =  self._i_to_f_current
-        return _numpy.interp(current, current_array, field_array)
-
     def get_current_from_field(self, main_field):
         self._check_value_in_range(main_field, self.field_range)
         field_array = self._f_to_i_field
@@ -74,6 +55,25 @@ class ExcitationCurve:
 
         return self._interpolate_main_field(main_field, field_array,
             current_array)
+
+    def _check_value_in_range(self, value, value_range):
+        low = value_range[0]
+        high = value_range[1]
+        if not low <= value <= high:
+            msg = 'value out of range (%f, %f)' % (low, high)
+            raise ValueError(msg)
+
+    def _interpolate_current(self, current, field_array):
+        current_array =  self._i_to_f_current
+        return _numpy.interp(current, current_array, field_array)
+
+    def _get_fields_from_current(self, current, fields_array):
+        self._check_value_in_range(current, self.current_range)
+        fields = _numpy.zeros(self._highest_harmonic+1)
+        for h, i in zip(self._harmonics, range(len(self._harmonics))):
+            fields[h] = self._interpolate_current(current, fields_array[:, i])
+
+        return fields
 
     def _interpolate_main_field(self, field, field_array, current_array):
         return _numpy.interp(field, field_array, current_array)
@@ -169,25 +169,26 @@ class ExcitationCurve:
     def _prepare_i_to_f_interpolation_table(self, current, fields, main_index):
         if _numpy.all(_numpy.diff(current) >= 0):
             self._i_to_f_current = current
-            self._i_to_f_normal_fields = fields[:, 0::2]
-            self._i_to_f_skew_fields = fields[:, 1::2]
+            self._i_to_f_normal_fields = fields[:, 0::2] # even columns
+            self._i_to_f_skew_fields = fields[:, 1::2] # odd columns
             self._i_to_f_main_field = fields[:, main_index]
         elif _numpy.all(_numpy.diff(current) <= 0):
+            # Current is decreasing, reverse values
             self._i_to_f_current = current[::-1]
-            self._i_to_f_normal_fields = fields[::-1, 0::2]
-            self._i_to_f_skew_fields = fields[::-1, 1::2]
+            self._i_to_f_normal_fields = fields[::-1, 0::2] # even columns
+            self._i_to_f_skew_fields = fields[::-1, 1::2] # odd columns
             self._i_to_f_main_field = fields[::-1, main_index]
         else:
             msg = 'current must be strictly increasing or decreasing'
             raise ValueError(msg)
 
     def _prepare_f_to_i_interpolation_table(self, current, fields, main_index):
-        # Field tables alternate normal and skew components
         field = fields[:, main_index]
         if _numpy.all(_numpy.diff(field) >= 0):
             self._f_to_i_current = current
             self._f_to_i_field = field
         elif _numpy.all(_numpy.diff(field) <= 0):
+            # Main field is decreasing, reverse values
             self._f_to_i_current = current[::-1]
             self._f_to_i_field = field[::-1]
         else:
