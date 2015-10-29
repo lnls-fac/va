@@ -264,13 +264,14 @@ class AcceleratorModel(model.Model):
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
-        self._calc_injection_efficiency = True
+        self._update_injection_loss_fraction = True
 
     def _get_charge_from_upstream_accelerator(self, args_dict):
         charge = args_dict['charge']
+        delay = args_dict['delay']
         self._received_charge = True
         self._update_state()
-        self._injection(charge=charge)
+        self._injection(charge=charge, delay=delay)
         self._received_charge = False
 
     def _send_parameters_to_downstream_accelerator(self, args_dict):

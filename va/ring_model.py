@@ -147,21 +147,21 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            self._calc_injection_efficiency = True
+            self._update_injection_loss_fraction = True
             self._state_deprecated = False
             self._state_changed = True
+        # Calculate pmm and on-axis injection loss fractions
+        self._calc_loss_fractions()
 
-        # Calculate injection efficiency
-        if self._calc_injection_efficiency and (self._received_charge or
-                self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
-            self._calc_injection_efficiency = False
-            self._set_kickin('on')
+    def _calc_loss_fractions(self):
+        if self._summary is None:
+            self._update_injection_loss_fraction = False
+            return
+        if self._update_injection_loss_fraction and (self._received_charge or
+            self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
+            self._update_injection_loss_fraction = False
             self._calc_onaxis_injection_loss_fraction()
-            self._set_kickin('off')
-            self._set_pmm('on')
             self._calc_pmm_injection_loss_fraction()
-            self._set_pmm('off')
-
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -209,7 +209,6 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._tunes = None
         self._transfer_matrices = None
         self._summary = None
-        # self._injection_parameters = None
         self._injection_loss_fraction = None
         self._pmm_injection_loss_fraction = None
         self._onaxis_injection_loss_fraction = None
@@ -293,7 +292,10 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
+
+        self._set_pmm('on')
         self._pmm_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._set_pmm('off')
 
     def _calc_onaxis_injection_loss_fraction(self):
         if self._injection_parameters is None: return
@@ -302,15 +304,22 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-        self._onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
 
-    def _injection(self, charge=None):
+        self._set_kickin('on')
+        self._onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._set_kickin('off')
+
+    def _injection(self, charge=None, delay=0.0):
         if charge is None: return
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        charge = self._incoming_bunch_injected_in_si(charge)
+        if self._summary is None:
+            self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+            return
+
+        charge = self._incoming_bunch_injected_in_si(charge, delay)
         if self._ti_kickinj_enabled and not self._ti_pmm_enabled:
             self._injection_loss_fraction = self._onaxis_injection_loss_fraction
             efficiency = self._beam_inject(charge=charge)
@@ -322,18 +331,10 @@ class RingModel(accelerator_model.AcceleratorModel):
             efficiency = 0
         self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
 
-    def _receive_pv_value(self, pv_name, value):
-        if 'TI-EGUN-DELAY' in pv_name:
-            self._prev_ti_egun_delay = self._ti_egun_delay
-            self._ti_egun_delay = value
-        elif 'TI-KICKEX-INC' in pv_name:
-            self._prev_ti_kickex_inc = self._ti_kickex_inc
-            self._ti_kickex_inc = value
-
-    def _incoming_bunch_injected_in_si(self, charge):
+    def _incoming_bunch_injected_in_si(self, charge, delay):
         # Change the bunches in which the charge is injected
         rf_frequency = pyaccel.optics.get_rf_frequency(self._accelerator)
-        bunch_offset = round((self._prev_ti_egun_delay + self._prev_ti_kickex_inc) * rf_frequency)
+        bunch_offset = round(delay*rf_frequency)
         harmonic_number = self.model_module.harmonic_number
         bunch_charge = [0.0] * harmonic_number
         for i in range(len(charge)):

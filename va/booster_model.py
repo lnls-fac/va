@@ -12,8 +12,6 @@ class BoosterModel(ring_model.RingModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Send value of BOTI-KICKEX-INC to SI
-        self._send_queue.put(('g', ('SI', 'BOTI-KICKEX-INC')))
 
     # --- methods implementing response of model to get requests
 
@@ -60,7 +58,6 @@ class BoosterModel(ring_model.RingModel):
                 return True
             elif 'KICKEX-INC' in pv_name:
                 self._ti_kickex_inc = value
-                self._send_queue.put(('g', ('SI', 'BOTI-KICKEX-INC')))
                 self._state_deprecated = True
                 return True
             elif 'RAMPPS-ENABLED' in pv_name:
@@ -81,35 +78,40 @@ class BoosterModel(ring_model.RingModel):
     def _update_state(self, force=False):
 
         if force or self._state_deprecated:
+            # Calculate parameters
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            self._calc_injection_efficiency = True
-            self._calc_acceleration_efficiency = True
-            self._calc_ejection_efficiency = True
+            self._update_injection_loss_fraction = True
+            self._update_acceleration_loss_fraction = True
+            self._update_ejection_loss_fraction = True
             self._state_changed = True
             self._state_deprecated = False
+        # Calculate injection, acceleration and ejection loss fractions
+        self._calc_loss_fractions()
 
-        # Calculate injection efficiency
-        if self._calc_injection_efficiency and (self._received_charge or self._injection_loss_fraction is None):
-            self._calc_injection_efficiency = False
-            self._set_kickin('on')
+    def _calc_loss_fractions(self):
+        if self._summary is None:
+            self._update_injection_loss_fraction    = False
+            self._update_acceleration_loss_fraction = False
+            self._update_ejection_loss_fraction     = False
+            return
+
+        # Calculate injection loss_fraction
+        if self._update_injection_loss_fraction and (self._received_charge or self._injection_loss_fraction is None):
+            self._update_injection_loss_fraction = False
             self._calc_injection_loss_fraction()
-            self._set_kickin('off')
 
-        # Calculate acceleration efficiency
-        if self._calc_acceleration_efficiency and (self._received_charge or self._acceleration_loss_fraction is None):
-            self._calc_acceleration_efficiency = False
+        # Calculate acceleration loss_fraction
+        if self._update_acceleration_loss_fraction and (self._received_charge or self._acceleration_loss_fraction is None):
+            self._update_acceleration_loss_fraction = False
             self._calc_acceleration_loss_fraction()
 
-        # Calculate ejection efficiency
-        if self._calc_ejection_efficiency and (self._received_charge or self._ejection_loss_fraction is None):
-            self._calc_ejection_efficiency = False
-            self._set_kickex('on')
+        # Calculate ejection loss_fraction
+        if self._update_ejection_loss_fraction and (self._received_charge or self._ejection_loss_fraction is None):
+            self._update_ejection_loss_fraction = False
             self._calc_ejection_loss_fraction()
-            self._set_kickex('off')
-
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -186,7 +188,10 @@ class BoosterModel(ring_model.RingModel):
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
+
+        self._set_kickin('on')
         self._injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._set_kickin('off')
 
     def _calc_acceleration_loss_fraction(self):
         self._log('calc', 'acceleration efficiency  for '+self.model_module.lattice_version)
@@ -198,11 +203,14 @@ class BoosterModel(ring_model.RingModel):
             return
 
         self._log('calc', 'ejection efficiency  for '+self.model_module.lattice_version)
+        self._set_kickex('on')
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
+
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
         _dict = {}
         _dict.update(ejection_parameters)
         _dict.update(self._get_vacuum_chamber(init_idx=self._kickex_idx[0], final_idx=self._ext_point+1))
+
         self._ejection_loss_fraction, twiss, *_ = injection.calc_charge_loss_fraction_in_line(accelerator,
             init_twiss=self._twiss[self._kickex_idx[0]], **_dict)
 
@@ -210,12 +218,19 @@ class BoosterModel(ring_model.RingModel):
         args_dict.update(ejection_parameters)
         args_dict['init_twiss'] = twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
+        self._set_kickex('off')
 
-    def _injection(self, charge=None):
+    def _injection(self, charge=None, delay=0.0):
         if charge is None: return
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+
+        if self._summary is None:
+            self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+            self._log(message1='cycle', message2='beam acceleration at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+            self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+            return
 
         if not self._ti_kickinj_enabled: charge = [0.0]
         efficiency = self._beam_inject(charge=charge)
@@ -228,4 +243,6 @@ class BoosterModel(ring_model.RingModel):
         final_charge, efficiency = self._beam_eject()
         if not self._ti_kickex_enabled: final_charge, efficiency = ([0.0], 0)
         self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge})
+
+        delay += self._ti_kickex_delay
+        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay' : delay})

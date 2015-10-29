@@ -9,8 +9,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Send value of LITI-EGUN-DELAY to SI
-        self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
 
     # --- methods implementing response of model to get requests
 
@@ -44,7 +42,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
             self._cycle = value
             self._send_queue.put(('s', (pv_name, 0)))
             self._start_injection_cycle()
-            self._set_delay_next_cycle()
             self._cycle = 0
             return True
         elif 'TI-EGUN-ENABLED' in pv_name:
@@ -53,7 +50,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
             return True
         elif 'TI-EGUN-DELAY' in pv_name:
             self._ti_egun_delay = value
-            self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
             self._state_deprecated = True
             return True
         return False
@@ -107,7 +103,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
         self._beam_inject(charge=charge)
         final_charge, _ = self._beam_eject()
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge})
+        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay': self._ti_egun_delay})
+        self._set_delay_next_cycle()
 
     def _receive_pv_value(self, pv_name, value):
         if 'SIRF-FREQUENCY' in pv_name:
@@ -119,6 +116,4 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._ti_egun_delay += (1.0/ self._si_rf_frequency) * nr_bunches
         # Set new value of LITI-EGUN-DELAY in epics memory
         self._send_queue.put(('s', ('LITI-EGUN-DELAY', self._ti_egun_delay)))
-        # Send new value of LITI-EGUN-DELAY to SI
-        self._send_queue.put(('g', ('SI', 'LITI-EGUN-DELAY')))
         self._state_deprecated = True
