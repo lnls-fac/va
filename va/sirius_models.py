@@ -26,7 +26,7 @@ class LiModel(linac_model.LinacModel):
     _energy_spread     = model_module.accelerator_data['energy_spread']
     _global_coupling   = model_module.accelerator_data['global_coupling']
     _twiss_at_exit     = model_module.accelerator_data['twiss_at_exit'].make_dict()
-    _pulse_duration    = model_module.pulse_duration_interval[1]
+    _pulse_duration    = model_module.pulse_duration_interval
     _frequency         = model_module.frequency
     _single_bunch_mode = 0
     nr_bunches         = int(_frequency*_pulse_duration/6)
