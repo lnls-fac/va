@@ -15,6 +15,11 @@ class BoosterModel(ring_model.RingModel):
 
     # --- methods implementing response of model to get requests
 
+    def _get_pv_fake(self, pv_name):
+        #if 'MODE' in pv_name:
+        #    return self._single_bunch_mode
+        return super()._get_pv_fake(pv_name)
+
     def _get_pv_timing(self, pv_name):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
@@ -38,6 +43,9 @@ class BoosterModel(ring_model.RingModel):
 
     # --- methods implementing response of model to set requests
 
+    def _set_pv_fake(self, pv_name, value):
+        return super()._set_pv_fake(pv_name, value)
+        
     def _set_pv_timing(self, pv_name, value):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:

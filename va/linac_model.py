@@ -15,6 +15,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
     def _get_pv_fake(self, pv_name):
         if 'MODE' in pv_name:
             return self._single_bunch_mode
+        return super()._get_pv_fake(pv_name)
+
 
     def _get_pv_timing(self, pv_name):
         if 'TI-' in pv_name:
@@ -35,7 +37,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
         if 'MODE' in pv_name:
             self._single_bunch_mode = value
             return True
-        return False
+        return super()._set_pv_fake(pv_name, value)
+        
 
     def _set_pv_timing(self, pv_name, value):
         if 'CYCLE' in pv_name:
