@@ -74,6 +74,8 @@ class AcceleratorModel(model.Model):
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
             return error
+        if '-SAVEFLATFILE' in pv_name:
+            return 0
         else:
             return None
 
@@ -123,6 +125,11 @@ class AcceleratorModel(model.Model):
                 pyaccel.lattice.set_error_rotation_roll(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
+        elif '-SAVEFLATFILE' in pv_name:
+            fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
+            pyaccel.lattice.write_flat_file(self._accelerator, fname)
+            
+
         return False
 
     def _set_pv_rf(self, pv_name, value):

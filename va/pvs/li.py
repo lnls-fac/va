@@ -99,9 +99,11 @@ def get_fake_record_names(accelerator, family_name=None):
 
     if family_name.lower() == 'lifk':
         _dict = {'LIFK-MODE':{}}
+        _dict['LIFK-SAVEFLATFILE'] = {}
         return _dict
     else:
         raise Exception('Family name %s not found'%family_name)
+
 
 
 _LocalData.build_data()

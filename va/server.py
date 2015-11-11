@@ -73,6 +73,8 @@ def get_models():
 def get_pv_database(models):
     pv_database = {}
     for m in models:
+        if m.prefix == 'SI':
+            print('here')
         pv_database.update(m.database)
 
     return pv_database

@@ -148,6 +148,8 @@ def get_fake_record_names(accelerator, family_name = None):
         _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ERRORY-'))
         _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ERRORR-'))
 
+        _dict['TSFK-SAVEFLATFILE'] = {}
+
         return _dict
     else:
         raise Exception('Family name %s not found'%family_name)

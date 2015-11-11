@@ -181,6 +181,8 @@ def get_fake_record_names(accelerator, family_name=None):
                          'SIFK-ERRORR-'+ key : {'cv': idx}}
                     _dict.update(d)
 
+        _dict['SIFK-SAVEFLATFILE'] = {}
+
         return _dict
     else:
         raise Exception('Family name %s not found' % family_name)
