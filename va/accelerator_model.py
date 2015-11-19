@@ -33,9 +33,9 @@ class AcceleratorModel(model.Model):
     def _get_pv(self, pv_name):
         value = self._get_pv_dynamic(pv_name)
         if value is None:
-            value = self._get_pv_static(pv_name)
-        if value is None:
             value = self._get_pv_fake(pv_name)
+        if value is None:
+            value = self._get_pv_static(pv_name)
         if value is None:
             value = self._get_pv_timing(pv_name)
         if value is None:
@@ -76,6 +76,16 @@ class AcceleratorModel(model.Model):
             return error
         if '-SAVEFLATFILE' in pv_name:
             return 0
+        if '-POS' in pv_name:
+            indices = self._get_elements_indices(pv_name, flat=False)
+            if isinstance(indices[0], int):
+                pos = pyaccel.lattice.find_spos(self._accelerator, indices)
+            else:
+                pos = [pyaccel.lattice.find_spos(self._accelerator, idx[0]) for idx in indices]
+            start = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'start')[0]
+            start_spos = pyaccel.lattice.find_spos(self._accelerator, start)
+            pos = (pos-start_spos)%(pyaccel.lattice.length(self._accelerator))
+            return pos
         else:
             return None
 
@@ -129,7 +139,7 @@ class AcceleratorModel(model.Model):
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
             self._send_queue.put(('s', (pv_name, 0)))
-            
+            return True
         return False
 
     def _set_pv_rf(self, pv_name, value):
@@ -172,12 +182,12 @@ class AcceleratorModel(model.Model):
 
    # --- auxiliary methods
 
-    def _get_elements_indices(self, pv_name):
+    def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
         data = self._all_pvs[pv_name]
         indices = []
         for key in data.keys():
-            idx = mathphys.utils.flatten(data[key])
+            idx = mathphys.utils.flatten(data[key]) if flat else data[key]
             indices.extend(idx)
         return indices
 

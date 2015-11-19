@@ -1,17 +1,12 @@
 
 import sirius as _sirius
 
-
 # Kingdom-dependent parameters
 model = _sirius.li
 prefix = 'LI'
 
 accelerator = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
-
-
-def _get_subsystem(rn):
-    return prefix + rn
 
 
 class _LocalData:
@@ -30,41 +25,96 @@ class _LocalData:
         _LocalData.all_record_names.update(_fake_record_names)
         record_names = model.record_names.get_record_names(family_data)
         record_names = list(record_names.keys()) + list(_fake_record_names.keys())
-        _LocalData.fk = []
-        _LocalData.pa = []
-        _LocalData.ti = []
-        _LocalData.co = []
+        _LocalData.fk      = []
+        _LocalData.fk_pos  = []
+        _LocalData.pa      = []
+        _LocalData.di      = []
+        _LocalData.di_bpms = []
+        _LocalData.ps      = []
+        _LocalData.ps_ch   = []
+        _LocalData.ps_cv   = []
+        _LocalData.pu      = []
+        _LocalData.rf      = []
+        _LocalData.ti      = []
         for record_name in record_names:
-            if 'FK-' in record_name:
-                _LocalData.fk.append(record_name)
+            if 'DI-BPM-' in record_name:
+                _LocalData.di_bpms.append(record_name)
+            elif 'DI-' in record_name:
+                _LocalData.di.append(record_name)
+            elif 'PS-CH' in record_name:
+                _LocalData.ps_ch.append(record_name)
+            elif 'PS-CV' in record_name:
+                _LocalData.ps_cv.append(record_name)
+            elif 'PS-' in record_name:
+                _LocalData.ps.append(record_name)
             elif 'PA-' in record_name:
                 _LocalData.pa.append(record_name)
+            elif 'FK-' in record_name and '-POS' in record_name:
+                _LocalData.fk_pos.append(record_name)
+            elif 'FK-' in record_name:
+                _LocalData.fk.append(record_name)
+            elif 'RF-' in record_name:
+                _LocalData.rf.append(record_name)
+            elif 'PU-' in record_name:
+                _LocalData.pu.append(record_name)
             elif 'TI-' in record_name:
                 _LocalData.ti.append(record_name)
-            elif 'CO-' in record_name:
-                _LocalData.co.append(record_name)
             else:
                 print('Parameter', record_name, 'not found!')
+        _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.pu
+        _LocalData.di = _LocalData.di + _LocalData.di_bpms
 
     @staticmethod
     def _init_database():
         _LocalData.database = {}
+        for p in _LocalData.di:
+            if any([substring in p for substring in ('BCURRENT',)]):
+                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
+            elif 'DI-BPM' in p:
+                if 'FAM-X' in p:
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}
+                elif 'FAM-Y' in p:
+                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}
+                else:
+                    _LocalData.database[p] = {'type' : 'float', 'count': 2}
+            else:
+                _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.ps:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.pa:
+            if any([substring in p for substring in ('BLIFETIME',)]):
+                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
+            else:
+                _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.ti:
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in _LocalData.rf:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.ti:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.co:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-
-    @staticmethod
-    def get_all_record_names():
-        return _LocalData.all_record_names
+        for p in _LocalData.fk_pos:
+            _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['pos'])}
 
     @staticmethod
     def _init_dynamical_pvs():
         _LocalData.dynamical_pvs = []
+        _pvs = [
+            _LocalData._get_subsystem('DI-CURRENT'),
+            _LocalData._get_subsystem('DI-BCURRENT'),
+            _LocalData._get_subsystem('PA-LIFETIME'),
+            _LocalData._get_subsystem('PA-BLIFETIME'),
+        ]
+        for pv in _pvs:
+            if pv in _LocalData.all_record_names:
+                _LocalData.dynamical_pvs.append(pv)
+                if 'DI-' in pv:
+                    _LocalData.di.remove(pv)
+                elif 'PA-' in pv:
+                    _LocalData.pa.remove(pv)
+
+    @staticmethod
+    def get_all_record_names():
+        return _LocalData.all_record_names
 
     @staticmethod
     def get_database():
@@ -72,38 +122,31 @@ class _LocalData:
 
     @staticmethod
     def get_read_only_pvs():
-        return _LocalData.pa
+        return _LocalData.di_bpms + _LocalData.pa + _LocalData.di + _LocalData.fk_pos
 
     @staticmethod
     def get_read_write_pvs():
-        return _LocalData.pa + _LocalData.fk + _LocalData.co + _LocalData.ti
+        return _LocalData.ps + _LocalData.fk + _LocalData.rf + _LocalData.ti
 
     @staticmethod
     def get_dynamical_pvs():
-        return []
+        return _LocalData.dynamical_pvs
 
+    @staticmethod
+    def _get_subsystem(rn):
+        return prefix + rn
 
-def get_fake_record_names(accelerator, family_name=None):
+def get_fake_record_names(accelerator):
 
     if not isinstance(accelerator, dict):
         family_data = model.get_family_data(accelerator)
     else:
         family_data = accelerator
 
-    if family_name == None:
-        families = ['lifk']
-        record_names_dict = {}
-        for i in range(len(families)):
-            record_names_dict.update(get_fake_record_names(family_data, families[i]))
-        return record_names_dict
-
-    if family_name.lower() == 'lifk':
-        _dict = {'LIFK-MODE':{}}
-        _dict['LIFK-SAVEFLATFILE'] = {}
-        return _dict
-    else:
-        raise Exception('Family name %s not found'%family_name)
-
+    _dict = {'LIFK-MODE':{}}
+    _dict['LIFK-SAVEFLATFILE'] = {}
+        
+    return _dict
 
 
 _LocalData.build_data()
