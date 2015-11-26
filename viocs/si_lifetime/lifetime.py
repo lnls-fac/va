@@ -59,8 +59,6 @@ class CalcLifetimeThread(threading.Thread):
 
     def __init__(self, stop_event):
         self.stop_event       = stop_event
-        self.current_pv       = epics.PV('SIDI-CURRENT')
-        self.current_noise_pv = epics.PV('VA-SIDI-CURRENT-NOISELEVEL')
         self.sample_interval = 0.5
         self.precision       = 5.0
         self.lifetime        = 0.0
@@ -72,11 +70,13 @@ class CalcLifetimeThread(threading.Thread):
         self.buffer_size     = 2*self.intervals[-1]
         self.measures        = collections.deque(maxlen=self.buffer_size)
         self.timestamp       = collections.deque(maxlen=self.buffer_size)
+        self.current_pv       = epics.PV('SIDI-CURRENT')
+        self.current_noise_pv = epics.PV('VA-SIDI-CURRENT-NOISELEVEL')
         super().__init__(target=self.main)
 
     def measure_current(self):
         current, timestamp = 1e-3*self.current_pv.get(), self.current_pv.timestamp
-        current_noise = 1e-6*self.current_noise_pv.get()
+        self.current_noise = 1e-6*self.current_noise_pv.get()
         if current_noise == 0: current_noise = 10e-6
         if len(self.measures)!=0:
             if math.fabs(current - self.measures[-1]) > 100*current_noise:
@@ -121,20 +121,21 @@ class CalcLifetimeThread(threading.Thread):
         if self.idx > self.len_intervals: self.idx = self.len_intervals
         self.nr_points = self.intervals[self.idx]
 
+
     def main(self):
-        try:
-            if not all([self.current_pv.connected, self.current_noise_pv.connected]):
-                time.sleep(self.sample_interval)
-            else:
-                while not self.stop_event.is_set():
+        while not self.stop_event.is_set():
+            try:
+                if not all([self.current_pv.connected, self.current_noise_pv.connected]):
+                    time.sleep(self.sample_interval)
+                else:
                     t0 = time.time()
                     self.measure_current()
                     self.calc_lifetime()
                     t1 = time.time()
                     if (t1-t0) < self.sample_interval:
                         time.sleep(self.sample_interval - (t1-t0))
-        except:
-            time.sleep(self.sample_interval)
+            except:
+                time.sleep(self.sample_interval)
 
 def handle_signal(signum, frame):
     global stop_event
