@@ -61,8 +61,6 @@ class CalcLifetimeThread(threading.Thread):
         self.stop_event       = stop_event
         self.current_pv       = epics.PV('SIDI-CURRENT')
         self.current_noise_pv = epics.PV('VA-SIDI-CURRENT-NOISELEVEL')
-        self.current_pv.wait_for_connection(WAIT_TIMEOUT)
-        self.current_noise_pv.wait_for_connection(WAIT_TIMEOUT)
         self.sample_interval = 0.5
         self.precision       = 5.0
         self.lifetime        = 0.0
@@ -124,21 +122,19 @@ class CalcLifetimeThread(threading.Thread):
         self.nr_points = self.intervals[self.idx]
 
     def main(self):
-        if not self.current_pv.connected:
-            raise Exception('Lifetime calculation error: SIDI-CURRENT not found.')
-        elif not self.current_noise_pv.connected:
-            raise Exception('Lifetime calculation error: VA-SIDI-CURRENT-NOISELEVEL not found.')
-        else:
-            while not self.stop_event.is_set():
-                t0 = time.time()
-                self.measure_current()
-                self.calc_lifetime()
-                t1 = time.time()
-                if (t1-t0) < self.sample_interval:
-                    time.sleep(self.sample_interval - (t1-t0))
-                else:
-                    raise Exception('Lifetime calculation error.')
-
+        try:
+            if not all([self.current_pv.connected, self.current_noise_pv.connected]):
+                time.sleep(self.sample_interval)
+            else:
+                while not self.stop_event.is_set():
+                    t0 = time.time()
+                    self.measure_current()
+                    self.calc_lifetime()
+                    t1 = time.time()
+                    if (t1-t0) < self.sample_interval:
+                        time.sleep(self.sample_interval - (t1-t0))
+        except:
+            time.sleep(self.sample_interval)
 
 def handle_signal(signum, frame):
     global stop_event
@@ -160,7 +156,8 @@ def run(prefix):
                    'SIPA-LIFETIME-DT'       : {'type' : 'float', 'count': 1, 'value': 0.0},
                    'SIPA-LIFETIME-DT.EGU'   : {'type' : 'string', 'value': 'sec'},
                    'SIPA-LIFETIME-PREC'     : {'type' : 'float', 'count': 1, 'value': 0.0},
-                   'SIPA-LIFETIME-PREC.EGU' : {'type' : 'string', 'value': '%'},}
+                   'SIPA-LIFETIME-PREC.EGU' : {'type' : 'string', 'value': '%'},
+                   'TESTE':{'type':'string', 'value':'teste'}}
 
     pvs = [key for key in pv_database.keys()]
     server = pcaspy.SimpleServer()
