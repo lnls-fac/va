@@ -9,9 +9,9 @@ from . import utils
 from . import injection
 
 
-UNDEF_VALUE = utils.UNDEF_VALUE
 _u = mathphys.units
-TRACK6D = True
+UNDEF_VALUE = utils.UNDEF_VALUE
+TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
 
 
@@ -175,11 +175,8 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
-        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')
-        if len(injection_point) == 0:
-            injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'eseptinf')
+        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'eseptinf')
         self._accelerator  = pyaccel.lattice.shift(self._accelerator, start=injection_point[0])
-
         # Append marker to accelerator
         self._append_marker()
 

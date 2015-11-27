@@ -11,7 +11,7 @@ from . import utils
 
 
 UNDEF_VALUE = utils.UNDEF_VALUE
-
+TRACK6D = True
 
 class Plane(enum.IntEnum):
     horizontal = 0

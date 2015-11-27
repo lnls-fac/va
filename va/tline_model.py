@@ -11,8 +11,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_fake(self, pv_name):
-        # if 'MODE' in pv_name:
-        #     return self._single_bunch_mode
         return super()._get_pv_fake(pv_name)
 
     def _get_pv_timing(self, pv_name):
@@ -45,7 +43,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
 
     def _set_pv_fake(self, pv_name, value):
         return super()._set_pv_fake(pv_name, value)
-        
+
     def _set_pv_timing(self, pv_name, value):
         if self.prefix == 'TB' and 'TI-' in pv_name:
             if 'SEPTUMINJ-ENABLED' in pv_name:

@@ -66,36 +66,3 @@ def _wait_interval(start_time, interval):
     delta_t = time.time() - start_time
     if 0 < delta_t < interval:
         time.sleep(interval - delta_t)
-
-
-def shift_record_names(accelerator, record_names_dict):
-    new_dict = {}
-    for key in record_names_dict.keys():
-        new_dict[key] = {}
-        for k in record_names_dict[key].keys():
-            new_dict[key][k]= record_names_dict[key][k]
-    length = len(accelerator)
-    try:
-        start = pyaccel.lattice.find_indices(accelerator, 'fam_name', 'start')[0]
-    except:
-        start = 0
-    for value in new_dict.values():
-        for key in value.keys():
-            indices = value[key]
-            new_indices = _shift_indices(indices, length, start)
-            value[key] = new_indices
-    return new_dict
-
-
-def _shift_indices(indices, length, start):
-    try:
-        new_indices = indices[:]
-        for i in range(len(new_indices)):
-            if isinstance(new_indices[i], int):
-                new_indices[i] = (new_indices[i] + start)%(length)
-            else:
-                new_indices[i] = _shift_indices(new_indices[i], length, start)
-        return new_indices
-    except:
-        new_indices = (indices+start)%(length)
-        return new_indices
