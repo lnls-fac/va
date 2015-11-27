@@ -122,7 +122,7 @@ class _LocalData:
 
     @staticmethod
     def get_read_only_pvs():
-        return _LocalData.di_bpms + _LocalData.pa + _LocalData.di + _LocalData.fk_pos
+        return _LocalData.di_bpms + _LocalData.pa + _LocalData.di
 
     @staticmethod
     def get_read_write_pvs():
@@ -131,6 +131,10 @@ class _LocalData:
     @staticmethod
     def get_dynamical_pvs():
         return _LocalData.dynamical_pvs
+
+    @staticmethod
+    def get_constant_pvs():
+        return _LocalData.fk_pos
 
     @staticmethod
     def _get_subsystem(rn):
@@ -208,3 +212,4 @@ get_database = _LocalData.get_database
 get_read_only_pvs = _LocalData.get_read_only_pvs
 get_read_write_pvs = _LocalData.get_read_write_pvs
 get_dynamical_pvs = _LocalData.get_dynamical_pvs
+get_constant_pvs = _LocalData.get_constant_pvs

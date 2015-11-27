@@ -154,7 +154,7 @@ class AcceleratorModel(model.Model):
     def _init_sp_pv_values(self):
         utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
         sp_pv_list = []
-        for pv in self.pv_module.get_read_write_pvs():
+        for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)
             sp_pv_list.append((pv,value))
         self._send_queue.put(('sp', sp_pv_list ))
