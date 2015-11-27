@@ -69,7 +69,7 @@ class _LocalData:
         _LocalData.database = {}
         for p in _LocalData.di:
             if any([substring in p for substring in ('BCURRENT',)]):
-                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
+                _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number}
             elif 'DI-BPM' in p:
                 if 'FAM-X' in p:
                     _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}

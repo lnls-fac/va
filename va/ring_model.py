@@ -25,8 +25,6 @@ class RingModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_fake(self, pv_name):
-        #if 'MODE' in pv_name:
-        #    return self._single_bunch_mode
         return super()._get_pv_fake(pv_name)
 
     def _get_pv_dynamic(self, pv_name):
@@ -104,7 +102,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
     def _set_pv_fake(self, pv_name, value):
         return super()._set_pv_fake(pv_name, value)
-        
+
     def _set_pv_rf(self, pv_name, value):
         if 'RF-VOLTAGE' in pv_name:
             idx = self._get_elements_indices(pv_name)

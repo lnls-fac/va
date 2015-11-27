@@ -27,6 +27,7 @@ class AcceleratorModel(model.Model):
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
+        self._send_initialisation_sign()
 
     # --- methods implementing response of model to get requests
 
@@ -278,6 +279,9 @@ class AcceleratorModel(model.Model):
             if not '-FAM' in ps_name:
                 ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
+
+    def _send_initialisation_sign(self):
+        self._send_queue.put(('i', self.prefix))
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
