@@ -59,6 +59,13 @@ class AcceleratorModel(model.Model):
                 return self._orbit[[0,2],idx[0]]
         elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
+        elif 'EFF' in pv_name:
+            if 'TOTAL' in pv_name:
+                return 100*self._total_efficiency if self._total_efficiency is not None else UNDEF_VALUE
+            elif 'INJ' in pv_name:
+                return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
+            elif 'EXT' in pv_name:
+                return 100*self._ejection_efficiency if self._ejection_efficiency is not None else UNDEF_VALUE
         else:
             return None
 
@@ -164,22 +171,18 @@ class AcceleratorModel(model.Model):
 
         initial_charge = self._beam_charge.total_value
 
-        efficiency = 1.0 - self._injection_loss_fraction
-        charge = [bunch_charge * efficiency for bunch_charge in charge]
+        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
         self._beam_charge.inject(charge)
 
         final_charge = self._beam_charge.total_value
         if (initial_charge == 0) and (final_charge != initial_charge):
             self._state_changed = True
 
-        return efficiency
-
     def _beam_eject(self):
-        efficiency = 1.0 - self._ejection_loss_fraction
         charge = self._beam_charge.value
-        final_charge = [charge_bunch * efficiency for charge_bunch in charge]
+        final_charge = [charge_bunch * self._ejection_efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        return final_charge, efficiency
+        return final_charge
 
    # --- auxiliary methods
 
@@ -285,14 +288,15 @@ class AcceleratorModel(model.Model):
 
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
-        self._update_injection_loss_fraction = True
+        self._update_injection_efficiency = True
 
     def _get_charge_from_upstream_accelerator(self, args_dict):
         charge = args_dict['charge']
         delay = args_dict['delay']
+        li_charge = args_dict['li_charge']
         self._received_charge = True
         self._update_state()
-        self._injection(charge=charge, delay=delay)
+        self._injection(charge=charge, delay=delay, li_charge=li_charge)
         self._received_charge = False
 
     def _send_parameters_to_downstream_accelerator(self, args_dict):

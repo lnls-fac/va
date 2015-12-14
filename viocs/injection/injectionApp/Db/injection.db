@@ -1,0 +1,63 @@
+record(ai, "TBPA-INJEFF")
+{
+    field(DESC, "TB INJECTION EFFICIENCY")
+    field(INP, "VA-TBPA-INJEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "TBPA-EXTEFF")
+{
+    field(DESC, "TB EJECTION EFFICIENCY")
+    field(INP, "VA-TBPA-EXTEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "BOPA-INJEFF")
+{
+    field(DESC, "BO INJECTION EFFICIENCY")
+    field(INP, "VA-BOPA-INJEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "BOPA-EXTEFF")
+{
+    field(DESC, "BO EJECTION EFFICIENCY")
+    field(INP, "VA-BOPA-EXTEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "TSPA-INJEFF")
+{
+    field(DESC, "TS INJECTION EFFICIENCY")
+    field(INP, "VA-TSPA-INJEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "TSPA-EXTEFF")
+{
+    field(DESC, "TS EJECTION EFFICIENCY")
+    field(INP, "VA-TSPA-EXTEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "SIPA-INJEFF")
+{
+    field(DESC, "SI INJECTION EFFICIENCY")
+    field(INP, "VA-SIPA-INJEFF  NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}
+
+record(ai, "SIPA-INJEFF-TOTAL")
+{
+    field(DESC, "SI TOTAL INJECTION EFFICIENCY")
+    field(INP, "VA-SIPA-INJEFF-TOTAL NPP NMS")
+    field(EGU, "%")
+    field(SCAN, ".1 second")
+}

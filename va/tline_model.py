@@ -89,12 +89,10 @@ class TLineModel(accelerator_model.AcceleratorModel):
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
-        if force or self._state_deprecated or self._update_injection_loss_fraction:
-            self._injection_loss_fraction = 0.0
-            self._calc_transport_loss_fraction()
-            self._ejection_loss_fraction  = 0.0
+        if force or self._state_deprecated or self._update_injection_efficiency:
+            self._calc_injection_efficiency()
             self._state_deprecated = False
-            self._update_injection_loss_fraction = False
+            self._update_injection_efficiency = False
             self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
@@ -105,7 +103,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber()
-        self._transport_loss_fraction = 0.0
 
         # initial values of timing pvs
         if self.prefix == 'TB':
@@ -129,21 +126,12 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._orbit = None
         self._twiss = None
         self._injection_parameters = None
-        self._injection_loss_fraction = 0.0
-        self._ejection_loss_fraction  = 0.0
-        self._transport_loss_fraction = None
+        self._injection_efficiency = None
+        self._ejection_efficiency  = 1.0
 
     # --- auxiliary methods
 
-    def _beam_transport(self):
-        efficiency = 1.0 - self._transport_loss_fraction
-        charge = self._beam_charge.value
-        final_charge = [charge_bunch * efficiency for charge_bunch in charge]
-        self._beam_charge.dump()
-        self._beam_charge.inject(final_charge)
-        return efficiency
-
-    def _calc_transport_loss_fraction(self):
+    def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
         self._log('calc', 'transport efficiency  for '+self.model_module.lattice_version)
         _dict = {}
@@ -151,8 +139,9 @@ class TLineModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        self._transport_loss_fraction, self._twiss, self._m66 = \
+        loss_fraction, self._twiss, self._m66 = \
             injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
+        self._injection_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
 
         args_dict = {}
@@ -160,14 +149,13 @@ class TLineModel(accelerator_model.AcceleratorModel):
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
 
-    def _injection(self, charge=None, delay=0.0):
+    def _injection(self, charge=None, delay=0.0, li_charge=None):
         if charge is None: return
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
         self._beam_inject(charge=charge)
-        efficiency = self._beam_transport()
-        self._log(message1='cycle', message2='beam transport at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+        self._log(message1='cycle', message2='beam injection at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*self._injection_efficiency))
 
-        final_charge, _ = self._beam_eject()
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay' : delay})
+        final_charge = self._beam_eject()
+        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay' : delay, 'li_charge': li_charge})
