@@ -54,7 +54,8 @@ class BoModel(booster_model.BoosterModel):
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _kickin_angle = model_module.accelerator_data['injection_kicker_nominal_deflection']
     _kickex_angle = model_module.accelerator_data['extraction_kicker_nominal_deflection']
-
+    _injection_point_label = 'sept_in'
+        
 
 class TsModel(tline_model.TLineModel):
 
@@ -77,3 +78,4 @@ class SiModel(ring_model.RingModel):
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
     _pmm_integ_polynom_b = model_module.accelerator_data['pmm_integ_polynom_b']
+    _injection_point_label = 'eseptinf'

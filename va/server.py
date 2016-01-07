@@ -73,8 +73,6 @@ def get_models():
 def get_pv_database(models):
     pv_database = {}
     for m in models:
-        if m.prefix == 'SI':
-            print('here')
         pv_database.update(m.database)
 
     return pv_database
@@ -106,7 +104,7 @@ def start_model_processes(processes):
 
 
 def start_driver_thread(processes, stop_event, finalisation_barrier):
-    pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT)
+    pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT, stop_event)
     driver_thread = driver.DriverThread(
         pcas_driver,
         WAIT_TIMEOUT,

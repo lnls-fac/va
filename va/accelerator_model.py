@@ -23,6 +23,8 @@ class AcceleratorModel(model.Model):
 
     def __init__(self, **kwargs):
         self._injection_parameters = None
+        if not hasattr(self, '_injection_point_label'):
+             self._injection_point_label = None
         super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
@@ -129,7 +131,7 @@ class AcceleratorModel(model.Model):
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
             self._send_queue.put(('s', (pv_name, 0)))
-            
+
         return False
 
     def _set_pv_rf(self, pv_name, value):

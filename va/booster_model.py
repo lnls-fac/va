@@ -45,7 +45,7 @@ class BoosterModel(ring_model.RingModel):
 
     def _set_pv_fake(self, pv_name, value):
         return super()._set_pv_fake(pv_name, value)
-        
+
     def _set_pv_timing(self, pv_name, value):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
@@ -127,8 +127,19 @@ class BoosterModel(ring_model.RingModel):
 
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
-        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
-        self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
+        #injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
+        print(self._injection_point_label)
+        print(self._downstream_accelerator_prefix)
+
+        if self._injection_point_label is None:
+            self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
+        else:
+            injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)
+            if not injection_point:
+                self._send_queue.put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
+            else:
+                self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
+
         # Append marker to accelerator
         self._append_marker()
         # Create record names dictionary

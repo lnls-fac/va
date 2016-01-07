@@ -104,7 +104,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
     def _set_pv_fake(self, pv_name, value):
         return super()._set_pv_fake(pv_name, value)
-        
+
     def _set_pv_rf(self, pv_name, value):
         if 'RF-VOLTAGE' in pv_name:
             idx = self._get_elements_indices(pv_name)

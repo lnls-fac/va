@@ -39,10 +39,11 @@ class DriverThread(threading.Thread):
 
 class PCASDriver(Driver):
 
-    def  __init__(self, processes, interval):
+    def  __init__(self, processes, interval, stop_event):
         super().__init__()
         self._interval = interval
         self._queue = queue.Queue()
+        self._stop_event = stop_event
         self._processes = dict()
         for p in processes:
             self._processes[p.model_prefix] = p
@@ -75,6 +76,9 @@ class PCASDriver(Driver):
             self._pass_to_model(data)
         elif cmd == 'sp': # initialise setpoints
             self._set_sp_parameters_in_memory(data)
+        elif cmd == 'a': # anomalous condition signed by model
+            utils.log('!error', data, c='red')
+            self._stop_event.set()
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
