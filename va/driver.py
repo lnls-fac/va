@@ -39,7 +39,7 @@ class DriverThread(threading.Thread):
 
 class PCASDriver(Driver):
 
-    def  __init__(self, processes, start_event, interval):
+    def  __init__(self, processes, start_event, stop_event, interval):
         super().__init__()
         self._interval = interval
         self._start_event = start_event

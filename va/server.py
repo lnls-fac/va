@@ -107,7 +107,7 @@ def start_model_processes(processes):
 
 
 def start_driver_thread(processes, stop_event, start_event, finalisation_barrier):
-    pcas_driver = driver.PCASDriver(processes, start_event, WAIT_TIMEOUT)
+    pcas_driver = driver.PCASDriver(processes, start_event, stop_event, WAIT_TIMEOUT)
     driver_thread = driver.DriverThread(
         pcas_driver,
         WAIT_TIMEOUT,

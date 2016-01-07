@@ -206,7 +206,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         if self._injection_point_label is None:
             self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
         else:
-            injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)
+            injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)[0]
             if not injection_point:
                 self._send_queue.put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
             else:
