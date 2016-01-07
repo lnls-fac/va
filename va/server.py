@@ -12,6 +12,7 @@ from . import utils
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
+INIT_TIMEOUT = 20.0
 
 
 def run(prefix):
@@ -20,7 +21,9 @@ def run(prefix):
     Keyword arguments:
     prefix -- prefix to be added to PVs
     """
+    global start_event
     global stop_event
+    start_event = multiprocessing.Event()
     stop_event = multiprocessing.Event() # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
@@ -39,9 +42,9 @@ def run(prefix):
     processes = create_model_processes(models, stop_event,
         finalisation_barrier)
     start_model_processes(processes)
-    start_driver_thread(processes, stop_event, finalisation_barrier)
+    start_driver_thread(processes, stop_event, start_event, finalisation_barrier)
 
-    wait_for_initialisation(JOIN_TIMEOUT)
+    wait_for_initialisation()
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
@@ -103,8 +106,8 @@ def start_model_processes(processes):
         p.start()
 
 
-def start_driver_thread(processes, stop_event, finalisation_barrier):
-    pcas_driver = driver.PCASDriver(processes, WAIT_TIMEOUT, stop_event)
+def start_driver_thread(processes, stop_event, start_event, finalisation_barrier):
+    pcas_driver = driver.PCASDriver(processes, start_event, WAIT_TIMEOUT)
     driver_thread = driver.DriverThread(
         pcas_driver,
         WAIT_TIMEOUT,
@@ -114,14 +117,21 @@ def start_driver_thread(processes, stop_event, finalisation_barrier):
     driver_thread.start()
 
 
-def wait_for_initialisation(interval):
-    utils.log('start', 'waiting %d s for model initialisation' % interval)
-    time.sleep(JOIN_TIMEOUT)
-    utils.log('start', 'starting server')
+def wait_for_initialisation():
+    global start_event
+    global stop_event
+    t0 = time.time()
+    utils.log('start', 'waiting model initialisation')
+    while not start_event.is_set() and not stop_event.is_set():
+        time.sleep(WAIT_TIMEOUT)
+        t = time.time()
+        if (t-t0) > INIT_TIMEOUT: break
+    if not stop_event.is_set():
+        utils.log('start', 'starting server', 'green')
 
 
 def print_stop_event_message():
-    utils.log('exit', 'stop_event was set')
+    utils.log('exit', 'stop_event was set', 'red')
 
 
 def join_processes(processes):
@@ -129,3 +139,9 @@ def join_processes(processes):
     for process in processes:
         process.join(JOIN_TIMEOUT)
     utils.log('join', 'done')
+
+
+def old_wait_for_initialisation(interval):
+    utils.log('start', 'waiting %d s for model initialisation' % interval)
+    time.sleep(JOIN_TIMEOUT)
+    utils.log('start', 'starting server')

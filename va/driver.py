@@ -39,19 +39,28 @@ class DriverThread(threading.Thread):
 
 class PCASDriver(Driver):
 
-    def  __init__(self, processes, interval, stop_event):
+    def  __init__(self, processes, start_event, interval):
         super().__init__()
         self._interval = interval
+        self._start_event = start_event
         self._queue = queue.Queue()
         self._stop_event = stop_event
         self._processes = dict()
+        self._processes_initialisation = dict()
         for p in processes:
             self._processes[p.model_prefix] = p
+            self._processes_initialisation[p.model_prefix] = False
 
     def process(self):
+        self._check_initialisation()
         self._process_writes()
         self._process_requests()
         self.updatePVs()
+
+    def _check_initialisation(self):
+        if not self._start_event.is_set():
+            if all(self._processes_initialisation.values()):
+                self._start_event.set()
 
     def _process_writes(self):
         size = self._queue.qsize()
@@ -79,6 +88,8 @@ class PCASDriver(Driver):
         elif cmd == 'a': # anomalous condition signed by model
             utils.log('!error', data, c='red')
             self._stop_event.set()
+        elif cmd == 'i':
+            self._initialisation_sign_received(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
@@ -106,6 +117,10 @@ class PCASDriver(Driver):
             process.send_queue.put((cmd, (args)))
         except:
             utils.log('!pref', prefix, c='red', a=['bold'])
+
+    def _initialisation_sign_received(self, data):
+        prefix = data
+        self._processes_initialisation[prefix] = True
 
     def finalise(self):
         for p in self._processes.values():

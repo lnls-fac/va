@@ -11,7 +11,7 @@ from . import utils
 
 
 UNDEF_VALUE = utils.UNDEF_VALUE
-
+TRACK6D = True
 
 class Plane(enum.IntEnum):
     horizontal = 0
@@ -29,15 +29,16 @@ class AcceleratorModel(model.Model):
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
+        self._send_initialisation_sign()
 
     # --- methods implementing response of model to get requests
 
     def _get_pv(self, pv_name):
         value = self._get_pv_dynamic(pv_name)
         if value is None:
-            value = self._get_pv_static(pv_name)
-        if value is None:
             value = self._get_pv_fake(pv_name)
+        if value is None:
+            value = self._get_pv_static(pv_name)
         if value is None:
             value = self._get_pv_timing(pv_name)
         if value is None:
@@ -60,6 +61,13 @@ class AcceleratorModel(model.Model):
                 return self._orbit[[0,2],idx[0]]
         elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
+        elif 'EFF' in pv_name:
+            if 'TOTAL' in pv_name:
+                return 100*self._total_efficiency if self._total_efficiency is not None else UNDEF_VALUE
+            elif 'INJ' in pv_name:
+                return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
+            elif 'EXT' in pv_name:
+                return 100*self._ejection_efficiency if self._ejection_efficiency is not None else UNDEF_VALUE
         else:
             return None
 
@@ -78,6 +86,16 @@ class AcceleratorModel(model.Model):
             return error
         if '-SAVEFLATFILE' in pv_name:
             return 0
+        if '-POS' in pv_name:
+            indices = self._get_elements_indices(pv_name, flat=False)
+            if isinstance(indices[0], int):
+                pos = pyaccel.lattice.find_spos(self._accelerator, indices)
+            else:
+                pos = [pyaccel.lattice.find_spos(self._accelerator, idx[0]) for idx in indices]
+            start = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'start')[0]
+            start_spos = pyaccel.lattice.find_spos(self._accelerator, start)
+            pos = (pos-start_spos)%(pyaccel.lattice.length(self._accelerator))
+            return pos
         else:
             return None
 
@@ -131,7 +149,7 @@ class AcceleratorModel(model.Model):
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
             self._send_queue.put(('s', (pv_name, 0)))
-
+            return True
         return False
 
     def _set_pv_rf(self, pv_name, value):
@@ -145,7 +163,7 @@ class AcceleratorModel(model.Model):
     def _init_sp_pv_values(self):
         utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
         sp_pv_list = []
-        for pv in self.pv_module.get_read_write_pvs():
+        for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)
             sp_pv_list.append((pv,value))
         self._send_queue.put(('sp', sp_pv_list ))
@@ -155,31 +173,27 @@ class AcceleratorModel(model.Model):
 
         initial_charge = self._beam_charge.total_value
 
-        efficiency = 1.0 - self._injection_loss_fraction
-        charge = [bunch_charge * efficiency for bunch_charge in charge]
+        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
         self._beam_charge.inject(charge)
 
         final_charge = self._beam_charge.total_value
         if (initial_charge == 0) and (final_charge != initial_charge):
             self._state_changed = True
 
-        return efficiency
-
     def _beam_eject(self):
-        efficiency = 1.0 - self._ejection_loss_fraction
         charge = self._beam_charge.value
-        final_charge = [charge_bunch * efficiency for charge_bunch in charge]
+        final_charge = [charge_bunch * self._ejection_efficiency for charge_bunch in charge]
         self._beam_charge.dump()
-        return final_charge, efficiency
+        return final_charge
 
    # --- auxiliary methods
 
-    def _get_elements_indices(self, pv_name):
+    def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
         data = self._all_pvs[pv_name]
         indices = []
         for key in data.keys():
-            idx = mathphys.utils.flatten(data[key])
+            idx = mathphys.utils.flatten(data[key]) if flat else data[key]
             indices.extend(idx)
         return indices
 
@@ -271,16 +285,20 @@ class AcceleratorModel(model.Model):
                 ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
 
+    def _send_initialisation_sign(self):
+        self._send_queue.put(('i', self.prefix))
+
     def _get_parameters_from_upstream_accelerator(self, args_dict):
         self._injection_parameters = args_dict
-        self._update_injection_loss_fraction = True
+        self._update_injection_efficiency = True
 
     def _get_charge_from_upstream_accelerator(self, args_dict):
         charge = args_dict['charge']
         delay = args_dict['delay']
+        li_charge = args_dict['li_charge']
         self._received_charge = True
         self._update_state()
-        self._injection(charge=charge, delay=delay)
+        self._injection(charge=charge, delay=delay, li_charge=li_charge)
         self._received_charge = False
 
     def _send_parameters_to_downstream_accelerator(self, args_dict):

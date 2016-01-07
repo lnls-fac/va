@@ -9,9 +9,9 @@ from . import utils
 from . import injection
 
 
-UNDEF_VALUE = utils.UNDEF_VALUE
 _u = mathphys.units
-TRACK6D = True
+UNDEF_VALUE = utils.UNDEF_VALUE
+TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
 
 
@@ -25,8 +25,6 @@ class RingModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_fake(self, pv_name):
-        #if 'MODE' in pv_name:
-        #    return self._single_bunch_mode
         return super()._get_pv_fake(pv_name)
 
     def _get_pv_dynamic(self, pv_name):
@@ -155,21 +153,21 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
             self._calc_lifetimes()
-            self._update_injection_loss_fraction = True
+            self._update_injection_efficiency = True
             self._state_deprecated = False
             self._state_changed = True
-        # Calculate pmm and on-axis injection loss fractions
-        self._calc_loss_fractions()
+        # Calculate pmm and on-axis injection efficiencies
+        self._calc_efficiencies()
 
-    def _calc_loss_fractions(self):
+    def _calc_efficiencies(self):
         if self._summary is None:
-            self._update_injection_loss_fraction = False
+            self._update_injection_efficiency = False
             return
-        if self._update_injection_loss_fraction and (self._received_charge or
-            self._onaxis_injection_loss_fraction is None or self._pmm_injection_loss_fraction is None):
-            self._update_injection_loss_fraction = False
-            self._calc_onaxis_injection_loss_fraction()
-            self._calc_pmm_injection_loss_fraction()
+        if self._update_injection_efficiency and (self._received_charge or
+            self._onaxis_injection_efficiency is None or self._pmm_injection_efficiency is None):
+            self._update_injection_efficiency = False
+            self._calc_onaxis_injection_efficiency()
+            self._calc_pmm_injection_efficiency()
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -177,11 +175,8 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
-        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')
-        if len(injection_point) == 0:
-            injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'eseptinf')
+        injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'eseptinf')
         self._accelerator  = pyaccel.lattice.shift(self._accelerator, start=injection_point[0])
-
         # Append marker to accelerator
         self._append_marker()
 
@@ -217,9 +212,10 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._tunes = None
         self._transfer_matrices = None
         self._summary = None
-        self._injection_loss_fraction = None
-        self._pmm_injection_loss_fraction = None
-        self._onaxis_injection_loss_fraction = None
+        self._injection_efficiency        = None
+        self._total_efficiency            = None
+        self._pmm_injection_efficiency    = None
+        self._onaxis_injection_efficiency = None
         self._received_charge = False
 
    # --- auxiliary methods
@@ -293,7 +289,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             elif str.lower() == 'off':
                 self._accelerator[idx].polynom_b = [0.0]*len(self._accelerator[idx].polynom_b)
 
-    def _calc_pmm_injection_loss_fraction(self):
+    def _calc_pmm_injection_efficiency(self):
         if self._injection_parameters is None: return
         self._log('calc', 'pmm injection efficiency  for '+self.model_module.lattice_version)
 
@@ -302,10 +298,11 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         self._set_pmm('on')
-        self._pmm_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        pmm_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._pmm_injection_efficiency = 1.0 - pmm_injection_loss_fraction
         self._set_pmm('off')
 
-    def _calc_onaxis_injection_loss_fraction(self):
+    def _calc_onaxis_injection_efficiency(self):
         if self._injection_parameters is None: return
         self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
 
@@ -314,10 +311,11 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         self._set_kickin('on')
-        self._onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        onaxis_injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        self._onaxis_injection_efficiency = 1.0 - onaxis_injection_loss_fraction
         self._set_kickin('off')
 
-    def _injection(self, charge=None, delay=0.0):
+    def _injection(self, charge=None, delay=0.0, li_charge=None):
         if charge is None: return
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
@@ -328,16 +326,19 @@ class RingModel(accelerator_model.AcceleratorModel):
             return
 
         charge = self._incoming_bunch_injected_in_si(charge, delay)
+
         if self._ti_kickinj_enabled and not self._ti_pmm_enabled:
-            self._injection_loss_fraction = self._onaxis_injection_loss_fraction
-            efficiency = self._beam_inject(charge=charge)
+            self._injection_efficiency = self._onaxis_injection_efficiency
         elif self._ti_kickinj_enabled and not self._ti_pmm_enabled:
-            self._injection_loss_fraction = self._pmm_injection_loss_fraction
-            efficiency = self._beam_inject(charge=charge)
+            self._injection_efficiency = self._pmm_injection_efficiency
         else:
-            charge = 0.0
-            efficiency = 0
-        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+            self._injection_efficiency = 0.0
+
+        self._beam_inject(charge=charge)
+        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*self._injection_efficiency))
+
+        self._total_efficiency = self._injection_efficiency*(sum(charge)/sum(li_charge))
+        self._log(message1='cycle', message2='total efficiency: {0:.2f}%'.format(100*self._total_efficiency))
 
     def _incoming_bunch_injected_in_si(self, charge, delay):
         # Change the bunches in which the charge is injected

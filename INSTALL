@@ -13,9 +13,9 @@ REQUIREMENTS
 - numpy 1.8 (>=1.8.2)
 - matplotlib 1.4 (>=1.4.2)
 - pcaspy 0.5 (>=0.5.1)
-- mathphys 0.4 (>=0.4.0)
+- mathphys 0.6 (>=0.6.0)
 - pyaccel 0.10 (>=0.10.0)
-- sirius 0.10 (>=0.10.0)
+- sirius 0.10 (>=0.10.2)
 
 
 INSTALLATION

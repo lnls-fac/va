@@ -38,7 +38,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
             self._single_bunch_mode = value
             return True
         return super()._set_pv_fake(pv_name, value)
-        
+
 
     def _set_pv_timing(self, pv_name, value):
         if 'CYCLE' in pv_name:
@@ -87,8 +87,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._orbit = None
         self._twiss = None
         self._si_rf_frequency = None
-        self._injection_loss_fraction = 0.0
-        self._ejection_loss_fraction = 0.0
+        self._injection_efficiency = 1.0
+        self._ejection_efficiency  = 1.0
 
     # --- auxiliary methods
 
@@ -105,8 +105,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
         self._beam_inject(charge=charge)
-        final_charge, _ = self._beam_eject()
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay': self._ti_egun_delay})
+        final_charge = self._beam_eject()
+        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay': self._ti_egun_delay, 'li_charge': final_charge})
         self._set_delay_next_cycle()
 
     def _receive_pv_value(self, pv_name, value):
