@@ -200,8 +200,8 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
         #injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
-        print(self._injection_point_label)
-        print(self._downstream_accelerator_prefix)
+        #print(self._injection_point_label)
+        #print(self._downstream_accelerator_prefix)
 
         if self._injection_point_label is None:
             self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))

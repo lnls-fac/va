@@ -118,4 +118,4 @@ class Model:
         self._send_queue.join_thread()
         self._recv_queue.close()
         self._recv_queue.join_thread()
-        print('finalise: ', self.prefix)
+        utils.log('exit', 'model ' + self.prefix)

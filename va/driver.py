@@ -90,6 +90,7 @@ class PCASDriver(Driver):
             self._stop_event.set()
         elif cmd == 'i':
             self._initialisation_sign_received(data)
+            # maybe insert funcionality of _check_initialisation here.
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
