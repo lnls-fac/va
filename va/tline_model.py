@@ -19,10 +19,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
                 return self._ti_septuminj_enabled
             elif 'SEPTUMINJ-DELAY' in pv_name:
                 return self._ti_septuminj_delay
-            elif 'SEPTUMEX-ENABLED' in pv_name:
-                return self._ti_septumex_enabled
-            elif 'SEPTUMEX-DELAY' in pv_name:
-                return self._ti_septumex_delay
             else:
                 return None
         elif self.prefix == 'TS' and 'TI-' in pv_name:
@@ -34,6 +30,10 @@ class TLineModel(accelerator_model.AcceleratorModel):
                 return self._ti_septumthin_enabled
             elif 'SEPTUMTHIN-DELAY' in pv_name:
                 return self._ti_septumthin_delay
+            elif 'SEPTUMEX-ENABLED' in pv_name:
+                return self._ti_septumex_enabled
+            elif 'SEPTUMEX-DELAY' in pv_name:
+                return self._ti_septumex_delay
             else:
                 return None
         else:
@@ -54,14 +54,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
                 self._ti_septuminj_delay = value
                 self._state_deprecated = True
                 return True
-            elif 'SEPTUMEX-ENABLED' in pv_name:
-                self._ti_septumex_enabled = value
-                self._state_deprecated = True
-                return True
-            elif 'SEPTUMEX-DELAY' in pv_name:
-                self._ti_septumex_delay = value
-                self._state_deprecated = True
-                return True
             else:
                 return False
         if self.prefix == 'TS' and 'TI-' in pv_name:
@@ -79,6 +71,14 @@ class TLineModel(accelerator_model.AcceleratorModel):
                 return True
             elif 'SEPTUMTHIN-DELAY' in pv_name:
                 self._ti_septumthin_delay = value
+                self._state_deprecated = True
+                return True
+            elif 'SEPTUMEX-ENABLED' in pv_name:
+                self._ti_septumex_enabled = value
+                self._state_deprecated = True
+                return True
+            elif 'SEPTUMEX-DELAY' in pv_name:
+                self._ti_septumex_delay = value
                 self._state_deprecated = True
                 return True
             else:
@@ -108,14 +108,14 @@ class TLineModel(accelerator_model.AcceleratorModel):
         if self.prefix == 'TB':
             self._ti_septuminj_enabled = 1
             self._ti_septuminj_delay = 0
-            self._ti_septumex_enabled = 1
-            self._ti_septumex_delay = 0
         if self.prefix == 'TS':
             self._ti_septumthick_enabled = 1
             self._ti_septumthick_delay = 0
             self._ti_septumthin_enabled = 1
             self._ti_septumthin_delay = 0
-
+            self._ti_septumex_enabled = 1
+            self._ti_septumex_delay = 0
+            
         self._state_deprecated = True
         self._update_state()
 
