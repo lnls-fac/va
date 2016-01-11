@@ -52,15 +52,9 @@ class PCASDriver(Driver):
             self._processes_initialisation[p.model_prefix] = False
 
     def process(self):
-        self._check_initialisation()
         self._process_writes()
         self._process_requests()
         self.updatePVs()
-
-    def _check_initialisation(self):
-        if not self._start_event.is_set():
-            if all(self._processes_initialisation.values()):
-                self._start_event.set()
 
     def _process_writes(self):
         size = self._queue.qsize()
@@ -90,7 +84,6 @@ class PCASDriver(Driver):
             self._stop_event.set()
         elif cmd == 'i':
             self._initialisation_sign_received(data)
-            # maybe insert funcionality of _check_initialisation here.
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
@@ -122,6 +115,9 @@ class PCASDriver(Driver):
     def _initialisation_sign_received(self, data):
         prefix = data
         self._processes_initialisation[prefix] = True
+        if not self._start_event.is_set():
+            if all(self._processes_initialisation.values()):
+                self._start_event.set()
 
     def finalise(self):
         for p in self._processes.values():
