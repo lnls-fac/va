@@ -46,9 +46,27 @@ class RingModel(accelerator_model.AcceleratorModel):
             return None
 
     def _get_pv_static(self, pv_name):
-        value = super()._get_pv_static(pv_name)
-        if value is not None:
-            return value
+        if '-BPM-' in pv_name:
+            charge = self._beam_charge.total_value
+            idx = self._get_elements_indices(pv_name)
+            if 'FAM-X' in pv_name:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                return self._orbit[0,idx]
+            elif 'FAM-Y' in pv_name:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                return self._orbit[2,idx]
+            else:
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
+                return self._orbit[[0,2],idx[0]]
+        elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
+            return self._power_supplies[pv_name].current
+        elif 'EFF' in pv_name:
+            if 'TOTAL' in pv_name:
+                return 100*self._total_efficiency if self._total_efficiency is not None else UNDEF_VALUE
+            elif 'INJ' in pv_name:
+                return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
+            elif 'EXT' in pv_name:
+                return 100*self._ejection_efficiency if self._ejection_efficiency is not None else UNDEF_VALUE
         elif 'DI-TUNEH' in pv_name:
             return self._get_tune_component(Plane.horizontal)
         elif 'DI-TUNEV' in pv_name:
