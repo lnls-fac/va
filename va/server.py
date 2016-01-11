@@ -77,7 +77,7 @@ def get_pv_database(models):
     pv_database = {}
     for m in models:
         pv_database.update(m.database)
-
+    pv_database['QUIT'] = {'type':'float', 'value':0, 'count':1}
     return pv_database
 
 

@@ -132,6 +132,13 @@ class PCASDriver(Driver):
 
     def write(self, reason, value):
         try:
+            if reason == 'QUIT':
+                if value == 0:
+                    utils.log('quit', 'command received with zero value', c='yellow', a=['bold'])
+                    return True
+                utils.log('quit', 'quiting virtual machine', c='red', a=['bold'])
+                self._stop_event.set()
+                return True
             process = self._get_pv_process(reason)
             if self._is_process_pv_writable(process, reason):
                 self.setParam(reason, value)
