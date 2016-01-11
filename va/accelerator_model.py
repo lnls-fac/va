@@ -51,13 +51,13 @@ class AcceleratorModel(model.Model):
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if 'FAM-X' in pv_name:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return self._orbit[0,idx]
             elif 'FAM-Y' in pv_name:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return self._orbit[2,idx]
             else:
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*2
+                if self._orbit is None: return [UNDEF_VALUE]*2
                 return self._orbit[[0,2],idx[0]]
         elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
