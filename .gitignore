@@ -11,3 +11,7 @@ dist/
 
 doc/architecture/*.svg
 doc/sphinx/_*
+
+# Doxygen documentation
+doc/doxygen/html/
+doc/doxygen/documentation.html
