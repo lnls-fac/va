@@ -9,7 +9,8 @@ from . import magnet
 from . import power_supply
 from . import utils
 
-
+_u = mathphys.units
+_c = mathphys.constants.light_speed
 UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = True
 
@@ -23,13 +24,10 @@ class AcceleratorModel(model.Model):
 
     def __init__(self, **kwargs):
         self._injection_parameters = None
-        if not hasattr(self, '_injection_point_label'):
-             self._injection_point_label = None
         super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
-        self._send_initialisation_sign()
 
     # --- methods implementing response of model to get requests
 
@@ -227,7 +225,6 @@ class AcceleratorModel(model.Model):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
         magnet_names = self.model_module.record_names.get_magnet_names(self._accelerator)
-        #magnet_names = utils.shift_record_names(accelerator, magnet_names)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)
@@ -288,9 +285,22 @@ class AcceleratorModel(model.Model):
     def _send_initialisation_sign(self):
         self._send_queue.put(('i', self.prefix))
 
+    def _send_parameters_to_downstream_accelerator(self, args_dict):
+        prefix = self._downstream_accelerator_prefix
+        function = 'get_parameters_from_upstream_accelerator'
+        self._send_queue.put(('p', (prefix, function, args_dict)))
+
     def _get_parameters_from_upstream_accelerator(self, args_dict):
-        self._injection_parameters = args_dict
-        self._update_injection_efficiency = True
+        if 'path_length' in args_dict.keys():
+            self._calc_nominal_delays(**args_dict)
+        else:
+            self._injection_parameters = args_dict
+            self._update_injection_efficiency = True
+
+    def _send_charge_to_downstream_accelerator(self, args_dict):
+        prefix = self._downstream_accelerator_prefix
+        function = 'get_charge_from_upstream_accelerator'
+        self._send_queue.put(('p', (prefix, function, args_dict)))
 
     def _get_charge_from_upstream_accelerator(self, args_dict):
         charge = args_dict['charge']
@@ -300,13 +310,3 @@ class AcceleratorModel(model.Model):
         self._update_state()
         self._injection(charge=charge, delay=delay, li_charge=li_charge)
         self._received_charge = False
-
-    def _send_parameters_to_downstream_accelerator(self, args_dict):
-        prefix = self._downstream_accelerator_prefix
-        function = 'get_parameters_from_upstream_accelerator'
-        self._send_queue.put(('p', (prefix, function, args_dict)))
-
-    def _send_charge_to_downstream_accelerator(self, args_dict):
-        prefix = self._downstream_accelerator_prefix
-        function = 'get_charge_from_upstream_accelerator'
-        self._send_queue.put(('p', (prefix, function, args_dict)))

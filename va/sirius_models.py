@@ -12,14 +12,14 @@ from . import ring_model
 from . import model
 
 
-# What about downstream accelerator prefixes?
-
 class LiModel(linac_model.LinacModel):
 
     pv_module = _pvs_li
     prefix = pv_module.prefix
     model_module = pv_module.model
     database = pv_module.get_database()
+
+    # Injection parameters
     _downstream_accelerator_prefix = 'TB'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _emittance         = model_module.accelerator_data['emittance']
@@ -38,9 +38,13 @@ class TbModel(tline_model.TLineModel):
     prefix = pv_module.prefix
     model_module = pv_module.model
     database = pv_module.get_database()
+
+    # Injection parameters
     nr_bunches = LiModel.nr_bunches
     _downstream_accelerator_prefix = 'BO'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
+    _injection_septum_label = 'septin'
+    _injection_septum_rise_time = 17150e-9
 
 
 class BoModel(booster_model.BoosterModel):
@@ -49,13 +53,20 @@ class BoModel(booster_model.BoosterModel):
     prefix = pv_module.prefix
     model_module = pv_module.model
     database = pv_module.get_database()
+
+    # Injection parameters
     nr_bunches = model_module.harmonic_number
     _downstream_accelerator_prefix = 'TS'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _kickin_angle = model_module.accelerator_data['injection_kicker_nominal_deflection']
-    _kickex_angle = model_module.accelerator_data['extraction_kicker_nominal_deflection']
-    _injection_point_label = 'sept_in'
-        
+    _injection_kick_angle    = model_module.accelerator_data['injection_kicker_nominal_deflection']
+    _extraction_kick_angle   = model_module.accelerator_data['extraction_kicker_nominal_deflection']
+    _injection_point_label   = 'sept_in'
+    _extraction_point_label  = 'sept_ex'
+    _injection_kick_label    = 'kick_in'
+    _extraction_kick_label   = 'kick_ex'
+    _kick_rise_time          = 1500e-9
+    _ramp_interval           = 0.23
+
 
 class TsModel(tline_model.TLineModel):
 
@@ -63,9 +74,15 @@ class TsModel(tline_model.TLineModel):
     prefix = pv_module.prefix
     model_module = pv_module.model
     database = pv_module.get_database()
+
+    # Injection parameters
     nr_bunches = BoModel.nr_bunches
     _downstream_accelerator_prefix = 'SI'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
+    _extraction_septum_label     = 'septex'
+    _injection_septum_label      = 'septing'
+    _injection_septum_rise_time  = 30000e-9
+    _extraction_septum_rise_time = 55000e-9
 
 
 class SiModel(ring_model.RingModel):
@@ -74,8 +91,13 @@ class SiModel(ring_model.RingModel):
     prefix = pv_module.prefix
     model_module = pv_module.model
     database = pv_module.get_database()
+
+    # Injection parameters
     nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _kickin_angle = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
-    _pmm_integ_polynom_b = model_module.accelerator_data['pmm_integ_polynom_b']
-    _injection_point_label = 'eseptinf'
+    _injection_kick_angle   = model_module.accelerator_data['on_axis_kicker_nominal_deflection']
+    _pmm_integ_polynom_b    = model_module.accelerator_data['pmm_integ_polynom_b']
+    _injection_point_label  = 'eseptinf'
+    _injection_kick_label   = 'kick_in'
+    _pmm_label              = 'pmm'
+    _kick_rise_time         = 1500e-9

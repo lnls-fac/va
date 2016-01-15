@@ -9,8 +9,9 @@ from . import utils
 from . import injection
 
 
-_u = mathphys.units
-UNDEF_VALUE = utils.UNDEF_VALUE
+_c = accelerator_model._c
+_u = accelerator_model._u
+UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
 
@@ -21,9 +22,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         super().__init__(**kwargs)
 
     # --- methods implementing response of model to get requests
-
-    def _get_pv_fake(self, pv_name):
-        return super()._get_pv_fake(pv_name)
 
     def _get_pv_dynamic(self, pv_name):
         if 'DI-CURRENT' in pv_name:
@@ -75,37 +73,34 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         else:
             return None
 
-    def _get_tune_component(self, plane):
-        charge = self._beam_charge.total_value
-        if charge == 0.0 or self._tunes == None: return UNDEF_VALUE
-        real_tune = self._tunes[plane].real
-        return real_tune
-
     def _get_pv_timing(self, pv_name):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
-                return self._ti_kickinj_enabled
-            elif 'KICKINJ-DELAY' in pv_name:
-                return self._ti_kickinj_delay
+                return self._kickinj_enabled
             elif 'KICKEX-ENABLED' in pv_name:
-                return self._ti_kickex_enabled
-            elif 'KICKEX-DELAY' in pv_name:
-                return self._ti_kickex_delay
-            elif 'KICKEX-INC' in pv_name:
-                return self._ti_kickex_inc
+                return self._kickex_enabled
             elif 'RAMPPS-ENABLED' in pv_name:
-                return self._ti_rampps_enabled
+                return self._rampps_enabled
+            elif 'KICKINJ-DELAY' in pv_name:
+                if not hasattr(self, '_kickinj_delay'):
+                    return UNDEF_VALUE
+                return self._kickinj_delay
+            elif 'KICKEX-DELAY' in pv_name:
+                if not hasattr(self, '_kickex_delay'):
+                    return UNDEF_VALUE
+                return self._kickex_delay
             elif 'RAMPPS-DELAY' in pv_name:
-                return self._ti_rampps_delay
+                if not hasattr(self, '_rampps_delay'):
+                    return UNDEF_VALUE
+                return self._rampps_delay
+            elif 'KICKEX-INC' in pv_name:
+                return UNDEF_VALUE
             else:
                 return None
         else:
             return None
 
     # --- methods implementing response of model to set requests
-
-    def _set_pv_fake(self, pv_name, value):
-        return super()._set_pv_fake(pv_name, value)
 
     def _set_pv_rf(self, pv_name, value):
         if 'RF-VOLTAGE' in pv_name:
@@ -121,39 +116,28 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             if value != prev_value:
                 self._accelerator[idx[0]].frequency = value
                 self._state_deprecated = True
-            self._send_queue.put(('g', ('LI', 'SIRF-FREQUENCY')))
             return True
         return False
 
     def _set_pv_timing(self, pv_name, value):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
-                self._ti_kickinj_enabled = value
-                self._state_deprecated = True
-                return True
-            elif 'KICKINJ-DELAY' in pv_name:
-                self._ti_kickinj_delay = value
-                self._state_deprecated = True
-                return True
-            elif 'KICKEX-ENABLED' in pv_name:
-                self._ti_kickex_enabled = value
-                self._state_deprecated = True
-                return True
-            elif 'KICKEX-DELAY' in pv_name:
-                self._ti_kickex_delay = value
-                self._state_deprecated = True
-                return True
-            elif 'KICKEX-INC' in pv_name:
-                self._ti_kickex_inc = value
-                self._state_deprecated = True
+                self._kickinj_enabled = value
                 return True
             elif 'RAMPPS-ENABLED' in pv_name:
-                self._ti_rampps_enabled = value
-                self._state_deprecated = True
+                self._rampps_enabled = value
+                return True
+            elif 'KICKEX-ENABLED' in pv_name:
+                self._kickex_enabled = value
+                return True
+            elif 'KICKINJ-DELAY' in pv_name:
+                self._kickinj_delay = value
                 return True
             elif 'RAMPPS-DELAY' in pv_name:
-                self._ti_rampps_delay = value
-                self._state_deprecated = True
+                self._rampps_delay = value
+                return True
+            elif 'KICKEX-DELAY' in pv_name:
+                self._kickex_delay = value
                 return True
             else:
                 return False
@@ -175,7 +159,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._state_changed = True
             self._state_deprecated = False
         # Calculate injection and ejection efficiencies
-        self._calc_efficiencies()
+        #self._calc_efficiencies()
 
     def _calc_efficiencies(self):
         if self._summary is None:
@@ -194,16 +178,14 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._calc_ejection_efficiency()
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
+        # Create beam charge object
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
 
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
-        #injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_in')[0]
-        #print(self._injection_point_label)
-        #print(self._downstream_accelerator_prefix)
-
-        if self._injection_point_label is None:
+        self._lattice_length = pyaccel.lattice.length(self._accelerator)
+        if not hasattr(self, '_injection_point_label'):
             self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
         else:
             injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)[0]
@@ -214,30 +196,25 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # Append marker to accelerator
         self._append_marker()
+
         # Create record names dictionary
         self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
         self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
 
+        # Set radiation and cavity on
         if TRACK6D:
-            # Set radiation and cavity on
             pyaccel.tracking.set6dtracking(self._accelerator)
 
-        self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'sept_ex')[0]
-        self._kickin_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_in')
-        self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'kick_ex')
+        self._ext_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._extraction_point_label)[0]
+        self._kickinj_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_kick_label)
+        self._kickex_idx   = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._extraction_kick_label)
         self._set_vacuum_chamber()
-
+        self._kickinj_enabled = 1
+        self._kickex_enabled = 1
+        self._rampps_enabled = 1
         self._state_deprecated = True
         self._update_state()
 
-        # Initial values of timing pvs
-        self._ti_kickinj_enabled = 1
-        self._ti_kickinj_delay = 0
-        self._ti_kickex_enabled = 1
-        self._ti_kickex_delay = 0
-        self._ti_kickex_inc = 0
-        self._ti_rampps_enabled = 1
-        self._ti_rampps_delay = 0
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
@@ -254,6 +231,41 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         self._ejection_efficiency  = None
 
    # --- auxiliary methods
+
+    def _calc_nominal_delays(self, path_length=None, pulse_duration=None):
+        inj_to_kickinj_len = pyaccel.lattice.length(self._accelerator[:self._kickinj_idx[0]])
+        inj_to_kickex_len = pyaccel.lattice.length(self._accelerator[:self._kickex_idx[0]])
+        kickex_to_ext_len = pyaccel.lattice.length(self._accelerator[self._kickex_idx[0] : self._ext_point])
+
+        # Calculate ramp nominal delay
+        self._rampps_nominal_delay = path_length/_c
+        self._rampps_delay = self._rampps_nominal_delay
+
+        # Calculate injection kick nominal delay
+        self._kickinj_nominal_delay = (path_length + inj_to_kickinj_len)/_c - self._kick_rise_time + pulse_duration/2.0
+        self._kickinj_delay = self._kickinj_nominal_delay
+
+        # Calculate extraction kick nominal delay
+        nr_turns = int(self._ramp_interval/(self._lattice_length/_c))
+        self._kickex_nominal_delay = (path_length + inj_to_kickex_len)/_c + nr_turns*(self._lattice_length/_c) - self._kick_rise_time + pulse_duration/2.0
+        self._kickex_delay = self._kickex_nominal_delay
+
+        # Update epics memory
+        self._send_queue.put(('s', ('BOTI-RAMPPS-DELAY', self._rampps_nominal_delay )))
+        self._send_queue.put(('s', ('BOTI-KICKINJ-DELAY', self._kickinj_nominal_delay)))
+        self._send_queue.put(('s', ('BOTI-KICKEX-DELAY', self._kickex_nominal_delay)))
+
+        # Send path length to downstream accelerator
+        path_length += inj_to_kickex_len + nr_turns*self._lattice_length + kickex_to_ext_len
+        _dict = {'path_length': path_length, 'pulse_duration': pulse_duration}
+        self._send_parameters_to_downstream_accelerator(_dict)
+        self._send_initialisation_sign()
+
+    def _get_tune_component(self, plane):
+        charge = self._beam_charge.total_value
+        if charge == 0.0 or self._tunes == None: return UNDEF_VALUE
+        real_tune = self._tunes[plane].real
+        return real_tune
 
     def _calc_closed_orbit(self):
         # Calculate closed orbit when there is beam
@@ -318,20 +330,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         eq['global_coupling'] = self.model_module.accelerator_data['global_coupling']
         return eq
 
-    def _set_kickin(self, str ='off'):
-        for idx in self._kickin_idx:
-            if str.lower() == 'on':
-                self._accelerator[idx].hkick_polynom = self._kickin_angle
-            elif str.lower() == 'off':
-                self._accelerator[idx].hkick_polynom = 0.0
-
-    def _set_kickex(self, str ='off'):
-        for idx in self._kickex_idx:
-            if str.lower() == 'on':
-                self._accelerator[idx].hkick_polynom = self._kickex_angle
-            elif str.lower() == 'off':
-                self._accelerator[idx].hkick_polynom = 0.0
-
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
         self._log('calc', 'injection efficiency  for '+self.model_module.lattice_version)
@@ -340,10 +338,10 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        self._set_kickin('on')
+        for idx in self._kickinj_idx: self._accelerator[idx].hkick_polynom = self._kickinj_angle
         injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
         self._injection_efficiency = 1.0 - injection_loss_fraction
-        self._set_kickin('off')
+        for idx in self._kickinj_idx: self._accelerator[idx].hkick_polynom = 0.0
 
     def _calc_ejection_efficiency(self):
         if self._twiss is None:
@@ -351,7 +349,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             return
 
         self._log('calc', 'ejection efficiency  for '+self.model_module.lattice_version)
-        self._set_kickex('on')
+        for idx in self._kickex_idx: self._accelerator[idx].hkick_polynom = self._kickex_angle
         accelerator = self._accelerator[self._kickex_idx[0]:self._ext_point+1]
 
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
@@ -367,7 +365,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         args_dict.update(ejection_parameters)
         args_dict['init_twiss'] = twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
-        self._set_kickex('off')
+        for idx in self._kickex_idx: self._accelerator[idx].hkick_polynom = 0.0
 
     def _injection(self, charge=None, delay=0.0, li_charge=None):
         if charge is None: return
@@ -380,13 +378,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             return
 
-        if not self._ti_kickinj_enabled: self._injection_efficiency = 0.0
+        if not self._kickinj_enabled: self._injection_efficiency = 0.0
         self._beam_inject(charge=charge)
         self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*self._injection_efficiency))
 
-        if not self._ti_kickex_enabled: self._ejection_efficiency = 0.0
+        if not self._kickex_enabled: self._ejection_efficiency = 0.0
         final_charge = self._beam_eject()
         self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*self._ejection_efficiency))
 
-        delay += self._ti_kickex_delay
+        delay += self._kickex_delay
         self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay' : delay, 'li_charge': li_charge})

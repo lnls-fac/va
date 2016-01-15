@@ -74,8 +74,6 @@ class Model:
         cmd, data = request
         if cmd == 's':
             self._set_parameter(data)
-        elif cmd == 'g':
-            self._receive_parameter_value(data)
         elif cmd == 'p':
             self._execute_function(data)
         else:
@@ -84,10 +82,6 @@ class Model:
     def _set_parameter(self, data):
         pv_name, value = data
         self._set_pv(pv_name, value)
-
-    def _receive_parameter_value(self, data):
-        pv_name, value = data
-        self._receive_pv_value(pv_name, value)
 
     def _execute_function(self, data):
         function, args_dict = data

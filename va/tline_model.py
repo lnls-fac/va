@@ -5,35 +5,42 @@ from . import beam_charge
 from . import injection
 from . import utils
 
+_c = accelerator_model._c
+UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 
 class TLineModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_fake(self, pv_name):
-        return super()._get_pv_fake(pv_name)
-
     def _get_pv_timing(self, pv_name):
         if self.prefix == 'TB' and 'TI-' in pv_name:
             if 'SEPTUMINJ-ENABLED' in pv_name:
-                return self._ti_septuminj_enabled
+                return self._septuminj_enabled
             elif 'SEPTUMINJ-DELAY' in pv_name:
-                return self._ti_septuminj_delay
+                if not hasattr(self, '_septuminj_delay'):
+                    return UNDEF_VALUE
+                return self._septuminj_delay
             else:
                 return None
         elif self.prefix == 'TS' and 'TI-' in pv_name:
             if 'SEPTUMTHICK-ENABLED' in pv_name:
-                return self._ti_septumthick_enabled
-            elif 'SEPTUMTHICK-DELAY' in pv_name:
-                return self._ti_septumthick_delay
+                return self._septumthick_enabled
             elif 'SEPTUMTHIN-ENABLED' in pv_name:
-                return self._ti_septumthin_enabled
-            elif 'SEPTUMTHIN-DELAY' in pv_name:
-                return self._ti_septumthin_delay
+                return self._septumthin_enabled
             elif 'SEPTUMEX-ENABLED' in pv_name:
-                return self._ti_septumex_enabled
+                return self._septumex_enabled
+            elif 'SEPTUMTHICK-DELAY' in pv_name:
+                if not hasattr(self, '_septumthick_delay'):
+                    return UNDEF_VALUE
+                return self._septumthick_delay
+            elif 'SEPTUMTHIN-DELAY' in pv_name:
+                if not hasattr(self, '_septumthin_delay'):
+                    return UNDEF_VALUE
+                return self._septumthin_delay
             elif 'SEPTUMEX-DELAY' in pv_name:
-                return self._ti_septumex_delay
+                if not hasattr(self, '_septumex_delay'):
+                    return UNDEF_VALUE
+                return self._septumex_delay
             else:
                 return None
         else:
@@ -41,45 +48,34 @@ class TLineModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to set requests
 
-    def _set_pv_fake(self, pv_name, value):
-        return super()._set_pv_fake(pv_name, value)
-
     def _set_pv_timing(self, pv_name, value):
         if self.prefix == 'TB' and 'TI-' in pv_name:
             if 'SEPTUMINJ-ENABLED' in pv_name:
-                self._ti_septuminj_enabled = value
-                self._state_deprecated = True
+                self._septuminj_enabled = value
                 return True
             elif 'SEPTUMINJ-DELAY' in pv_name:
-                self._ti_septuminj_delay = value
-                self._state_deprecated = True
+                self._septuminj_delay = value
                 return True
             else:
                 return False
         if self.prefix == 'TS' and 'TI-' in pv_name:
             if 'SEPTUMTHICK-ENABLED' in pv_name:
-                self._ti_septumthick_enabled = value
-                self._state_deprecated = True
-                return True
-            elif 'SEPTUMTHICK-DELAY' in pv_name:
-                self._ti_septumthick_delay = value
-                self._state_deprecated = True
+                self._septumthick_enabled = value
                 return True
             elif 'SEPTUMTHIN-ENABLED' in pv_name:
-                self._ti_septumthin_enabled = value
-                self._state_deprecated = True
-                return True
-            elif 'SEPTUMTHIN-DELAY' in pv_name:
-                self._ti_septumthin_delay = value
-                self._state_deprecated = True
+                self._septumthin_enabled = value
                 return True
             elif 'SEPTUMEX-ENABLED' in pv_name:
-                self._ti_septumex_enabled = value
-                self._state_deprecated = True
+                self._septumex_enabled = value
+                return True
+            elif 'SEPTUMTHICK-DELAY' in pv_name:
+                self._septumthick_delay = value
+                return True
+            elif 'SEPTUMTHIN-DELAY' in pv_name:
+                self._septumthin_delay = value
                 return True
             elif 'SEPTUMEX-DELAY' in pv_name:
-                self._ti_septumex_delay = value
-                self._state_deprecated = True
+                self._septumex_delay = value
                 return True
             else:
                 return False
@@ -90,32 +86,25 @@ class TLineModel(accelerator_model.AcceleratorModel):
 
     def _update_state(self, force=False):
         if force or self._state_deprecated or self._update_injection_efficiency:
-            self._calc_injection_efficiency()
+            #self._calc_injection_efficiency()
             self._state_deprecated = False
             self._update_injection_efficiency = False
             self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator = self.model_module.create_accelerator()
+        self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
+        self._septuminj_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_septum_label)[0]
         self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
         self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber()
-
-        # initial values of timing pvs
-        if self.prefix == 'TB':
-            self._ti_septuminj_enabled = 1
-            self._ti_septuminj_delay = 0
-        if self.prefix == 'TS':
-            self._ti_septumthick_enabled = 1
-            self._ti_septumthick_delay = 0
-            self._ti_septumthin_enabled = 1
-            self._ti_septumthin_delay = 0
-            self._ti_septumex_enabled = 1
-            self._ti_septumex_delay = 0
-            
+        self._septuminj_enabled = 1
+        self._septumex_enabled = 1
+        self._septumthick_enabled = 1
+        self._septumthin_enabled = 1
         self._state_deprecated = True
         self._update_state()
 
@@ -130,6 +119,46 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._ejection_efficiency  = 1.0
 
     # --- auxiliary methods
+
+    def _calc_nominal_delays(self, **kwargs):
+        if self.prefix == 'TB':
+            self._calc_tb_nominal_delays(**kwargs)
+        elif self.prefix == 'TS':
+            self._calc_ts_nominal_delays(**kwargs)
+        self._send_initialisation_sign()
+
+    def _calc_tb_nominal_delays(self, path_length=None, pulse_duration=None):
+        # Calculate injection septum nominal delay
+        length = path_length + pyaccel.lattice.length(self._accelerator[:self._septuminj_idx])
+        self._septuminj_nominal_delay = length/_c - self._injection_septum_rise_time + pulse_duration/2.0
+        self._septuminj_delay = self._septuminj_nominal_delay
+
+        # Update epics memory
+        self._send_queue.put(('s', ('TBTI-SEPTUMINJ-DELAY', self._septuminj_nominal_delay)))
+
+        # Send path length to downstream accelerator
+        _dict = {'path_length': path_length + self._lattice_length, 'pulse_duration': pulse_duration}
+        self._send_parameters_to_downstream_accelerator(_dict)
+
+    def _calc_ts_nominal_delays(self, path_length=None, pulse_duration=None):
+        # Calculate extraction septum nominal delay
+        self._septumex_nominal_delay = path_length/_c - self._extraction_septum_rise_time + pulse_duration/2.0
+        self._septumex_delay = self._septumex_nominal_delay
+
+        # Calculate injection septum nominal delay
+        length = path_length + pyaccel.lattice.length(self._accelerator[:self._septuminj_idx])
+        self._septuminj_nominal_delay = length/_c - self._injection_septum_rise_time + pulse_duration/2.0
+        self._septumthick_delay = self._septuminj_nominal_delay
+        self._septumthin_delay = self._septuminj_nominal_delay
+
+        # Update epics memory
+        self._send_queue.put(('s', ('TSTI-SEPTUMEX-DELAY', self._septumex_nominal_delay)))
+        self._send_queue.put(('s', ('TSTI-SEPTUMTHICK-DELAY', self._septuminj_nominal_delay)))
+        self._send_queue.put(('s', ('TSTI-SEPTUMTHIN-DELAY',  self._septuminj_nominal_delay)))
+
+        # Send path length to downstream accelerator
+        _dict = {'path_length': path_length + self._lattice_length, 'pulse_duration': pulse_duration}
+        self._send_parameters_to_downstream_accelerator(_dict)
 
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
@@ -149,7 +178,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
 
-    def _injection(self, charge=None, delay=0.0, li_charge=None):
+    def _injection(self, charge=None, li_charge=None):
         if charge is None: return
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
@@ -158,4 +187,4 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._log(message1='cycle', message2='beam injection at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*self._injection_efficiency))
 
         final_charge = self._beam_eject()
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'delay' : delay, 'li_charge': li_charge})
+        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'li_charge': li_charge})
