@@ -92,11 +92,11 @@ class BeamCharge:
         currents = [bunch_charge/time_interval for bunch_charge in charges]
         return currents
 
-    def inject(self, delta_charge):
+    def inject(self, delta_charge, bunch_idx=0):
         current_charge = self.value
-        nr_bunches = len(current_charge)
+        total_nr_bunches = len(current_charge)
         for i in range(len(delta_charge)):
-            idx = i % nr_bunches
+            idx = (bunch_idx + i) % total_nr_bunches
             self._charge[idx] += delta_charge[i]
 
     def eject(self, bunch_idx=None, nr_bunches=None):

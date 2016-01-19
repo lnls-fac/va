@@ -127,19 +127,15 @@ class RingModel(accelerator_model.AcceleratorModel):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
                 self._injection_kick_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'PMM-ENABLED' in pv_name:
                 self._pmm_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'KICKINJ-DELAY' in pv_name:
                 self._injection_kick_delay = value
-                self._state_deprecated = True
                 return True
             elif 'PMM-DELAY' in pv_name:
                 self._pmm_delay = value
-                self._state_deprecated = True
                 return True
             else:
                 return False
@@ -191,7 +187,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             pyaccel.tracking.set6dtracking(self._accelerator)
 
         self._injection_kick_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_kick_label)
-        self._pmm_idx    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._pmm_label)
+        self._pmm_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._pmm_label)
         self._set_vacuum_chamber()
         self._injection_kick_enabled = 1
         self._pmm_enabled = 0
@@ -299,13 +295,11 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
                                         quantum=q_lifetime, touschek_coefficient=t_coeff)
 
-    def _beam_inject(self, charge=None):
+    def _beam_inject(self, charge=None, bunch_idx=0):
         if charge is None: return
 
         initial_charge = self._beam_charge.total_value
-
-        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
-        self._beam_charge.inject(charge)
+        self._beam_charge.inject(charge, bunch_idx=bunch_idx)
 
         final_charge = self._beam_charge.total_value
         if (initial_charge == 0) and (final_charge != initial_charge):
@@ -354,8 +348,10 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._injection_efficiency = 0.0
         return injection_magnet_efficiency
 
-    def _injection_cycle(self, charge=None, linac_charge=None):
-        if charge is None: return
+    def _injection_cycle(self, **kwargs):
+        charge = kwargs['charge']
+        injection_bunch = kwargs['injection_bunch']
+        linac_charge = kwargs['linac_charge']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
@@ -365,7 +361,8 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
         charge = injection_magnet_efficiency * charge
-        self._beam_inject(charge=charge)
+        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
+        self._beam_inject(charge=charge, bunch_idx=injection_bunch)
         self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
 
         self._total_efficiency = self._injection_efficiency*(sum(charge)/sum(linac_charge))

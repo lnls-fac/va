@@ -4,7 +4,9 @@ from . import accelerator_model
 from . import beam_charge
 from . import utils
 
+
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
+
 
 class LinacModel(accelerator_model.AcceleratorModel):
 
@@ -29,6 +31,10 @@ class LinacModel(accelerator_model.AcceleratorModel):
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
+            elif 'INJECTION-BUNCH' in pv_name:
+                if not hasattr(self, '_injection_bunch'):
+                    return UNDEF_VALUE
+                return self._injection_bunch
             else:
                 return None
         else:
@@ -56,6 +62,9 @@ class LinacModel(accelerator_model.AcceleratorModel):
         elif 'TI-EGUN-DELAY' in pv_name:
             self._egun_delay = value
             return True
+        elif 'INJECTION-BUNCH' in pv_name:
+            self._injection_bunch = int(value)
+            return True
         return False
 
     # --- methods that help updating the model state
@@ -75,6 +84,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._set_nominal_delays()
         self._send_injection_parameters()
         self._egun_enabled = 1
+        self._injection_bunch = 0
         self._cycle = 0
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
@@ -123,8 +133,12 @@ class LinacModel(accelerator_model.AcceleratorModel):
             else:
                 charge = [self.model_module.multi_bunch_charge/self.nr_bunches]*self.nr_bunches
         else:
-            charge = [0.0]
+            self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(0.0))
+            self._log(message1 = 'cycle', message2 = 'Stoping injection')
+            return
 
         self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
-        self._send_parameters_to_downstream_accelerator({'charge' : charge, 'linac_charge': charge})
+
+        _dict = {'charge' : charge, 'linac_charge': charge, 'injection_bunch': self._injection_bunch}
+        self._send_parameters_to_downstream_accelerator(_dict)

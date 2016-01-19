@@ -71,38 +71,30 @@ class TLineModel(accelerator_model.AcceleratorModel):
         if self.prefix == 'TB' and 'TI-' in pv_name:
             if 'SEPTUMINJ-ENABLED' in pv_name:
                 self._injection_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMINJ-DELAY' in pv_name:
                 self._injection_magnet_delay = value
-                self._state_deprecated = True
                 return True
             else:
                 return False
         if self.prefix == 'TS' and 'TI-' in pv_name:
             if 'SEPTUMTHICK-ENABLED' in pv_name:
                 self._injection_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMTHIN-ENABLED' in pv_name:
                 self._injection_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMEX-ENABLED' in pv_name:
                 self._extraction_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMTHICK-DELAY' in pv_name:
                 self._injection_magnet_delay = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMTHIN-DELAY' in pv_name:
                 self._injection_magnet_delay = value
-                self._state_deprecated = True
                 return True
             elif 'SEPTUMEX-DELAY' in pv_name:
                 self._extraction_magnet_delay = value
-                self._state_deprecated = True
                 return True
             else:
                 return False
@@ -196,11 +188,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
         self._send_parameters_to_downstream_accelerator(args_dict)
 
-    def _beam_transport(self, charge):
-        if charge is None: return
-        charge = [bunch_charge * self._transport_efficiency for bunch_charge in charge]
-        return charge
-
     def _calc_extraction_magnet_efficiency(self, nr_bunches):
         rise_time     = self._extraction_magnet_rise_time
         delay         = self._extraction_magnet_delay
@@ -215,8 +202,8 @@ class TLineModel(accelerator_model.AcceleratorModel):
         efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, self._bunch_separation, nr_bunches)
         return efficiency
 
-    def _injection_cycle(self, charge=None, linac_charge=None):
-        if charge is None: return
+    def _injection_cycle(self, **kwargs):
+        charge = kwargs['charge']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
@@ -228,11 +215,13 @@ class TLineModel(accelerator_model.AcceleratorModel):
             extraction_magnet_efficiency = self._calc_extraction_magnet_efficiency(nr_bunches)
             charge = charge*extraction_magnet_efficiency
 
-        charge = self._beam_transport(charge)
+        charge = [bunch_charge * self._transport_efficiency for bunch_charge in charge]
 
         if self._has_injection_pulsed_magnet:
             injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
             charge = charge*injection_magnet_efficiency
 
         self._log(message1='cycle', message2='beam transport at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
-        self._send_parameters_to_downstream_accelerator({'charge' : charge, 'linac_charge': linac_charge})
+
+        kwargs['charge'] = charge
+        self._send_parameters_to_downstream_accelerator(kwargs)

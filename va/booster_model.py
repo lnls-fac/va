@@ -135,27 +135,21 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         if 'TI-' in pv_name:
             if 'KICKINJ-ENABLED' in pv_name:
                 self._injection_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'RAMPPS-ENABLED' in pv_name:
                 self._rampps_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'KICKEX-ENABLED' in pv_name:
                 self._extraction_magnet_enabled = value
-                self._state_deprecated = True
                 return True
             elif 'KICKINJ-DELAY' in pv_name:
                 self._injection_magnet_delay = value
-                self._state_deprecated = True
                 return True
             elif 'RAMPPS-DELAY' in pv_name:
                 self._rampps_delay = value
-                self._state_deprecated = True
                 return True
             elif 'KICKEX-DELAY' in pv_name:
                 self._extraction_magnet_delay = value
-                self._state_deprecated = True
                 return True
             else:
                 return False
@@ -165,7 +159,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
-
         if force or self._state_deprecated:
             # Calculate parameters
             self._calc_closed_orbit()
@@ -176,6 +169,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._update_ejection_efficiency  = True
             self._state_changed = True
             self._state_deprecated = False
+
         # Calculate injection and ejection efficiencies
         self._calc_efficiencies()
 
@@ -356,12 +350,11 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         eq['global_coupling'] = self.model_module.accelerator_data['global_coupling']
         return eq
 
-    def _beam_inject(self, charge=None):
+    def _beam_inject(self, charge=None, bunch_idx=0):
         if charge is None: return
 
         initial_charge = self._beam_charge.total_value
-        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
-        self._beam_charge.inject(charge)
+        self._beam_charge.inject(charge, bunch_idx=bunch_idx)
 
         final_charge = self._beam_charge.total_value
         if (initial_charge == 0) and (final_charge != initial_charge):
@@ -369,8 +362,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     def _beam_eject(self, bunch_idx=None, nr_bunches=None):
         charge = self._beam_charge.eject(bunch_idx=bunch_idx, nr_bunches=nr_bunches)
-        final_charge = [charge_bunch * self._ejection_efficiency for charge_bunch in charge]
-        return final_charge
+        return charge
 
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
@@ -445,8 +437,8 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             efficiency = 0
         return efficiency
 
-    def _injection_cycle(self, charge=None, linac_charge=None):
-        if charge is None: return
+    def _injection_cycle(self, **kwargs):
+        charge = kwargs['charge']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
@@ -459,15 +451,26 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         nr_bunches = len(charge)
         initial_charge = charge
 
+        # Injection
         if self._has_injection_pulsed_magnet:
             injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
             charge = charge * injection_magnet_efficiency
 
-        self._beam_inject(charge=charge)
+        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
+        bunch_idx = kwargs['injection_bunch'] % self._accelerator.harmonic_number
+        self._beam_inject(charge=charge, bunch_idx=bunch_idx)
         self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
 
-        bunch_idx = 0 # depende da pv atraso geral!
-        final_charge = self._beam_eject(bunch_idx=bunch_idx, nr_bunches=len(charge))
+        # Acceleration
+        if self._rampps_enabled:
+            self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100))
+        else:
+            self._beam_charge.dump()
+            self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+
+        # Extraction
+        charge = self._beam_eject(bunch_idx=bunch_idx, nr_bunches=nr_bunches)
+        final_charge = [bunch_charge * self._ejection_efficiency for bunch_charge in charge]
 
         if self._has_extraction_pulsed_magnet:
             extraction_magnet_efficiency = self._calc_extraction_magnet_efficiency(nr_bunches)
@@ -475,4 +478,5 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(final_charge)/sum(charge))))
 
-        self._send_parameters_to_downstream_accelerator({'charge' : final_charge, 'linac_charge': linac_charge})
+        kwargs['charge'] = final_charge
+        self._send_parameters_to_downstream_accelerator(kwargs)
