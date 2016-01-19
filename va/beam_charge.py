@@ -99,6 +99,22 @@ class BeamCharge:
             idx = i % nr_bunches
             self._charge[idx] += delta_charge[i]
 
+    def eject(self, bunch_idx=None, nr_bunches=None):
+        current_charge = self.value
+
+        if bunch_idx is not None and  nr_bunches is not None:
+            total_nr_bunches = len(current_charge)
+            ejected_charge = []
+            for i in range(nr_bunches):
+                idx = (bunch_idx + i) % total_nr_bunches
+                ejected_charge.append(current_charge[idx])
+                self._charge[idx] = 0
+        else:
+            ejected_charge = current_charge
+            self.dump()
+
+        return ejected_charge
+
     def dump(self):
         self._charge = [0] * len(self._charge)
         self._timestamp = time.time()

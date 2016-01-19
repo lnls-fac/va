@@ -73,8 +73,6 @@ class PCASDriver(Driver):
         cmd, data = request
         if cmd == 's': # set PV value in EPICS memory DB
             self._set_parameter_in_memory(data)
-        elif cmd == 'g': # get PV value from EPICS memory DB
-            self._send_parameter_to_model(data)
         elif cmd == 'p': # pass to model
             self._pass_to_model(data)
         elif cmd == 'sp': # initialise setpoints
@@ -91,24 +89,19 @@ class PCASDriver(Driver):
         pv_name, value = data
         self.setParam(pv_name, value)
 
-    def _send_parameter_to_model(self, data):
-        prefix, pv_name = data
-        value = self.getParam(pv_name)
-        self._send_to_model('g', prefix, pv_name, value)
-
     def _pass_to_model(self, data):
-        prefix, function, args_dict = data
-        self._send_to_model('p', prefix, function, args_dict)
+        prefix, args_dict = data
+        self._send_to_model('p', prefix, args_dict)
 
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             self.setParam(pv_name, value)
 
-    def _send_to_model(self, cmd, prefix, *args):
+    def _send_to_model(self, cmd, prefix, args):
         try:
             process = self._processes[prefix]
-            process.send_queue.put((cmd, (args)))
+            process.send_queue.put((cmd, args))
         except:
             utils.log('!pref', prefix, c='red', a=['bold'])
 
