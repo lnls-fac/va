@@ -1,6 +1,7 @@
 
 import os
 import enum
+import math
 import numpy
 import mathphys
 import pyaccel
@@ -45,26 +46,16 @@ class AcceleratorModel(model.Model):
 
     def _get_pv_static(self, pv_name):
         # Process global parameters
-        if '-BPM-' in pv_name:
-            charge = self._beam_charge.total_value
-            idx = self._get_elements_indices(pv_name)
-            if 'FAM-X' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[0,idx]
-            elif 'FAM-Y' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[2,idx]
-            else:
-                if self._orbit is None: return [UNDEF_VALUE]*2
-                return self._orbit[[0,2],idx[0]]
-        elif ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
+        if ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
         elif 'EFF' in pv_name:
             if 'TOTAL' in pv_name:
                 return 100*self._total_efficiency if self._total_efficiency is not None else UNDEF_VALUE
             elif 'INJ' in pv_name:
+                return UNDEF_VALUE
                 return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
             elif 'EXT' in pv_name:
+                return UNDEF_VALUE
                 return 100*self._ejection_efficiency if self._ejection_efficiency is not None else UNDEF_VALUE
         else:
             return None
@@ -156,7 +147,7 @@ class AcceleratorModel(model.Model):
     def _set_pv_timing(self, pv_name, value):
         return False
 
-    # --- methods that help updating the model state
+   # --- auxiliary methods
 
     def _init_sp_pv_values(self):
         utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
@@ -165,26 +156,6 @@ class AcceleratorModel(model.Model):
             value = self._get_pv(pv)
             sp_pv_list.append((pv,value))
         self._send_queue.put(('sp', sp_pv_list ))
-
-    def _beam_inject(self, charge=None):
-        if charge is None: return
-
-        initial_charge = self._beam_charge.total_value
-
-        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
-        self._beam_charge.inject(charge)
-
-        final_charge = self._beam_charge.total_value
-        if (initial_charge == 0) and (final_charge != initial_charge):
-            self._state_changed = True
-
-    def _beam_eject(self):
-        charge = self._beam_charge.value
-        final_charge = [charge_bunch * self._ejection_efficiency for charge_bunch in charge]
-        self._beam_charge.dump()
-        return final_charge
-
-   # --- auxiliary methods
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
@@ -285,28 +256,18 @@ class AcceleratorModel(model.Model):
     def _send_initialisation_sign(self):
         self._send_queue.put(('i', self.prefix))
 
-    def _send_parameters_to_downstream_accelerator(self, args_dict):
+    def _send_parameters_to_downstream_accelerator(self, _dict):
         prefix = self._downstream_accelerator_prefix
-        function = 'get_parameters_from_upstream_accelerator'
-        self._send_queue.put(('p', (prefix, function, args_dict)))
+        self._send_queue.put(('p', (prefix, _dict)))
 
-    def _get_parameters_from_upstream_accelerator(self, args_dict):
-        if 'path_length' in args_dict.keys():
-            self._calc_nominal_delays(**args_dict)
+    def _get_parameters_from_upstream_accelerator(self, _dict):
+        if 'path_length' in _dict.keys():
+            self._calc_nominal_delays(**_dict)
+        elif 'charge' in _dict.keys():
+            self._received_charge = True
+            self._update_state()
+            self._injection_cycle(**_dict)
+            self._received_charge = False
         else:
-            self._injection_parameters = args_dict
+            self._injection_parameters = _dict
             self._update_injection_efficiency = True
-
-    def _send_charge_to_downstream_accelerator(self, args_dict):
-        prefix = self._downstream_accelerator_prefix
-        function = 'get_charge_from_upstream_accelerator'
-        self._send_queue.put(('p', (prefix, function, args_dict)))
-
-    def _get_charge_from_upstream_accelerator(self, args_dict):
-        charge = args_dict['charge']
-        delay = args_dict['delay']
-        li_charge = args_dict['li_charge']
-        self._received_charge = True
-        self._update_state()
-        self._injection(charge=charge, delay=delay, li_charge=li_charge)
-        self._received_charge = False

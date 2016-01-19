@@ -75,20 +75,13 @@ class Model:
         if cmd == 's':
             self._set_parameter(data)
         elif cmd == 'p':
-            self._execute_function(data)
+            self._get_parameters_from_upstream_accelerator(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
     def _set_parameter(self, data):
         pv_name, value = data
         self._set_pv(pv_name, value)
-
-    def _execute_function(self, data):
-        function, args_dict = data
-        if function == 'get_parameters_from_upstream_accelerator':
-            self._get_parameters_from_upstream_accelerator(args_dict)
-        if function == 'get_charge_from_upstream_accelerator':
-            self._get_charge_from_upstream_accelerator(args_dict)
 
     def _update_pvs(self):
         if self._state_changed:

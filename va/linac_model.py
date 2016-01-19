@@ -4,7 +4,6 @@ from . import accelerator_model
 from . import beam_charge
 from . import utils
 
-_c = accelerator_model._c
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 
 class LinacModel(accelerator_model.AcceleratorModel):
@@ -48,7 +47,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         if 'CYCLE' in pv_name:
             self._cycle = value
             self._send_queue.put(('s', (pv_name, 0)))
-            self._start_injection_cycle()
+            self._injection_cycle()
             self._cycle = 0
             return True
         elif 'TI-EGUN-ENABLED' in pv_name:
@@ -66,7 +65,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator = self.model_module.create_accelerator()
-        self._lattice_length = 21
+        self._lattice_length = 21 #[m]
         self._append_marker()
         self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
         self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
@@ -98,29 +97,34 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._send_parameters_to_downstream_accelerator(_dict)
 
     def _set_nominal_delays(self):
-        self._nominal_egun_delay = 0
-        self._egun_delay = self._nominal_egun_delay
+        self._egun_delay = 0
 
         # Update epics memory
-        self._send_queue.put(('s', ('LITI-EGUN-DELAY', self._nominal_egun_delay)))
+        self._send_queue.put(('s', ('LITI-EGUN-DELAY', self._egun_delay)))
 
-        # Send path length to downstream accelerator        
-        _dict = {'path_length': self._lattice_length, 'pulse_duration': self._pulse_duration}
+        # Send path length to downstream accelerator
+        _dict = {'path_length': self._lattice_length,
+                'bunch_separation': self._pulse_duration/self.nr_bunches,
+                'nr_bunches': self.nr_bunches,
+                'egun_delay': self._egun_delay}
         self._send_parameters_to_downstream_accelerator(_dict)
         self._send_initialisation_sign()
 
-    def _start_injection_cycle(self):
+    def _injection_cycle(self):
         if not self._cycle: return
 
-        self._log(message1='cycle', message2='Starting injection')
+        self._log(message1 = 'cycle', message2 = '--')
+        self._log(message1 = 'cycle', message2='Starting injection')
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
-        if self._single_bunch_mode:
-            charge = [self.model_module.single_bunch_charge]
-        else:
-            charge = [self.model_module.multi_bunch_charge/self.nr_bunches]*self.nr_bunches
-        self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
 
+        if self._egun_enabled:
+            if self._single_bunch_mode:
+                charge = [self.model_module.single_bunch_charge]
+            else:
+                charge = [self.model_module.multi_bunch_charge/self.nr_bunches]*self.nr_bunches
+        else:
+            charge = [0.0]
+
+        self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
-        self._beam_inject(charge=charge)
-        final_charge = self._beam_eject()
-        self._send_charge_to_downstream_accelerator({'charge' : final_charge, 'li_charge': final_charge})
+        self._send_parameters_to_downstream_accelerator({'charge' : charge, 'linac_charge': charge})
