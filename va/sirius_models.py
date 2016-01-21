@@ -90,12 +90,12 @@ class TsModel(tline_model.TLineModel):
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
 
     _has_extraction_pulsed_magnet     = True
-    _injection_magnet_label           = 'septex'
-    _injection_magnet_rise_time       = 30000e-9
+    _extraction_magnet_label          = 'septex'
+    _extraction_magnet_rise_time      = 55000e-9
 
     _has_injection_pulsed_magnet      = True
-    _extraction_magnet_label          = 'septing'
-    _extraction_magnet_rise_time      = 55000e-9
+    _injection_magnet_label           = 'septing'
+    _injection_magnet_rise_time       = 30000e-9
 
 
 class SiModel(ring_model.RingModel):

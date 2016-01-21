@@ -20,11 +20,17 @@ class _LocalData:
     @staticmethod
     def _init_record_names():
         _fake_record_names = get_fake_record_names(family_data)
-        _LocalData.all_record_names = dict()
-        _LocalData.all_record_names.update(model.record_names.get_record_names(family_data))
+        _device_names = model.device_names.get_device_names(family_data)
+        _record_names = {}
+        for key in _device_names.keys():
+            if 'DI-BPM' in key:
+                _record_names[key + ':MONIT:X'] = _device_names[key]
+                _record_names[key + ':MONIT:Y'] = _device_names[key]
+            else:
+                _record_names[key] = _device_names[key]
+
+        _LocalData.all_record_names = _record_names
         _LocalData.all_record_names.update(_fake_record_names)
-        record_names = model.record_names.get_record_names(family_data)
-        record_names = list(record_names.keys()) + list(_fake_record_names.keys())
         _LocalData.fk      = []
         _LocalData.fk_pos  = []
         _LocalData.pa      = []
@@ -36,7 +42,7 @@ class _LocalData:
         _LocalData.pu      = []
         _LocalData.rf      = []
         _LocalData.ti      = []
-        for record_name in record_names:
+        for record_name in _LocalData.all_record_names.keys():
             if 'DI-BPM-' in record_name:
                 _LocalData.di_bpms.append(record_name)
             elif 'DI-' in record_name:
@@ -71,12 +77,10 @@ class _LocalData:
             if any([substring in p for substring in ('BCURRENT',)]):
                 _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number}
             elif 'DI-BPM' in p:
-                if 'FAM-X' in p:
-                    _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}
-                elif 'FAM-Y' in p:
+                if 'FAM' in p:
                     _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}
                 else:
-                    _LocalData.database[p] = {'type' : 'float', 'count': 2}
+                    _LocalData.database[p] = {'type' : 'float', 'count': 1}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.ps:

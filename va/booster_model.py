@@ -48,15 +48,20 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         elif '-BPM-' in pv_name:
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            if 'FAM-X' in pv_name:
+            if 'FAM:MONIT:X' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return self._orbit[0,idx]
-            elif 'FAM-Y' in pv_name:
+            elif 'FAM:MONIT:Y' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return self._orbit[2,idx]
+            elif 'MONIT:X' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]
+                return self._orbit[0,idx[0]]
+            elif 'MONIT:Y' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]
+                return self._orbit[2,idx[0]]
             else:
-                if self._orbit is None: return [UNDEF_VALUE]*2
-                return self._orbit[[0,2],idx[0]]
+                return None
         elif 'DI-TUNEH' in pv_name:
             return self._get_tune_component(Plane.horizontal)
         elif 'DI-TUNEV' in pv_name:
@@ -211,7 +216,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         self._extraction_point = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._extraction_point_label)[0]
 
         # Create record names dictionary
-        self._all_pvs = self.model_module.record_names.get_record_names(self._accelerator)
+        self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)
         self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
 
         # Set radiation and cavity on

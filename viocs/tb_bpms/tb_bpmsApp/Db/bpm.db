@@ -6,55 +6,21 @@ record(ai, "VA-TBDI-BPM-NOISELEVEL")
     field(EGU, "um")
 }
 
-record(waveform, "TBDI-BPM-$(sector)$(pos)")
-{
-    field(DESC, "TB BPM sector $(sector) pos $(pos)")
-    field(SCAN, ".1 second")
-    field(NELM, 2)
-    field(FTVL, "DOUBLE")
-    field(INP, "VA-TBDI-BPM-$(sector)$(pos)  NPP NMS")
-    field(EGU, "m")
-    field(FLNK, "TBDI-BPM-$(sector)$(pos)-X-TEMP")
-}
-
-record(subArray, "TBDI-BPM-$(sector)$(pos)-X-TEMP")
-{
-    field(SCAN, "Passive")
-    field(MALM, 2)
-    field(NELM, 1)
-    field(INDX, 0)
-    field(FTVL, "DOUBLE")
-    field(INP, "TBDI-BPM-$(sector)$(pos) PP NMS")
-    field(EGU, "m")
-    field(FLNK, "TBDI-BPM-$(sector)$(pos)-Y-TEMP")
-}
-
-record(subArray, "TBDI-BPM-$(sector)$(pos)-Y-TEMP")
-{
-    field(SCAN, "Passive")
-    field(MALM, 2)
-    field(NELM, 1)
-    field(INDX, 1)
-    field(FTVL, "DOUBLE")
-    field(INP, "TBDI-BPM-$(sector)$(pos) PP NMS")
-    field(EGU, "m")
-    field(FLNK, "TBDI-BPM-$(sector)$(pos)-X")
-}
-
-record(calc, "TBDI-BPM-$(sector)$(pos)-X")
+record(calc, "TBDI-BPM-$(sector)$(pos):MONIT:X")
 {
     field(DESC, "TB BPM sector $(sector) pos $(pos) x")
-    field(INPA, "TBDI-BPM-$(sector)$(pos)-X-TEMP")
+    field(SCAN, ".1 second")
+    field(INPA, "VA-TBDI-BPM-$(sector)$(pos):MONIT:X")
     field(INPB, "VA-TBDI-BPM-NOISELEVEL")
     field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "um")
-    field(FLNK, "TBDI-BPM-$(sector)$(pos)-Y")
+    field(FLNK, "TBDI-BPM-$(sector)$(pos):MONIT:Y")
 }
 
-record(calc, "TBDI-BPM-$(sector)$(pos)-Y")
+record(calc, "TBDI-BPM-$(sector)$(pos):MONIT:Y")
 {
     field(DESC, "TB BPM sector $(sector) pos $(pos) y")
-    field(INPA, "TBDI-BPM-$(sector)$(pos)-Y-TEMP")
+    field(INPA, "VA-TBDI-BPM-$(sector)$(pos):MONIT:Y")
     field(INPB, "VA-TBDI-BPM-NOISELEVEL")
     field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "um")
@@ -64,32 +30,32 @@ record(aSub, "ADD-NOISE-TBDI-BPM")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-TBDI-BPM-FAM-X")
-    field(INPB, "VA-TBDI-BPM-FAM-Y")
+    field(INPA, "VA-TBDI-BPM-FAM:MONIT:X")
+    field(INPB, "VA-TBDI-BPM-FAM:MONIT:Y")
     field(INPC, "VA-TBDI-BPM-NOISELEVEL")
-    field(NOA, 5)
-    field(NOB, 5)
+    field(NOA, 6)
+    field(NOB, 6)
     field(NOC, 1)
-    field(NOVA, 5)
-    field(NOVB, 5)
-    field(FLNK, "TBDI-BPM-FAM-X")
+    field(NOVA, 6)
+    field(NOVB, 6)
+    field(FLNK, "TBDI-BPM-FAM:MONIT:X")
 }
 
-record(waveform, "TBDI-BPM-FAM-X")
+record(waveform, "TBDI-BPM-FAM:MONIT:X")
 {
     field(DESC, "TB BPM FAM X")
     field(INP, "ADD-NOISE-TBDI-BPM.A")
-    field(NELM, 5)
+    field(NELM, 6)
     field(FTVL, "DOUBLE")
     field(EGU, "um")
-    field(FLNK, "TBDI-BPM-FAM-Y")
+    field(FLNK, "TBDI-BPM-FAM:MONIT:Y")
 }
 
-record(waveform, "TBDI-BPM-FAM-Y")
+record(waveform, "TBDI-BPM-FAM:MONIT:Y")
 {
     field(DESC, "TB BPM FAM Y")
     field(INP, "ADD-NOISE-TBDI-BPM.B")
-    field(NELM, 5)
+    field(NELM, 6)
     field(FTVL, "DOUBLE")
     field(EGU, "um")
 }

@@ -6,55 +6,21 @@ record(ai, "VA-SIDI-BPM-NOISELEVEL")
     field(EGU, "um")
 }
 
-record(waveform, "SIDI-BPM-$(sector)$(pos)")
-{
-    field(DESC, "SI BPM sector $(sector) pos $(pos)")
-    field(SCAN, ".1 second")
-    field(NELM, 2)
-    field(FTVL, "DOUBLE")
-    field(INP, "VA-SIDI-BPM-$(sector)$(pos)  NPP NMS")
-    field(EGU, "m")
-    field(FLNK, "SIDI-BPM-$(sector)$(pos)-X-TEMP")
-}
-
-record(subArray, "SIDI-BPM-$(sector)$(pos)-X-TEMP")
-{
-    field(SCAN, "Passive")
-    field(MALM, 2)
-    field(NELM, 1)
-    field(INDX, 0)
-    field(FTVL, "DOUBLE")
-    field(INP, "SIDI-BPM-$(sector)$(pos) PP NMS")
-    field(EGU, "m")
-    field(FLNK, "SIDI-BPM-$(sector)$(pos)-Y-TEMP")
-}
-
-record(subArray, "SIDI-BPM-$(sector)$(pos)-Y-TEMP")
-{
-    field(SCAN, "Passive")
-    field(MALM, 2)
-    field(NELM, 1)
-    field(INDX, 1)
-    field(FTVL, "DOUBLE")
-    field(INP, "SIDI-BPM-$(sector)$(pos) PP NMS")
-    field(EGU, "m")
-    field(FLNK, "SIDI-BPM-$(sector)$(pos)-X")
-}
-
-record(calc, "SIDI-BPM-$(sector)$(pos)-X")
+record(calc, "SIDI-BPM-$(sector)$(pos):MONIT:X")
 {
     field(DESC, "SI BPM sector $(sector) pos $(pos) x")
-    field(INPA, "SIDI-BPM-$(sector)$(pos)-X-TEMP")
+    field(SCAN, ".1 second")
+    field(INPA, "VA-SIDI-BPM-$(sector)$(pos):MONIT:X")
     field(INPB, "VA-SIDI-BPM-NOISELEVEL")
     field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "um")
-    field(FLNK, "SIDI-BPM-$(sector)$(pos)-Y")
+    field(FLNK, "SIDI-BPM-$(sector)$(pos):MONIT:Y")
 }
 
-record(calc, "SIDI-BPM-$(sector)$(pos)-Y")
+record(calc, "SIDI-BPM-$(sector)$(pos):MONIT:Y")
 {
     field(DESC, "SI BPM sector $(sector) pos $(pos) y")
-    field(INPA, "SIDI-BPM-$(sector)$(pos)-Y-TEMP")
+    field(INPA, "VA-SIDI-BPM-$(sector)$(pos):MONIT:Y")
     field(INPB, "VA-SIDI-BPM-NOISELEVEL")
     field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "um")
@@ -64,28 +30,28 @@ record(aSub, "ADD-NOISE-SIDI-BPM")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-SIDI-BPM-FAM-X")
-    field(INPB, "VA-SIDI-BPM-FAM-Y")
+    field(INPA, "VA-SIDI-BPM-FAM:MONIT:X")
+    field(INPB, "VA-SIDI-BPM-FAM:MONIT:Y")
     field(INPC, "VA-SIDI-BPM-NOISELEVEL")
     field(NOA, 160)
     field(NOB, 160)
     field(NOC, 1)
     field(NOVA, 160)
     field(NOVB, 160)
-    field(FLNK, "SIDI-BPM-FAM-X")
+    field(FLNK, "SIDI-BPM-FAM:MONIT:X")
 }
 
-record(waveform, "SIDI-BPM-FAM-X")
+record(waveform, "SIDI-BPM-FAM:MONIT:X")
 {
     field(DESC, "SI BPM FAM X")
     field(INP, "ADD-NOISE-SIDI-BPM.A")
     field(NELM, 160)
     field(FTVL, "DOUBLE")
     field(EGU, "um")
-    field(FLNK, "SIDI-BPM-FAM-Y")
+    field(FLNK, "SIDI-BPM-FAM:MONIT:Y")
 }
 
-record(waveform, "SIDI-BPM-FAM-Y")
+record(waveform, "SIDI-BPM-FAM:MONIT:Y")
 {
     field(DESC, "SI BPM FAM Y")
     field(INP, "ADD-NOISE-SIDI-BPM.B")

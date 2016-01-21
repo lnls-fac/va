@@ -159,7 +159,8 @@ class AcceleratorModel(model.Model):
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
-        data = self._all_pvs[pv_name]
+        name = pv_name.split(':')[0]
+        data = self._all_pvs[name]
         indices = []
         for key in data.keys():
             idx = mathphys.utils.flatten(data[key]) if flat else data[key]
@@ -195,7 +196,7 @@ class AcceleratorModel(model.Model):
     def _init_magnets_and_power_supplies(self):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
-        magnet_names = self.model_module.record_names.get_magnet_names(self._accelerator)
+        magnet_names = self.model_module.device_names.get_magnet_names(self._accelerator)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)

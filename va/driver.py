@@ -60,6 +60,7 @@ class PCASDriver(Driver):
         size = self._queue.qsize()
         for i in range(size):
             process, reason, value = self._queue.get()
+            if "SIDI-BPM" in reason: print(reason)
             process.send_queue.put(('s', (reason, value)))
 
     def _process_requests(self):
