@@ -3,7 +3,7 @@ record(ai, "VA-TSDI-BPM-NOISELEVEL")
 {
     field(DESC, "Noise level for bpm")
     field(INP, .1)
-    field(EGU, "um")
+    field(EGU, "nm")
 }
 
 record(calc, "TSDI-BPM-$(sector)$(pos):MONIT:X")
@@ -12,8 +12,8 @@ record(calc, "TSDI-BPM-$(sector)$(pos):MONIT:X")
     field(SCAN, ".1 second")
     field(INPA, "VA-TSDI-BPM-$(sector)$(pos):MONIT:X")
     field(INPB, "VA-TSDI-BPM-NOISELEVEL")
-    field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
-    field(EGU, "um")
+    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(EGU, "nm")
     field(FLNK, "TSDI-BPM-$(sector)$(pos):MONIT:Y")
 }
 
@@ -22,8 +22,8 @@ record(calc, "TSDI-BPM-$(sector)$(pos):MONIT:Y")
     field(DESC, "TS BPM sector $(sector) pos $(pos) y")
     field(INPA, "VA-TSDI-BPM-$(sector)$(pos):MONIT:Y")
     field(INPB, "VA-TSDI-BPM-NOISELEVEL")
-    field(CALC, "(1e6)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
-    field(EGU, "um")
+    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(EGU, "nm")
 }
 
 record(aSub, "ADD-NOISE-TSDI-BPM")
@@ -47,7 +47,7 @@ record(waveform, "TSDI-BPM-FAM:MONIT:X")
     field(INP, "ADD-NOISE-TSDI-BPM.A")
     field(NELM, 6)
     field(FTVL, "DOUBLE")
-    field(EGU, "um")
+    field(EGU, "nm")
     field(FLNK, "TSDI-BPM-FAM:MONIT:Y")
 }
 
@@ -57,5 +57,5 @@ record(waveform, "TSDI-BPM-FAM:MONIT:Y")
     field(INP, "ADD-NOISE-TSDI-BPM.B")
     field(NELM, 6)
     field(FTVL, "DOUBLE")
-    field(EGU, "um")
+    field(EGU, "nm")
 }
