@@ -5,7 +5,8 @@ from . import beam_charge
 from . import injection
 from . import utils
 
-_c = accelerator_model._c
+calc_injection_eff = accelerator_model.calc_injection_eff
+calc_timing_eff = accelerator_model.calc_timing_eff
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 
 class TLineModel(accelerator_model.AcceleratorModel):
@@ -36,76 +37,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
         else:
             return None
 
-    def _get_pv_timing(self, pv_name):
-        if self.prefix == 'TB' and 'TI-' in pv_name:
-            if 'SEPTUMINJ-ENABLED' in pv_name:
-                return self._injection_magnet_enabled
-            elif 'SEPTUMINJ-DELAY' in pv_name:
-                if not hasattr(self, '_injection_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._injection_magnet_delay
-            else:
-                return None
-        elif self.prefix == 'TS' and 'TI-' in pv_name:
-            if 'SEPTUMTHICK-ENABLED' in pv_name:
-                return self._injection_magnet_enabled
-            elif 'SEPTUMTHIN-ENABLED' in pv_name:
-                return self._injection_magnet_enabled
-            elif 'SEPTUMEX-ENABLED' in pv_name:
-                return self._extraction_magnet_enabled
-            elif 'SEPTUMTHICK-DELAY' in pv_name:
-                if not hasattr(self, '_injection_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._injection_magnet_delay
-            elif 'SEPTUMTHIN-DELAY' in pv_name:
-                if not hasattr(self, '_injection_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._injection_magnet_delay
-            elif 'SEPTUMEX-DELAY' in pv_name:
-                if not hasattr(self, '_extraction_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._extraction_magnet_delay
-            else:
-                return None
-        else:
-            return None
-
-    # --- methods implementing response of model to set requests
-
-    def _set_pv_timing(self, pv_name, value):
-        if self.prefix == 'TB' and 'TI-' in pv_name:
-            if 'SEPTUMINJ-ENABLED' in pv_name:
-                self._injection_magnet_enabled = value
-                return True
-            elif 'SEPTUMINJ-DELAY' in pv_name:
-                self._injection_magnet_delay = value
-                return True
-            else:
-                return False
-        if self.prefix == 'TS' and 'TI-' in pv_name:
-            if 'SEPTUMTHICK-ENABLED' in pv_name:
-                self._injection_magnet_enabled = value
-                return True
-            elif 'SEPTUMTHIN-ENABLED' in pv_name:
-                self._injection_magnet_enabled = value
-                return True
-            elif 'SEPTUMEX-ENABLED' in pv_name:
-                self._extraction_magnet_enabled = value
-                return True
-            elif 'SEPTUMTHICK-DELAY' in pv_name:
-                self._injection_magnet_delay = value
-                return True
-            elif 'SEPTUMTHIN-DELAY' in pv_name:
-                self._injection_magnet_delay = value
-                return True
-            elif 'SEPTUMEX-DELAY' in pv_name:
-                self._extraction_magnet_delay = value
-                return True
-            else:
-                return False
-        else:
-            return False
-
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
@@ -124,8 +55,6 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber()
-        self._injection_magnet_enabled  = 1
-        self._extraction_magnet_enabled = 1
         self._state_deprecated = True
         self._update_state()
 
@@ -140,48 +69,62 @@ class TLineModel(accelerator_model.AcceleratorModel):
 
     # --- auxiliary methods
 
-    def _calc_nominal_delays(self, path_length=None, bunch_separation=None, nr_bunches=None, egun_delay=None):
-        self._bunch_separation = bunch_separation
-        half_pulse_duration = nr_bunches*self._bunch_separation/2.0
+    def _set_pulsed_magnets_parameters(self, **kwargs):
+        if 'total_length' in kwargs:
+            prev_total_length = kwargs['total_length']
+        if 'magnet_pos' in kwargs:
+            prev_magnet_pos = kwargs['magnet_pos']
+        if 'nominal_delays' in kwargs:
+            nominal_delays = kwargs['nominal_delays']
 
-        # Calculate extraction septum nominal delay
-        if self._has_extraction_pulsed_magnet:
-            self._extraction_magnet_nominal_delay = egun_delay + path_length/_c - self._extraction_magnet_rise_time + half_pulse_duration
-            self._extraction_magnet_delay = self._extraction_magnet_nominal_delay
+        self._turn_off_pulsed_magnets()
+        magnets_pos = dict()
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            magnet_pos = prev_total_length + magnet.length_to_inj_point
+            magnet.length_to_egun = magnet_pos
+            magnets_pos[magnet_name] = magnet_pos
+        sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
-        # Calculate injection septum nominal delay
-        if self._has_injection_pulsed_magnet:
-            self._injection_magnet_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_magnet_label)[0]
-            length = path_length + pyaccel.lattice.length(self._accelerator[:self._injection_magnet_idx])
-            self._injection_magnet_nominal_delay = egun_delay + length/_c - self._injection_magnet_rise_time + half_pulse_duration
-            self._injection_magnet_delay = self._injection_magnet_nominal_delay
+        for i in range(len(sorted_magnets_pos)):
+            magnet_name, magnet_pos = sorted_magnets_pos[i]
+            magnet = self._pulsed_magnets[magnet_name]
+            magnet.length_to_prev_pulsed_magnet = magnet_pos - prev_magnet_pos
+            nominal_delays[magnet_name] = magnet.delay
+            prev_magnet_pos = magnet_pos
 
-        # Update epics memory
-        self._update_delay_pvs_in_epics_memory()
+        total_length = prev_total_length + self._accelerator.length
 
-        # Send path length to downstream accelerator
-        _dict = {'path_length': path_length + self._lattice_length,
-                'bunch_separation': bunch_separation,
-                'nr_bunches': nr_bunches,
-                'egun_delay': egun_delay}
+        _dict = { 'pulsed_magnet_parameters' : {
+            'total_length'     : total_length,
+            'magnet_pos'       : magnet_pos,
+            'nominal_delays'   : nominal_delays,}
+        }
         self._send_parameters_to_downstream_accelerator(_dict)
+
+    def _update_pulsed_magnets_delays(self, delays):
+        for magnet_name, delay in delays.items():
+            if magnet_name in self._pulsed_magnets.keys():
+                self._pulsed_magnets[magnet_name].delay = delay
+        self._update_delay_pvs_in_epics_memory()
+        self._send_parameters_to_downstream_accelerator({'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        if self.prefix == 'TB':
-            self._send_queue.put(('s', ('TBTI-SEPTUMINJ-DELAY', self._injection_magnet_nominal_delay)))
-        else:
-            self._send_queue.put(('s', ('TSTI-SEPTUMEX-DELAY', self._extraction_magnet_nominal_delay)))
-            self._send_queue.put(('s', ('TSTI-SEPTUMTHICK-DELAY', self._injection_magnet_nominal_delay)))
-            self._send_queue.put(('s', ('TSTI-SEPTUMTHIN-DELAY',  self._injection_magnet_nominal_delay)))
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            pv_name = self._magnet2delay[magnet_name]
+            value = magnet.delay
+            self._send_queue.put(('s', (pv_name, value)))
 
     def _calc_transport_efficiency(self):
         if self._injection_parameters is None: return
-        self._log('calc', 'transport efficiency  for '+self.model_module.lattice_version)
+        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
         _dict = {}
         _dict.update(self._injection_parameters)
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
+
+        for ps in self._pulsed_power_supplies.values():
+            ps.current = ps.max_current
 
         loss_fraction, self._twiss, self._m66 = \
             injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
@@ -191,42 +134,27 @@ class TLineModel(accelerator_model.AcceleratorModel):
         args_dict = {}
         args_dict.update(self._injection_parameters)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_downstream_accelerator(args_dict)
-
-    def _calc_extraction_magnet_efficiency(self, nr_bunches):
-        rise_time     = self._extraction_magnet_rise_time
-        delay         = self._extraction_magnet_delay
-        nominal_delay = self._extraction_magnet_nominal_delay
-        efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, self._bunch_separation, nr_bunches)
-        return efficiency
-
-    def _calc_injection_magnet_efficiency(self, nr_bunches):
-        rise_time     = self._injection_magnet_rise_time
-        delay         = self._injection_magnet_delay
-        nominal_delay = self._injection_magnet_nominal_delay
-        efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, self._bunch_separation, nr_bunches)
-        return efficiency
+        self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
 
     def _injection_cycle(self, **kwargs):
         charge = kwargs['charge']
+        charge_time = kwargs['charge_time']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        nr_bunches = len(charge)
-        initial_charge = charge
+        if calc_injection_eff:
+            efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        if self._has_extraction_pulsed_magnet:
-            extraction_magnet_efficiency = self._calc_extraction_magnet_efficiency(nr_bunches)
-            charge = charge*extraction_magnet_efficiency
-
-        charge = [bunch_charge * self._transport_efficiency for bunch_charge in charge]
-
-        if self._has_injection_pulsed_magnet:
-            injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
-            charge = charge*injection_magnet_efficiency
-
-        self._log(message1='cycle', message2='beam transport at {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
+        if calc_timing_eff:
+            prev_charge = sum(charge)
+            for magnet in self._get_sorted_pulsed_magnets():
+                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+            efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
+            self._log(message1='cycle', message2='{0:s} pulsed magnets: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
         kwargs['charge'] = charge
-        self._send_parameters_to_downstream_accelerator(kwargs)
+        kwargs['charge_time'] = charge_time
+        self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})

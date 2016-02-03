@@ -3,23 +3,6 @@ import math
 import numpy
 import pyaccel
 
-def calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, bunch_separation, nr_bunches):
-    if nr_bunches == 1:
-        nominal_time_interval = [nominal_delay + rise_time]
-    else:
-        tmin = nominal_delay + rise_time - bunch_separation*nr_bunches/2.0
-        tmax = nominal_delay + rise_time + bunch_separation*nr_bunches/2.0
-        nominal_time_interval = numpy.linspace(tmin, tmax, nr_bunches)
-
-    efficiencies = []
-    for time in nominal_time_interval:
-        A = 1 if (time <= (delay + 2*rise_time) and time >= delay) else 0.0
-        efficiency = A*math.sin((time-delay)*math.pi/(2*rise_time))
-        efficiencies.append(efficiency)
-    efficiencies = numpy.array(efficiencies)
-
-    return efficiencies
-
 def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     """Calculate charge loss in a line
 

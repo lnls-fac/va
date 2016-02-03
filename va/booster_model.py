@@ -3,17 +3,20 @@ import math
 import numpy
 import pyaccel
 import mathphys
+import sirius
 from . import accelerator_model
 from . import beam_charge
 from . import utils
 from . import injection
+import matplotlib.pyplot as plt
 
-
-_c = accelerator_model._c
 _u = accelerator_model._u
+_light_speed = accelerator_model._light_speed
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
+calc_injection_eff = accelerator_model.calc_injection_eff
+calc_timing_eff = accelerator_model.calc_timing_eff
 
 
 class BoosterModel(accelerator_model.AcceleratorModel):
@@ -91,27 +94,14 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             return None
 
     def _get_pv_timing(self, pv_name):
-        if 'TI-' in pv_name:
-            if 'KICKINJ-ENABLED' in pv_name:
-                return self._injection_magnet_enabled
-            elif 'KICKEX-ENABLED' in pv_name:
-                return self._extraction_magnet_enabled
-            elif 'RAMPPS-ENABLED' in pv_name:
+        value = super()._get_pv_timing(pv_name)
+        if value is not None:
+            return value
+        elif 'TI-' in pv_name:
+            if 'RAMPPS-ENABLED' in pv_name:
                 return self._rampps_enabled
-            elif 'KICKINJ-DELAY' in pv_name:
-                if not hasattr(self, '_injection_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._injection_magnet_delay
-            elif 'KICKEX-DELAY' in pv_name:
-                if not hasattr(self, '_extraction_magnet_delay'):
-                    return UNDEF_VALUE
-                return self._extraction_magnet_delay
             elif 'RAMPPS-DELAY' in pv_name:
-                if not hasattr(self, '_rampps_delay'):
-                    return UNDEF_VALUE
                 return self._rampps_delay
-            elif 'KICKEX-INC' in pv_name:
-                return UNDEF_VALUE
             else:
                 return None
         else:
@@ -137,24 +127,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         return False
 
     def _set_pv_timing(self, pv_name, value):
-        if 'TI-' in pv_name:
-            if 'KICKINJ-ENABLED' in pv_name:
-                self._injection_magnet_enabled = value
-                return True
-            elif 'RAMPPS-ENABLED' in pv_name:
+        if super()._set_pv_timing(pv_name, value): return
+        elif 'TI-' in pv_name:
+            if 'RAMPPS-ENABLED' in pv_name:
                 self._rampps_enabled = value
-                return True
-            elif 'KICKEX-ENABLED' in pv_name:
-                self._extraction_magnet_enabled = value
-                return True
-            elif 'KICKINJ-DELAY' in pv_name:
-                self._injection_magnet_delay = value
                 return True
             elif 'RAMPPS-DELAY' in pv_name:
                 self._rampps_delay = value
-                return True
-            elif 'KICKEX-DELAY' in pv_name:
-                self._extraction_magnet_delay = value
                 return True
             else:
                 return False
@@ -165,7 +144,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     def _update_state(self, force=False):
         if force or self._state_deprecated:
-            # Calculate parameters
             self._calc_closed_orbit()
             self._calc_linear_optics()
             self._calc_equilibrium_parameters()
@@ -174,8 +152,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._update_ejection_efficiency  = True
             self._state_changed = True
             self._state_deprecated = False
-
-        # Calculate injection and ejection efficiencies
         self._calc_efficiencies()
 
     def _calc_efficiencies(self):
@@ -223,12 +199,9 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         if TRACK6D:
             pyaccel.tracking.set6dtracking(self._accelerator)
 
-        self._injection_magnet_idx  = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_magnet_label)
-        self._extraction_magnet_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._extraction_magnet_label)
         self._set_vacuum_chamber()
-        self._injection_magnet_enabled  = 1
-        self._extraction_magnet_enabled = 1
         self._rampps_enabled = 1
+        self._rampps_delay = 0
         self._state_deprecated = True
         self._update_state()
 
@@ -249,43 +222,56 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
    # --- auxiliary methods
 
-    def _calc_nominal_delays(self, path_length=None, bunch_separation=None, nr_bunches=None, egun_delay=None):
-        # Calculate ramp nominal delay
-        self._rampps_nominal_delay = egun_delay + path_length/_c
-        self._rampps_delay = self._rampps_nominal_delay
+    def _set_pulsed_magnets_parameters(self, **kwargs):
+        if 'total_length' in kwargs:
+            prev_total_length = kwargs['total_length']
+        if 'magnet_pos' in kwargs:
+            prev_magnet_pos = kwargs['magnet_pos']
+        if 'nominal_delays' in kwargs:
+            nominal_delays = kwargs['nominal_delays']
 
-        # Calculate injection magnet nominal delay
-        injpoint_to_injmagnet_len = pyaccel.lattice.length(self._accelerator[:self._injection_magnet_idx[0]])
-        self._injection_magnet_nominal_delay = egun_delay + (path_length + injpoint_to_injmagnet_len)/_c - \
-                                               self._injection_magnet_rise_time + nr_bunches*bunch_separation/2.0
-        self._injection_magnet_delay = self._injection_magnet_nominal_delay
+        self._turn_off_pulsed_magnets()
+        one_turn_time = self._accelerator.length/_light_speed
+        ramp_length =  int(self._ramp_interval/one_turn_time)*self._accelerator.length
 
-        # Calculate extraction magnet nominal delay
-        injpoint_to_extmagnet_len = pyaccel.lattice.length(self._accelerator[:self._extraction_magnet_idx[0]])
-        bunch_separation = 1/pyaccel.optics.get_rf_frequency(self._accelerator)
-        nr_turns = int(self._ramp_interval/(self._lattice_length/_c))
-        self._extraction_magnet_nominal_delay = egun_delay + (path_length + injpoint_to_extmagnet_len)/_c + \
-                                                nr_turns*(self._lattice_length/_c) - self._extraction_magnet_rise_time + \
-                                                nr_bunches*bunch_separation/2.0
-        self._extraction_magnet_delay = self._extraction_magnet_nominal_delay
+        magnets_pos = dict()
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            magnet_pos = prev_total_length + magnet.length_to_inj_point
+            if 'EXT' in magnet_name: magnet_pos += ramp_length
+            magnet.length_to_egun = magnet_pos
+            magnets_pos[magnet_name] = magnet_pos
+        sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
-        # Update epics memory
-        self._update_delay_pvs_in_epics_memory()
+        for i in range(len(sorted_magnets_pos)):
+            magnet_name, magnet_pos = sorted_magnets_pos[i]
+            magnet = self._pulsed_magnets[magnet_name]
+            magnet.length_to_prev_pulsed_magnet = magnet_pos - prev_magnet_pos
+            nominal_delays[magnet_name] = magnet.delay
+            prev_magnet_pos = magnet_pos
 
-        # Send path length to downstream accelerator
-        extmagnet_to_extpoint_len = pyaccel.lattice.length(self._accelerator[self._extraction_magnet_idx[0]:self._extraction_point])
-        path_length += injpoint_to_extmagnet_len + nr_turns*self._lattice_length + extmagnet_to_extpoint_len
-        _dict = {'path_length': path_length,
-                'bunch_separation': bunch_separation,
-                'nr_bunches': nr_bunches,
-                'egun_delay': egun_delay}
+        length = pyaccel.lattice.length(self._accelerator[:self._extraction_point])
+        total_length = prev_total_length + ramp_length + length
+
+        _dict = { 'pulsed_magnet_parameters' : {
+            'total_length'     : total_length,
+            'magnet_pos'       : magnet_pos,
+            'nominal_delays'   : nominal_delays,}
+        }
         self._send_parameters_to_downstream_accelerator(_dict)
+
+    def _update_pulsed_magnets_delays(self, delays):
+        for magnet_name, delay in delays.items():
+            if magnet_name in self._pulsed_magnets.keys():
+                self._pulsed_magnets[magnet_name].delay = delay
+        self._update_delay_pvs_in_epics_memory()
+        self._send_parameters_to_downstream_accelerator({'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        self._send_queue.put(('s', ('BOTI-RAMPPS-DELAY', self._rampps_nominal_delay )))
-        self._send_queue.put(('s', ('BOTI-KICKINJ-DELAY', self._injection_magnet_nominal_delay)))
-        self._send_queue.put(('s', ('BOTI-KICKEX-DELAY', self._extraction_magnet_nominal_delay)))
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            pv_name = self._magnet2delay[magnet_name]
+            value = magnet.delay
+            self._send_queue.put(('s', (pv_name, value)))
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
@@ -355,32 +341,21 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         eq['global_coupling'] = self.model_module.accelerator_data['global_coupling']
         return eq
 
-    def _beam_inject(self, charge=None, bunch_idx=0):
-        if charge is None: return
-
-        initial_charge = self._beam_charge.total_value
-        self._beam_charge.inject(charge, bunch_idx=bunch_idx)
-
-        final_charge = self._beam_charge.total_value
-        if (initial_charge == 0) and (final_charge != initial_charge):
-            self._state_changed = True
-
-    def _beam_eject(self, bunch_idx=None, nr_bunches=None):
-        charge = self._beam_charge.eject(bunch_idx=bunch_idx, nr_bunches=nr_bunches)
-        return charge
-
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
 
         self._log('calc', 'injection efficiency  for  ' + self.model_module.lattice_version)
 
-        if not self._injection_magnet_enabled:
-            self._injection_efficiency = 0.0
+        if not hasattr(self, '_pulsed_power_supplies'):
+            self._injection_efficiency = None
+            self._update_injection_efficiency = True
             return
 
         # turn on injection pulsed magnet
-        for idx in self._injection_magnet_idx: self._accelerator[idx].hkick_polynom = self._injection_magnet_angle
-
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'INJ' in ps_name and ps.enabled:
+                ps.current = ps.max_current
+                
         # calc tracking efficiency
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
@@ -389,61 +364,73 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         self._injection_efficiency = 1.0 - tracking_loss_fraction
 
         # turn off injection pulsed magnet
-        for idx in self._injection_magnet_idx: self._accelerator[idx].hkick_polynom = 0.0
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'INJ' in ps_name: ps.current = 0
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
 
-        if self._twiss is None or not self._extraction_magnet_enabled:
+        if not hasattr(self, '_pulsed_power_supplies'):
+            self._ejection_efficiency = None
+            self._update_ejection_efficiency = True
+            return
+
+        if self._twiss is None:
             self._ejection_efficiency = 0.0
             return
 
         # turn on extraction pulsed magnet
-        for idx in self._extraction_magnet_idx: self._accelerator[idx].hkick_polynom = self._extraction_magnet_angle
-        accelerator = self._accelerator[self._extraction_magnet_idx[0]:self._extraction_point+1]
+        ext_magnets_idx = []
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'EXT' in ps_name:
+                ps.current = ps.max_current
+                ext_magnets_idx.append(ps.magnet_idx)
+        idx = min(ext_magnets_idx)
+
+        accelerator = self._accelerator[idx:self._extraction_point+1]
 
         # calc tracking efficiency
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
         _dict = {}
         _dict.update(ejection_parameters)
-        _dict.update(self._get_vacuum_chamber(init_idx=self._extraction_magnet_idx[0], final_idx=self._extraction_point+1))
+        _dict.update(self._get_vacuum_chamber(init_idx=idx, final_idx=self._extraction_point+1))
         tracking_loss_fraction, twiss, *_ = injection.calc_charge_loss_fraction_in_line(accelerator,
-            init_twiss=self._twiss[self._extraction_magnet_idx[0]], **_dict)
+            init_twiss=self._twiss[idx], **_dict)
         self._ejection_efficiency = 1.0 - tracking_loss_fraction
 
         # turn off injection pulsed magnet
-        for idx in self._extraction_magnet_idx: self._accelerator[idx].hkick_polynom = 0.0
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'EXT' in ps_name:
+                ps.current = 0
 
         # send extraction parameters to downstream accelerator
         args_dict = {}
         args_dict.update(ejection_parameters)
-        args_dict['init_twiss'] = twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_downstream_accelerator(args_dict)
+        if twiss is not None:
+            args_dict['init_twiss'] = twiss[-1].make_dict()
+            self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
 
-    def _calc_injection_magnet_efficiency(self, nr_bunches):
-        if self._injection_magnet_enabled:
-            rise_time = self._injection_magnet_rise_time
-            delay = self._injection_magnet_delay
-            nominal_delay = self._injection_magnet_nominal_delay
-            bunch_separation = 1/pyaccel.optics.get_rf_frequency(self._accelerator)
-            efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, bunch_separation, nr_bunches)
-        else:
-            efficiency = 0
-        return efficiency
+    def _change_injection_bunch(self, charge, charge_time, master_delay, bunch_separation):
+        harmonic_number = self._accelerator.harmonic_number
+        new_charge = numpy.zeros(harmonic_number)
+        new_charge_time = numpy.zeros(harmonic_number)
 
-    def _calc_extraction_magnet_efficiency(self, nr_bunches):
-        if self._extraction_magnet_enabled:
-            rise_time = self._extraction_magnet_rise_time
-            delay = self._extraction_magnet_delay
-            nominal_delay = self._extraction_magnet_nominal_delay
-            bunch_separation = 1/pyaccel.optics.get_rf_frequency(self._accelerator)
-            efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, bunch_separation, nr_bunches)
-        else:
-            efficiency = 0
-        return efficiency
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            if 'INJ' in magnet_name:
+                flight_time = magnet.partial_flight_time
+                delay = magnet.delay
+                rise_time = magnet.rise_time
+
+        for i in range(len(charge)):
+            idx = round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number)
+            new_charge[idx] = charge[i]
+            new_charge_time[idx] = charge_time[i]
+
+        return new_charge, new_charge_time
 
     def _injection_cycle(self, **kwargs):
         charge = kwargs['charge']
+        charge_time = kwargs['charge_time']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
@@ -453,35 +440,35 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             return
 
-        nr_bunches = len(charge)
-        initial_charge = charge
+        charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        # Injection
-        if self._has_injection_pulsed_magnet:
-            injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
-            charge = charge * injection_magnet_efficiency
+        if calc_injection_eff:
+            # Injection
+            efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._beam_inject(charge=charge)
+            self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
-        bunch_idx = kwargs['injection_bunch'] % self._accelerator.harmonic_number
-        self._beam_inject(charge=charge, bunch_idx=bunch_idx)
-        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
+            # Acceleration
+            if self._rampps_enabled:
+                self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100))
+            else:
+                self._beam_charge.dump()
+                self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
 
-        # Acceleration
-        if self._rampps_enabled:
-            self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100))
-        else:
-            self._beam_charge.dump()
-            self._log(message1='cycle', message2='beam acceleration in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
+            # Extraction
+            charge = self._beam_eject()
+            efficiency = self._ejection_efficiency if self._ejection_efficiency is not None else 0
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        # Extraction
-        charge = self._beam_eject(bunch_idx=bunch_idx, nr_bunches=nr_bunches)
-        final_charge = [bunch_charge * self._ejection_efficiency for bunch_charge in charge]
+        if calc_timing_eff:
+            prev_charge = sum(charge)
+            for magnet in self._get_sorted_pulsed_magnets():
+                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+            efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
+            self._log(message1='cycle', message2='{0:s} pulsed magnet: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        if self._has_extraction_pulsed_magnet:
-            extraction_magnet_efficiency = self._calc_extraction_magnet_efficiency(nr_bunches)
-            final_charge = final_charge * extraction_magnet_efficiency
-
-        self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(final_charge)/sum(charge))))
-
-        kwargs['charge'] = final_charge
-        self._send_parameters_to_downstream_accelerator(kwargs)
+        kwargs['charge'] = charge
+        kwargs['charge_time'] = charge_time
+        self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})

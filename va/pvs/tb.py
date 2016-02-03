@@ -164,10 +164,10 @@ def get_fake_record_names(accelerator):
     _dict.update(get_element_names(family_data, 'bend', prefix = 'TBFK-ERRORX-'))
     _dict.update(get_element_names(family_data, 'bend', prefix = 'TBFK-ERRORY-'))
     _dict.update(get_element_names(family_data, 'bend', prefix = 'TBFK-ERRORR-'))
-    # adds fake SEP pvs for errors
-    _dict.update(get_element_names(family_data, 'sep', prefix = 'TBFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'sep', prefix = 'TBFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'sep', prefix = 'TBFK-ERRORR-'))
+    # adds fake pulsed magnets pvs for errors
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TBFK-ERRORX-'))
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TBFK-ERRORY-'))
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TBFK-ERRORR-'))
     #adds fake QUAD pvs for errors
     _dict.update(get_element_names(family_data, 'quad', prefix = 'TBFK-ERRORX-'))
     _dict.update(get_element_names(family_data, 'quad', prefix = 'TBFK-ERRORY-'))
@@ -183,7 +183,7 @@ def get_fake_record_names(accelerator):
     elements += model.families.families_horizontal_correctors()
     elements += model.families.families_vertical_correctors()
     elements += model.families.families_skew_correctors()
-    elements += model.families.families_septa()
+    elements += model.families.families_pulsed_magnets()
     elements += model.families.families_rf()
     elements += ['bpm']
 

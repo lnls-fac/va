@@ -9,7 +9,6 @@ from . import model
 from . import sirius_models
 from . import utils
 
-
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
 INIT_TIMEOUT = 20.0
@@ -97,7 +96,7 @@ def create_model_processes(models, stop_event, finalisation_barrier):
         mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event,
             finalisation_barrier)
         processes.append(mp)
-
+        
     return processes
 
 

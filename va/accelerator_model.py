@@ -11,9 +11,11 @@ from . import power_supply
 from . import utils
 
 _u = mathphys.units
-_c = mathphys.constants.light_speed
+_light_speed = mathphys.constants.light_speed
 UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = True
+calc_injection_eff = False
+calc_timing_eff = True
 
 class Plane(enum.IntEnum):
     horizontal = 0
@@ -49,9 +51,7 @@ class AcceleratorModel(model.Model):
         if ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
         elif 'EFF' in pv_name:
-            if 'TOTAL' in pv_name:
-                return 100*self._total_efficiency if self._total_efficiency is not None else UNDEF_VALUE
-            elif 'INJ' in pv_name:
+            if 'INJ' in pv_name:
                 return UNDEF_VALUE
                 return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
             elif 'EXT' in pv_name:
@@ -92,7 +92,17 @@ class AcceleratorModel(model.Model):
         return None
 
     def _get_pv_timing(self, pv_name):
-        return None
+        if 'TI-' in pv_name:
+            if 'ENABLED' in pv_name and pv_name in self._enabled2magnet.keys():
+                magnet_name = self._enabled2magnet[pv_name]
+                return self._pulsed_magnets[magnet_name].enabled
+            elif 'DELAY' in pv_name and pv_name in self._delay2magnet.keys():
+                magnet_name = self._delay2magnet[pv_name]
+                return self._pulsed_magnets[magnet_name].delay
+            else:
+                return None
+        else:
+            return None
 
   # --- methods implementing response of model to set requests
 
@@ -145,9 +155,38 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_timing(self, pv_name, value):
-        return False
+        if 'TI-' in pv_name:
+            if 'ENABLED' in pv_name and pv_name in self._enabled2magnet.keys():
+                magnet_name = self._enabled2magnet[pv_name]
+                self._pulsed_magnets[magnet_name].enabled = value
+                self._state_deprecated = True
+                return True
+            elif 'DELAY' in pv_name and pv_name in self._delay2magnet.keys():
+                magnet_name = self._delay2magnet[pv_name]
+                self._pulsed_magnets[magnet_name].delay = value
+                self._state_deprecated = True
+                return True
+            else:
+                return False
+        else:
+            return False
 
    # --- auxiliary methods
+
+    def _beam_inject(self, charge=None):
+        if charge is None: return
+
+        initial_charge = self._beam_charge.total_value
+        self._beam_charge.inject(charge)
+
+        final_charge = self._beam_charge.total_value
+        if (initial_charge == 0) and (final_charge != initial_charge):
+            self._state_changed = True
+
+    def _beam_eject(self):
+        charge = self._beam_charge.value
+        self._beam_charge.dump()
+        return charge
 
     def _init_sp_pv_values(self):
         utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
@@ -199,34 +238,47 @@ class AcceleratorModel(model.Model):
         magnet_names = self.model_module.device_names.get_magnet_names(self._accelerator)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
+        pulse_curve_mapping = self.model_module.pulsed_magnets.get_pulse_curve_mapping(self._accelerator)
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)
+        self._magnet2delay, self._delay2magnet = self.model_module.pulsed_magnets.get_magnet_delay_mapping(self._accelerator)
+        self._magnet2enabled, self._enabled2magnet = self.model_module.pulsed_magnets.get_magnet_enabled_mapping(self._accelerator)
 
         self._magnets = dict()
+        self._pulsed_magnets = dict()
         for magnet_name in magnet_names.keys():
             excitation_curve = excitation_curve_mapping[magnet_name]
             try:
-                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], excitation_curve)
+                exc_curve_filename = os.path.join(accelerator_data['dirs']['excitation_curves'], excitation_curve)
             except:
-                filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found')
+                exc_curve_filename = os.path.join(accelerator_data['dirs']['excitation_curves'], 'not_found')
 
             family, indices = magnet_names[magnet_name].popitem()
             indices = indices[0]
             family_type = family_mapping[family]
-            if family_type in ('dipole', 'septum'):
+
+            if family_type == 'dipole':
                 if self.prefix == 'BO':
-                    m = magnet.BoosterDipoleMagnet(accelerator, indices, filename)
+                    m = magnet.BoosterDipoleMagnet(accelerator, indices, exc_curve_filename)
                 else:
-                    m = magnet.NormalMagnet(accelerator, indices, filename)
+                    m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+            elif family_type  == 'pulsed_magnet':
+                pulse_curve = pulse_curve_mapping[magnet_name]
+                try:
+                    pulse_curve_filename = os.path.join(accelerator_data['dirs']['pulse_curves'], pulse_curve)
+                except:
+                    pulse_curve_filename = os.path.join(accelerator_data['dirs']['pulse_curves'], 'not_found')
+                m = magnet.PulsedMagnet(accelerator, indices, exc_curve_filename, pulse_curve_filename)
+                self._pulsed_magnets[magnet_name] = m
             elif family_type == 'quadrupole':
-                m = magnet.NormalMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
             elif family_type == 'sextupole':
-                m = magnet.NormalMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
             elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
-                m = magnet.NormalMagnet(accelerator, indices, filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
             elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
-                m = magnet.SkewMagnet(accelerator, indices, filename)
+                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
             elif family_type == 'skew_quadrupole':
-                m = magnet.SkewMagnet(accelerator, indices, filename)
+                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
             else:
                 m = None
 
@@ -235,6 +287,7 @@ class AcceleratorModel(model.Model):
 
         # Set initial current values
         self._power_supplies = dict()
+        self._pulsed_power_supplies = dict()
         for ps_name in ps2magnet.keys():
             magnets = set()
             for magnet_name in ps2magnet[ps_name]:
@@ -253,6 +306,25 @@ class AcceleratorModel(model.Model):
             if not '-FAM' in ps_name:
                 ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
+                if 'PU-' in ps_name:
+                    self._pulsed_power_supplies[ps_name] = ps
+
+    def _get_sorted_pulsed_magnets(self):
+        magnets_pos = []
+        for magnet in self._pulsed_magnets.values():
+            magnets_pos.append(magnet.length_to_egun)
+        magnets_pos = sorted(magnets_pos)
+
+        sorted_magnets = []
+        for pos in magnets_pos:
+            for magnet in self._pulsed_magnets.values():
+                if magnet.length_to_egun == pos:
+                    sorted_magnets.append(magnet)
+        return sorted_magnets
+
+    def _turn_off_pulsed_magnets(self):
+        for ps in self._pulsed_power_supplies.values():
+            ps.current = 0
 
     def _send_initialisation_sign(self):
         self._send_queue.put(('i', self.prefix))
@@ -262,13 +334,15 @@ class AcceleratorModel(model.Model):
         self._send_queue.put(('p', (prefix, _dict)))
 
     def _get_parameters_from_upstream_accelerator(self, _dict):
-        if 'path_length' in _dict.keys():
-            self._calc_nominal_delays(**_dict)
-        elif 'charge' in _dict.keys():
+        if 'pulsed_magnet_parameters' in _dict.keys():
+            self._set_pulsed_magnets_parameters(**_dict['pulsed_magnet_parameters'])
+        elif 'update_delays' in _dict.keys():
+            self._update_pulsed_magnets_delays(_dict['update_delays'])
+        elif 'injection_parameters' in _dict.keys():
+            self._injection_parameters = _dict['injection_parameters']
+            self._update_injection_efficiency = True
+        elif 'injection_cycle' in _dict.keys():
             self._received_charge = True
             self._update_state()
-            self._injection_cycle(**_dict)
+            self._injection_cycle(**_dict['injection_cycle'])
             self._received_charge = False
-        else:
-            self._injection_parameters = _dict
-            self._update_injection_efficiency = True
