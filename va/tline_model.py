@@ -77,7 +77,8 @@ class TLineModel(accelerator_model.AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        self._turn_off_pulsed_magnets()
+        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
             magnet_pos = prev_total_length + magnet.length_to_inj_point
@@ -123,13 +124,12 @@ class TLineModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        for ps in self._pulsed_power_supplies.values():
-            ps.current = ps.max_current
-
+        for ps in self._pulsed_power_supplies.values(): ps.turn_on()
         loss_fraction, self._twiss, self._m66 = \
             injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
+        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
 
         args_dict = {}
         args_dict.update(self._injection_parameters)
@@ -143,17 +143,18 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        if calc_injection_eff:
-            efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
-            charge = [bunch_charge * efficiency for bunch_charge in charge]
-            self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
-
         if calc_timing_eff:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
-            self._log(message1='cycle', message2='{0:s} pulsed magnets: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
+            self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
+
+        if calc_injection_eff:
+            efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
+            #if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time

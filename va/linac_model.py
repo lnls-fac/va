@@ -119,7 +119,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._send_parameters_to_downstream_accelerator(_dict)
 
     def _set_pulsed_magnets_parameters(self):
-        self._turn_off_pulsed_magnets()
         _dict = { 'pulsed_magnet_parameters' : {
             'total_length'      : self._accelerator.length,
             'magnet_pos'        : 0,

@@ -3,6 +3,7 @@ import math
 import numpy
 import pyaccel
 
+
 def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     """Calculate charge loss in a line
 

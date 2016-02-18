@@ -113,10 +113,6 @@ class Magnet(object):
     def indices(self):
         return self._indices
 
-    @property
-    def max_current(self):
-        return self._excitation_curve.current_range[1]
-
     def get_current_from_field(self):
         current = self._excitation_curve.get_current_from_field(self.value)
         return current

@@ -92,10 +92,20 @@ class IndividualPowerSupply(PowerSupply):
         else:
             self._current = 0.0
 
+
+class PulsedMagnetPowerSupply(IndividualPowerSupply):
+
+    def __init__(self, magnets, model, ps_name, current=None):
+        super().__init__(magnets, model=model, ps_name=ps_name)
+        self._reference_value = 0
+
     @property
-    def max_current(self):
-        magnet = list(self._magnets)[0]
-        return magnet.max_current
+    def reference_value(self):
+        return self._reference_value
+
+    @reference_value.setter
+    def reference_value(self, value):
+        self._reference_value = value
 
     @property
     def enabled(self):
@@ -110,3 +120,9 @@ class IndividualPowerSupply(PowerSupply):
         magnet = list(self._magnets)[0]
         idx = magnet.indices[0]
         return idx
+
+    def turn_on(self):
+        self.current = self.reference_value
+
+    def turn_off(self):
+        self.current = 0

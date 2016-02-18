@@ -183,7 +183,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        self._turn_off_pulsed_magnets()
+        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
 
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -288,27 +288,31 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'PMM' in ps_name and ps.enabled: pmm_enabled = True
-            if 'INJ' in ps_name and ps.enabled: kickinj_enabled = True
+            if 'PMM' in ps_name:
+                pmm_enabled = True if ps.enabled else False
+            if 'INJ' in ps_name:
+                kickinj_enabled = True if ps.enabled else False
 
         if pmm_enabled and not kickinj_enabled:
             # PMM injection efficiency
             self._log('calc', 'pmm injection efficiency  for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'PMM' in ps_name and ps.enabled: ps.current = ps.max_current
+                if 'PMM' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'PMM' in ps_name: ps.current = 0
+                if 'PMM' in ps_name: ps.turn_off()
+
         elif kickinj_enabled and not pmm_enabled:
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'INJ' in ps_name and ps.enabled: ps.current = ps.max_current
+                if 'INJ' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'INJ' in ps_name and ps.enabled: ps.current = ps.max_current
+                if 'INJ' in ps_name and ps.enabled: ps.turn_off()
+
         else:
             self._injection_efficiency = 0
 
@@ -342,9 +346,10 @@ class RingModel(accelerator_model.AcceleratorModel):
         if calc_timing_eff:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
-                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+                if magnet.enabled:
+                    charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
-            self._log(message1='cycle', message2='{0:s} pulsed magnets: {1:.4f}% efficiency'.format(self.prefix, efficiency))
+            self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
         if calc_injection_eff:
             # Injection

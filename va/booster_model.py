@@ -230,7 +230,8 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        self._turn_off_pulsed_magnets()
+        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+
         one_turn_time = self._accelerator.length/_light_speed
         ramp_length =  int(self._ramp_interval/one_turn_time)*self._accelerator.length
 
@@ -353,9 +354,8 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn on injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'INJ' in ps_name and ps.enabled:
-                ps.current = ps.max_current
-                
+            if 'INJ' in ps_name and ps.enabled: ps.turn_on()
+
         # calc tracking efficiency
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
@@ -365,7 +365,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'INJ' in ps_name: ps.current = 0
+            if 'INJ' in ps_name: ps.turn_off()
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
@@ -383,10 +383,9 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         ext_magnets_idx = []
         for ps_name, ps in self._pulsed_power_supplies.items():
             if 'EXT' in ps_name:
-                ps.current = ps.max_current
+                ps.turn_on()
                 ext_magnets_idx.append(ps.magnet_idx)
         idx = min(ext_magnets_idx)
-
         accelerator = self._accelerator[idx:self._extraction_point+1]
 
         # calc tracking efficiency
@@ -400,8 +399,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'EXT' in ps_name:
-                ps.current = 0
+            if 'EXT' in ps_name: ps.turn_off()
 
         # send extraction parameters to downstream accelerator
         args_dict = {}
@@ -442,6 +440,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
+        if calc_timing_eff:
+            prev_charge = sum(charge)
+            for magnet in self._get_sorted_pulsed_magnets():
+                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+            efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
+            self._log(message1='cycle', message2='pulsed magnet in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
+
         if calc_injection_eff:
             # Injection
             efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
@@ -458,17 +463,8 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
             # Extraction
             charge = self._beam_eject()
-            efficiency = self._ejection_efficiency if self._ejection_efficiency is not None else 0
-            charge = [bunch_charge * efficiency for bunch_charge in charge]
-            self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
-
-        if calc_timing_eff:
-            prev_charge = sum(charge)
-            for magnet in self._get_sorted_pulsed_magnets():
-                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
-            efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
-            self._log(message1='cycle', message2='{0:s} pulsed magnet: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
+        kwargs['ejection_efficiency'] = self._ejection_efficiency if self._ejection_efficiency is not None else 0
         self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})

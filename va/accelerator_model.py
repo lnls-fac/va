@@ -14,7 +14,7 @@ _u = mathphys.units
 _light_speed = mathphys.constants.light_speed
 UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = True
-calc_injection_eff = False
+calc_injection_eff = True
 calc_timing_eff = True
 
 class Plane(enum.IntEnum):
@@ -48,8 +48,10 @@ class AcceleratorModel(model.Model):
 
     def _get_pv_static(self, pv_name):
         # Process global parameters
-        if ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
+        if 'PS-' in pv_name and 'TI-' not in pv_name:
             return self._power_supplies[pv_name].current
+        elif 'PU' in pv_name and 'TI-' not in pv_name:
+            return self._pulsed_power_supplies[pv_name].reference_value
         elif 'EFF' in pv_name:
             if 'INJ' in pv_name:
                 return UNDEF_VALUE
@@ -113,11 +115,18 @@ class AcceleratorModel(model.Model):
         if self._set_pv_timing(pv_name, value): return
 
     def _set_pv_magnets(self, pv_name, value):
-        if ('PS-' in pv_name or 'PU' in pv_name) and 'TI-' not in pv_name:
+        if 'PS-' in pv_name and 'TI-' not in pv_name:
             ps = self._power_supplies[pv_name]
             prev_value = ps.current
             if value != prev_value:
                 ps.current = value
+                self._state_deprecated = True
+            return True
+        elif 'PU' in pv_name and 'TI-' not in pv_name:
+            ps = self._pulsed_power_supplies[pv_name]
+            prev_value = ps.reference_value
+            if value != prev_value:
+                ps.reference_value = value
                 self._state_deprecated = True
             return True
         return False
@@ -304,10 +313,12 @@ class AcceleratorModel(model.Model):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if not '-FAM' in ps_name:
-                ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
-                self._power_supplies[ps_name] = ps
                 if 'PU-' in ps_name:
+                    ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, ps_name=ps_name)
                     self._pulsed_power_supplies[ps_name] = ps
+                else:
+                    ps = power_supply.IndividualPowerSupply(magnets, model=self, ps_name=ps_name)
+                    self._power_supplies[ps_name] = ps
 
     def _get_sorted_pulsed_magnets(self):
         magnets_pos = []
@@ -321,10 +332,6 @@ class AcceleratorModel(model.Model):
                 if magnet.length_to_egun == pos:
                     sorted_magnets.append(magnet)
         return sorted_magnets
-
-    def _turn_off_pulsed_magnets(self):
-        for ps in self._pulsed_power_supplies.values():
-            ps.current = 0
 
     def _send_initialisation_sign(self):
         self._send_queue.put(('i', self.prefix))
