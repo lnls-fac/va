@@ -5,9 +5,7 @@ import pyaccel
 import mathphys
 from . import accelerator_model
 from . import beam_charge
-from . import utils
 from . import injection
-import matplotlib.pyplot as plt
 
 
 _u = accelerator_model._u

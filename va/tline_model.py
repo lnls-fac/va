@@ -3,11 +3,12 @@ import pyaccel
 from . import accelerator_model
 from . import beam_charge
 from . import injection
-from . import utils
+
 
 calc_injection_eff = accelerator_model.calc_injection_eff
 calc_timing_eff = accelerator_model.calc_timing_eff
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
+
 
 class TLineModel(accelerator_model.AcceleratorModel):
 

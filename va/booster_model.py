@@ -6,9 +6,8 @@ import mathphys
 import sirius
 from . import accelerator_model
 from . import beam_charge
-from . import utils
 from . import injection
-import matplotlib.pyplot as plt
+
 
 _u = accelerator_model._u
 _light_speed = accelerator_model._light_speed
