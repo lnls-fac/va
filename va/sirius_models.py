@@ -59,7 +59,7 @@ class BoModel(booster_model.BoosterModel):
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
     _injection_point_label  = 'sept_in'
     _extraction_point_label = 'sept_ex'
-    _ramp_interval          = 0#0.23
+    _ramp_interval          = 0.23
 
 
 class TsModel(tline_model.TLineModel):

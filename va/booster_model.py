@@ -336,6 +336,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     def _get_equilibrium_at_maximum_energy(self):
         eq = dict()
+        # Fix this function!!!
         eq['emittance']       = self._summary['natural_emittance']
         eq['energy_spread']   = self._summary['natural_energy_spread']
         eq['global_coupling'] = self.model_module.accelerator_data['global_coupling']
@@ -378,13 +379,17 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             self._ejection_efficiency = 0.0
             return
 
+        # Change energy
+        self._accelerator.energy = 3e9 # FIX!!
+        self.model_module.lattice.set_rf_voltage(self._accelerator, self._accelerator.energy)
+
         # turn on extraction pulsed magnet
-        ext_magnets_idx = []
+        indices = []
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'EXT' in ps_name:
+            if 'EXT' in ps_name: # FIX!!
                 ps.turn_on()
-                ext_magnets_idx.append(ps.magnet_idx)
-        idx = min(ext_magnets_idx)
+                indices.append(ps.magnet_idx)
+        idx = min(indices)
         accelerator = self._accelerator[idx:self._extraction_point+1]
 
         # calc tracking efficiency
@@ -394,7 +399,12 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_vacuum_chamber(init_idx=idx, final_idx=self._extraction_point+1))
         tracking_loss_fraction, twiss, *_ = injection.calc_charge_loss_fraction_in_line(accelerator,
             init_twiss=self._twiss[idx], **_dict)
+
         self._ejection_efficiency = 1.0 - tracking_loss_fraction
+
+        # Change energy
+        self._accelerator.energy = 0.15e9 # FIX!!
+        self.model_module.lattice.set_rf_voltage(self._accelerator, self._accelerator.energy)
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():

@@ -153,7 +153,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
 
         if calc_injection_eff:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
-            #if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
+            if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
             charge = [bunch_charge * efficiency for bunch_charge in charge]
             self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
