@@ -30,7 +30,7 @@ def set_state(machine):
             if prev_value != pv_value: pv.put(pv_value)
             pv.disconnect()
         except:
-            pass
+            print(pv_name, ' NOT FOUND')
 
 print('LI state'); set_state('li'); print()
 print('TB state'); set_state('tb'); print()

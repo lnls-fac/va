@@ -1,5 +1,5 @@
 
 file "db/septa.db" {
     pattern { family, pos }
-        { "SEPIN", "05" }
+        { "SEPTUMINJ", "05" }
 }

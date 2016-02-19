@@ -17,6 +17,8 @@ DB += individual.db
 DB += bend.db
 DB += ch.substitutions
 DB += cv.substitutions
+DB += kickers.substitutions
+DB += kickers.db
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add
