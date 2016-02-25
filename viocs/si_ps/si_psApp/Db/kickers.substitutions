@@ -1,0 +1,6 @@
+
+file "db/kickers.db" {
+    pattern { family, pos }
+        { "KICKERINJ", "01M2" }
+        { "PMM", "01M2"}
+}

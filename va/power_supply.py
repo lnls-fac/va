@@ -91,3 +91,38 @@ class IndividualPowerSupply(PowerSupply):
             self._current = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
         else:
             self._current = 0.0
+
+
+class PulsedMagnetPowerSupply(IndividualPowerSupply):
+
+    def __init__(self, magnets, model, ps_name, current=None):
+        super().__init__(magnets, model=model, ps_name=ps_name)
+        self._reference_value = 0
+
+    @property
+    def reference_value(self):
+        return self._reference_value
+
+    @reference_value.setter
+    def reference_value(self, value):
+        self._reference_value = value
+
+    @property
+    def enabled(self):
+        magnet = list(self._magnets)[0]
+        if hasattr(magnet, 'enabled'):
+            return magnet.enabled
+        else:
+            return True
+
+    @property
+    def magnet_idx(self):
+        magnet = list(self._magnets)[0]
+        idx = magnet.indices[0]
+        return idx
+
+    def turn_on(self):
+        self.current = self.reference_value
+
+    def turn_off(self):
+        self.current = 0

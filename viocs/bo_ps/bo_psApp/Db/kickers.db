@@ -1,0 +1,36 @@
+
+record(ai, "VA-BOPU-NOISELEVEL")
+{
+    field(DESC, "Noise level")
+    field(INP, 0.001)
+    field(EGU, "A")
+}
+
+record(calc, "BOPU-$(family)-$(pos)-RB")
+{
+    field(DESC, "BOPU-$(family)-$(pos) voltage readback")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "VA-BOPU-$(family)-$(pos)")
+    field(INPB, "VA-BOPU-NOISELEVEL")
+    field(CALC, "A+B*2*(RNDM-.5)")
+    field(EGU, "A")
+}
+
+record(ao, "BOPU-$(family)-$(pos)-SP")
+{
+    field(DESC, "BOPU-$(family)-$(pos) voltage setpoint")
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    field(OUT, "VA-BOPU-$(family)-$(pos)")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-BOPU-$(family)-$(pos)")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-BOPU-$(family)-$(pos)")
+    field(LNK1, "BOPU-$(family)-$(pos)-SP")
+    field(FLNK, "BOPU-$(family)-$(pos)-SP")
+}

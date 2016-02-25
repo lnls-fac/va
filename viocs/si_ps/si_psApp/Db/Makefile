@@ -14,6 +14,7 @@ DB += common.db
 DB += family.db
 DB += family.substitutions
 DB += individual.db
+DB += kickers.db
 DB += ch.substitutions
 DB += cv.substitutions
 DB += fch.substitutions
@@ -42,6 +43,7 @@ DB += sf1k.substitutions
 DB += sf2k.substitutions
 DB += sfa.substitutions
 DB += sfb.substitutions
+DB += kickers.substitutions
 
 #----------------------------------------------------
 # If <anyname>.db template is not named <anyname>*.template add

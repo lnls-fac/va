@@ -2,6 +2,9 @@
 import numpy
 import mathphys
 import va.excitation_curve
+import va.pulse_curve
+import pyaccel
+
 
 class Magnet(object):
 
@@ -106,6 +109,10 @@ class Magnet(object):
         """Set integrated field"""
         self._set_value(delta_integrated_fields)
 
+    @property
+    def indices(self):
+        return self._indices
+
     def get_current_from_field(self):
         current = self._excitation_curve.get_current_from_field(self.value)
         return current
@@ -133,7 +140,6 @@ class Magnet(object):
 
         for i in range(self._nr_segs):
             idx = self._indices[i]
-
             field_profile_b = resize_polynom(self._field_profile_b[i,:], len_polynom)
             field_profile_a = resize_polynom(self._field_profile_a[i,:], len_polynom)
             normal_fields   = resize_polynom(normal_fields, len_polynom)
@@ -202,6 +208,72 @@ class SkewMagnet(Magnet):
     def __init__(self, accelerator, indices, exc_curve_filename):
         self._polynom = 'polynom_a'
         super().__init__(accelerator, indices, exc_curve_filename)
+
+
+class PulsedMagnet(NormalMagnet):
+
+    def __init__(self, accelerator, indices, exc_curve_filename, pulse_curve_filename):
+        super().__init__(accelerator, indices, exc_curve_filename)
+        self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename)
+        self._light_speed = mathphys.constants.light_speed
+        self.length_to_inj_point = pyaccel.lattice.find_spos(self._accelerator, self._indices[0])
+        self.length_to_prev_pulsed_magnet = 0
+        self.length_to_egun = 0
+        self.enabled = 1
+        self._delay = 0
+
+    @property
+    def delay(self):
+        return self.total_flight_time - self._pulse_curve.rise_time + self._delay
+
+    @delay.setter
+    def delay(self, value):
+        self._delay = value - (self.total_flight_time - self._pulse_curve.rise_time)
+
+    @property
+    def total_flight_time(self):
+        return self.length_to_egun/self._light_speed
+
+    @property
+    def partial_flight_time(self):
+        return self.length_to_prev_pulsed_magnet/self._light_speed
+
+    @property
+    def rise_time(self):
+        return self._pulse_curve.rise_time
+
+    def pulsed_magnet_pass(self, charge, charge_time, master_delay):
+        charge, charge_time = self._check_size(charge, charge_time)
+        charge_time = self._add_flight_time_to_charge_time(charge_time)
+
+        if not self.enabled:
+            return charge, charge_time
+        else:
+            efficiencies = self._calc_efficiencies(charge_time, master_delay)
+            for i in range(min(len(charge), len(efficiencies))):
+                charge[i] = charge[i]*efficiencies[i]
+            return charge, charge_time
+
+    def _calc_efficiencies(self, charge_time, master_delay):
+        efficiencies = []
+        for time in charge_time:
+            efficiency = self._pulse_curve.get_pulse_shape(time - self.delay - master_delay)
+            if efficiency < (1-2*self._pulse_curve.flat_top): efficiency = 0
+            efficiencies.append(efficiency)
+        return efficiencies
+
+    def _check_size(self, charge, charge_time):
+        if len(charge) != len(charge_time):
+            bunch_separation = charge_time[1] - charge_time[0]
+            charge_diff = [0]*(len(charge_time)-len(charge))
+            charge_time_diff = [charge_time[-1] + (i+1)*bunch_separation for i in range(len(charge)-len(charge_time))]
+            charge = numpy.append(charge, charge_diff)
+            charge_time = numpy.append(charge_time, charge_time_diff)
+        return charge, charge_time
+
+    def _add_flight_time_to_charge_time(self, charge_time):
+        new_charge_time = [delay + self.partial_flight_time for delay in charge_time]
+        return new_charge_time
 
 
 def resize_polynom(polynom, length):

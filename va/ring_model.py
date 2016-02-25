@@ -5,15 +5,15 @@ import pyaccel
 import mathphys
 from . import accelerator_model
 from . import beam_charge
-from . import utils
 from . import injection
 
 
-_c = accelerator_model._c
 _u = accelerator_model._u
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
+calc_injection_eff = accelerator_model.calc_injection_eff
+calc_timing_eff = accelerator_model.calc_timing_eff
 
 
 class RingModel(accelerator_model.AcceleratorModel):
@@ -90,25 +90,6 @@ class RingModel(accelerator_model.AcceleratorModel):
         else:
             return None
 
-    def _get_pv_timing(self, pv_name):
-        if 'TI-' in pv_name:
-            if 'KICKINJ-ENABLED' in pv_name:
-                return self._injection_kick_enabled
-            elif 'PMM-ENABLED' in pv_name:
-                return self._pmm_enabled
-            elif 'KICKINJ-DELAY' in pv_name:
-                if not hasattr(self, '_injection_kick_delay'):
-                    return UNDEF_VALUE
-                return self._injection_kick_delay
-            elif 'PMM-DELAY' in pv_name:
-                if not hasattr(self, '_pmm_delay'):
-                    return UNDEF_VALUE
-                return self._pmm_delay
-            else:
-                return None
-        else:
-            return None
-
   # --- methods implementing response of model to set requests
 
     def _set_pv_rf(self, pv_name, value):
@@ -128,25 +109,6 @@ class RingModel(accelerator_model.AcceleratorModel):
             return True
         return False
 
-    def _set_pv_timing(self, pv_name, value):
-        if 'TI-' in pv_name:
-            if 'KICKINJ-ENABLED' in pv_name:
-                self._injection_kick_enabled = value
-                return True
-            elif 'PMM-ENABLED' in pv_name:
-                self._pmm_enabled = value
-                return True
-            elif 'KICKINJ-DELAY' in pv_name:
-                self._injection_kick_delay = value
-                return True
-            elif 'PMM-DELAY' in pv_name:
-                self._pmm_delay = value
-                return True
-            else:
-                return False
-        else:
-            return False
-
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
@@ -158,10 +120,11 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._update_injection_efficiency = True
             self._state_deprecated = False
             self._state_changed = True
+        self._calc_efficiencies()
 
+    def _calc_efficiencies(self):
         # Calculate pmm and on-axis injection efficiencies
-        if self._update_injection_efficiency and (self._received_charge or
-            self._onaxis_injection_efficiency is None or self._pmm_injection_efficiency is None):
+        if self._update_injection_efficiency and (self._received_charge or self._injection_efficiency is None):
             self._update_injection_efficiency = False
             self._calc_injection_efficiency()
 
@@ -191,11 +154,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         if TRACK6D:
             pyaccel.tracking.set6dtracking(self._accelerator)
 
-        self._injection_kick_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_kick_label)
-        self._pmm_idx = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._pmm_label)
         self._set_vacuum_chamber()
-        self._injection_kick_enabled = 1
-        self._pmm_enabled = 0
         self._state_deprecated = True
         self._update_state()
 
@@ -209,35 +168,54 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._tunes = None
         self._transfer_matrices = None
         self._summary = None
-        self._injection_efficiency        = None
-        self._total_efficiency            = None
-        self._pmm_injection_efficiency    = None
-        self._onaxis_injection_efficiency = None
+        self._injection_efficiency = None
         self._received_charge = False
 
    # --- auxiliary methods
 
-    def _calc_nominal_delays(self, path_length=None, bunch_separation=None, nr_bunches=None, egun_delay=None):
-        self._bunch_separation = bunch_separation
-        half_pulse_duration = nr_bunches * self._bunch_separation/2.0
+    def _set_pulsed_magnets_parameters(self, **kwargs):
+        if 'total_length' in kwargs:
+            prev_total_length = kwargs['total_length']
+        if 'magnet_pos' in kwargs:
+            prev_magnet_pos = kwargs['magnet_pos']
+        if 'nominal_delays' in kwargs:
+            nominal_delays = kwargs['nominal_delays']
 
-        # Calculate injection kick nominal delay
-        injpoint_to_kick_len = pyaccel.lattice.length(self._accelerator[:self._injection_kick_idx[0]])
-        self._injection_kick_nominal_delay = (path_length + injpoint_to_kick_len)/_c - self._injection_kick_rise_time + half_pulse_duration
-        self._injection_kick_delay = self._injection_kick_nominal_delay
+        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
 
-        # Calculate pmm nominal delay
-        injpoint_to_pmm_len = pyaccel.lattice.length(self._accelerator[:self._pmm_idx[0]])
-        self._pmm_nominal_delay = (path_length + injpoint_to_pmm_len)/_c - self._pmm_rise_time + half_pulse_duration
-        self._pmm_delay = self._pmm_nominal_delay
+        magnets_pos = dict()
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            magnet_pos = prev_total_length + magnet.length_to_inj_point
+            magnet.length_to_egun = magnet_pos
+            magnets_pos[magnet_name] = magnet_pos
+            if 'PMM' in magnet_name: magnet.enabled = 0
+        sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
-        # Update epics memory
+        for i in range(len(sorted_magnets_pos)):
+            magnet_name, magnet_pos = sorted_magnets_pos[i]
+            magnet = self._pulsed_magnets[magnet_name]
+            magnet.length_to_prev_pulsed_magnet = magnet_pos - prev_magnet_pos
+            nominal_delays[magnet_name] = magnet.delay
+
+        delay_values = nominal_delays.values()
+        min_delay = min(delay_values)
+        for magnet_name in nominal_delays.keys():
+            nominal_delays[magnet_name] -= min_delay
+
+        self._send_queue.put(('p', ('LI', {'update_delays' : nominal_delays})))
+
+    def _update_pulsed_magnets_delays(self, delays):
+        for magnet_name, delay in delays.items():
+            if magnet_name in self._pulsed_magnets.keys():
+                self._pulsed_magnets[magnet_name].delay = delay
         self._update_delay_pvs_in_epics_memory()
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        self._send_queue.put(('s', ('SITI-KICKINJ-DELAY', self._injection_kick_nominal_delay)))
-        self._send_queue.put(('s', ('SITI-PMM-DELAY', self._pmm_nominal_delay)))
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            pv_name = self._magnet2delay[magnet_name]
+            value = magnet.delay
+            self._send_queue.put(('s', (pv_name, value)))
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
@@ -300,16 +278,6 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
                                         quantum=q_lifetime, touschek_coefficient=t_coeff)
 
-    def _beam_inject(self, charge=None, bunch_idx=0):
-        if charge is None: return
-
-        initial_charge = self._beam_charge.total_value
-        self._beam_charge.inject(charge, bunch_idx=bunch_idx)
-
-        final_charge = self._beam_charge.total_value
-        if (initial_charge == 0) and (final_charge != initial_charge):
-            self._state_changed = True
-
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
 
@@ -317,59 +285,74 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        # PMM injection efficiency
-        self._log('calc', 'pmm injection efficiency  for '+self.model_module.lattice_version)
-        for idx in self._pmm_idx:
-            self._accelerator[idx].polynom_b = numpy.array(self._pmm_integ_polynom_b)/self._accelerator[idx].length
-        injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
-        self._pmm_injection_efficiency = 1.0 - injection_loss_fraction
-        for idx in self._pmm_idx:
-            self._accelerator[idx].polynom_b = [0.0]*len(self._accelerator[idx].polynom_b)
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'PMM' in ps_name:
+                pmm_enabled = True if ps.enabled else False
+            if 'INJ' in ps_name:
+                kickinj_enabled = True if ps.enabled else False
 
-        # On-axis injection efficiency
-        self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
-        for idx in self._injection_kick_idx:
-            self._accelerator[idx].hkick_polynom = self._injection_kick_angle
-        injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
-        self._onaxis_injection_efficiency = 1.0 - injection_loss_fraction
-        for idx in self._injection_kick_idx:
-            self._accelerator[idx].hkick_polynom = 0.0
+        if pmm_enabled and not kickinj_enabled:
+            # PMM injection efficiency
+            self._log('calc', 'pmm injection efficiency  for ' + self.model_module.lattice_version)
+            for ps_name, ps in self._pulsed_power_supplies.items():
+                if 'PMM' in ps_name and ps.enabled: ps.turn_on()
+            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+            self._injection_efficiency = 1.0 - injection_loss_fraction
+            for ps_name, ps in self._pulsed_power_supplies.items():
+                if 'PMM' in ps_name: ps.turn_off()
 
-    def _calc_injection_magnet_efficiency(self, nr_bunches):
-        if self._injection_kick_enabled and not self._pmm_enabled:
-            rise_time     = self._injection_kick_rise_time
-            delay         = self._injection_kick_delay
-            nominal_delay = self._injection_kick_nominal_delay
-            injection_magnet_efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, self._bunch_separation, nr_bunches)
-            self._injection_efficiency = self._onaxis_injection_efficiency
-        elif not self._injection_kick_enabled and self._pmm_enabled:
-            rise_time     = self._pmm_rise_time
-            delay         = self._pmm_delay
-            nominal_delay = self._pmm_nominal_delay
-            injection_magnet_efficiency = injection.calc_pulsed_magnet_efficiency(rise_time, delay, nominal_delay, self._bunch_separation, nr_bunches)
-            self._injection_efficiency = self._pmm_injection_efficiency
+        elif kickinj_enabled and not pmm_enabled:
+            # On-axis injection efficiency
+            self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
+            for ps_name, ps in self._pulsed_power_supplies.items():
+                if 'INJ' in ps_name and ps.enabled: ps.turn_on()
+            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+            self._injection_efficiency = 1.0 - injection_loss_fraction
+            for ps_name, ps in self._pulsed_power_supplies.items():
+                if 'INJ' in ps_name and ps.enabled: ps.turn_off()
+
         else:
-            injection_magnet_efficiency = 0
-            self._injection_efficiency = 0.0
-        return injection_magnet_efficiency
+            self._injection_efficiency = 0
+
+    def _change_injection_bunch(self, charge, charge_time, master_delay, bunch_separation):
+        harmonic_number = self._accelerator.harmonic_number
+        new_charge = numpy.zeros(harmonic_number)
+        new_charge_time = numpy.zeros(harmonic_number)
+
+        for magnet_name, magnet in self._pulsed_magnets.items():
+            if 'INJ' in magnet_name:
+                flight_time = magnet.partial_flight_time
+                delay = magnet.delay
+                rise_time = magnet.rise_time
+
+        for i in range(len(charge)):
+            idx = round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number)
+            new_charge[idx] = charge[i]
+            new_charge_time[idx] = charge_time[i]
+
+        return new_charge, new_charge_time
 
     def _injection_cycle(self, **kwargs):
         charge = kwargs['charge']
-        injection_bunch = kwargs['injection_bunch']
-        linac_charge = kwargs['linac_charge']
+        charge_time = kwargs['charge_time']
 
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        nr_bunches = len(charge)
-        initial_charge = charge
+        charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        injection_magnet_efficiency = self._calc_injection_magnet_efficiency(nr_bunches)
-        charge = injection_magnet_efficiency * charge
-        charge = [bunch_charge * self._injection_efficiency for bunch_charge in charge]
-        self._beam_inject(charge=charge, bunch_idx=injection_bunch)
-        self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*(sum(charge)/sum(initial_charge))))
+        if calc_timing_eff:
+            prev_charge = sum(charge)
+            for magnet in self._get_sorted_pulsed_magnets():
+                if magnet.enabled:
+                    charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+            efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
+            self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        self._total_efficiency = self._injection_efficiency*(sum(charge)/sum(linac_charge))
-        self._log(message1 = 'cycle', message2 = '--')
-        self._log(message1='cycle', message2='total efficiency: {0:.2f}%'.format(100*self._total_efficiency))
+        if calc_injection_eff:
+            # Injection
+            efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 100*efficiency))
+
+        self._beam_inject(charge=charge)

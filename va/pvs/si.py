@@ -172,6 +172,10 @@ def get_fake_record_names(accelerator):
     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORX-'))
     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORY-'))
     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORR-'))
+    # Add fake pulsed magnets pvs for errors
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORX-'))
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORY-'))
+    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORR-'))
 
     # Add fake CV pvs for errors
     sext = get_element_names(family_data, 'sext')
@@ -198,7 +202,7 @@ def get_fake_record_names(accelerator):
     elements += model.families.families_horizontal_correctors()
     elements += model.families.families_vertical_correctors()
     elements += model.families.families_skew_correctors()
-    elements += model.families.families_septa()
+    elements += model.families.families_pulsed_magnets()
     elements += model.families.families_rf()
     elements += ['bpm']
 

@@ -42,6 +42,7 @@ dbLoadTemplate("db/sf1k.substitutions")
 dbLoadTemplate("db/sf2k.substitutions")
 dbLoadTemplate("db/sfa.substitutions")
 dbLoadTemplate("db/sfb.substitutions")
+dbLoadTemplate("db/kickers.substitutions")
 
 cd ${TOP}/iocBoot/${IOC}
 iocInit
