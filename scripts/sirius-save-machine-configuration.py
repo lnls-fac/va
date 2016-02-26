@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-import va
 import os
-import lnls
 import time
 import datetime
 import epics
+import va
+import lnls
+
 
 _max_pv_name_length = 50
-_folder = os.path.join(lnls.folder_db, 'configuration')
+_folder = os.path.join(lnls.folder_db, 'machine_configuration')
 _rname_functions = {
     'li':va.pvs.li.get_read_write_pvs,
     'tb':va.pvs.tb.get_read_write_pvs,
@@ -17,9 +18,11 @@ _rname_functions = {
     'si':va.pvs.si.get_read_write_pvs,
 }
 
+
 def get_all_defined_pvs(machine):
     record_names = _rname_functions[machine.lower()]()
     return sorted(record_names)
+
 
 def insert_new_pv(pv_name, lines):
     try:
@@ -32,16 +35,17 @@ def insert_new_pv(pv_name, lines):
         text = pv_name + ' # [NOT FOUND]'
     lines.append(text)
 
-def save_state(machine):
+
+def save_state(machine, timestamp):
 
     pvs = get_all_defined_pvs(machine)
     lines = []
 
-    lines.append('# SIRIUS %s'%(machine.upper()))
+    lines.append('# SIRIUS %s MACHINE CONFIGURATION'%(machine.upper()))
     lines.append('# ==================================')
     lines.append('#')
 
-    ts = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S') + '  (by sirius-save-machine-configuration.py)'
+    ts = timestamp.strftime('%Y-%m-%d %H:%M:%S') + '  (by sirius-save-machine-configuration.py)'
     lines.append('# TIMESTAMP ' + ts)
     lines.append('')
 
@@ -51,7 +55,8 @@ def save_state(machine):
             pv_name = 'VA-' + pv_name
             insert_new_pv(pv_name, lines)
 
-    fname = os.path.join(_folder, machine.lower() + '.txt')
+    filename = machine.upper() + '_' + timestamp.strftime('%Y-%m-%d_%H-%M-%S')
+    fname = os.path.join(_folder, filename + '.txt')
     try:
         f = open(fname, "w")
         for line in lines:
@@ -59,8 +64,10 @@ def save_state(machine):
     except IOError:
         print('could not open file "' + fname + '"')
 
-print('saving LI state'); save_state('li'); print()
-print('saving TB state'); save_state('tb'); print()
-print('saving BO state'); save_state('bo'); print()
-print('saving TS state'); save_state('ts'); print()
-print('saving SI state'); save_state('si'); print()
+
+timestamp = datetime.datetime.fromtimestamp(time.time())
+print('saving LI state'); save_state('li', timestamp); print()
+print('saving TB state'); save_state('tb', timestamp); print()
+print('saving BO state'); save_state('bo', timestamp); print()
+print('saving TS state'); save_state('ts', timestamp); print()
+print('saving SI state'); save_state('si', timestamp); print()
