@@ -157,9 +157,9 @@ def get_fake_record_names(accelerator):
 
     # Add fake CF pvs for errors
     _dict = {}
-    _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'cf', prefix='SIFK-ERRORR-'))
+    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORX-'))
+    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORY-'))
+    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORR-'))
     # Add fake BEND pvs for errors
     _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORX-'))
     _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORY-'))
