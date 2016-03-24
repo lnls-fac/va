@@ -92,7 +92,7 @@ class _LocalData:
         for p in _LocalData.ti:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.rf:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk_pos:

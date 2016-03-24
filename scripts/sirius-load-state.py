@@ -43,7 +43,7 @@ def read_configuration_file(machine, filename):
     return _dict
 
 def set_state(machine, timestamp):
-    print('Setting %s state.'%machine.lower())
+    print('Setting %s state...'%machine.lower())
     _dict = read_configuration_file(machine, timestamp)
     for pv_name, pv_value in _dict.items():
         try:
@@ -62,10 +62,12 @@ if server_connected():
             else:
                 fn = machine.upper() + '_DEFAULT.txt'
             set_state(machine.lower(), fn)
+        print('Load state done!')
     elif machine.lower() in _machines:
         if filename is None:
             filename = machine.upper() + '_DEFAULT.txt'
         set_state(machine.lower(), filename)
+        print('Load state done!')
     else:
         print('Machine "' + machine.upper() + '" not found.')
 else:
