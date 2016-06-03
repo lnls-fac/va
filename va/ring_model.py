@@ -16,6 +16,8 @@ calc_injection_eff = accelerator_model.calc_injection_eff
 calc_timing_eff = accelerator_model.calc_timing_eff
 
 
+_nlk_famnam = 'nlk'
+
 class RingModel(accelerator_model.AcceleratorModel):
 
     def __init__(self, **kwargs):
@@ -123,7 +125,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         self._calc_efficiencies()
 
     def _calc_efficiencies(self):
-        # Calculate pmm and on-axis injection efficiencies
+        # Calculate nlk and on-axis injection efficiencies
         if self._update_injection_efficiency and (self._received_charge or self._injection_efficiency is None):
             self._update_injection_efficiency = False
             self._calc_injection_efficiency()
@@ -188,7 +190,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             magnet_pos = prev_total_length + magnet.length_to_inj_point
             magnet.length_to_egun = magnet_pos
             magnets_pos[magnet_name] = magnet_pos
-            if 'PMM' in magnet_name: magnet.enabled = 0
+            if 'NLK' in magnet_name: magnet.enabled = 0
         sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
         for i in range(len(sorted_magnets_pos)):
@@ -286,22 +288,22 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'PMM' in ps_name:
-                pmm_enabled = True if ps.enabled else False
+            if 'NLK' in ps_name:
+                nlk_enabled = True if ps.enabled else False
             if 'INJ' in ps_name:
                 kickinj_enabled = True if ps.enabled else False
 
-        if pmm_enabled and not kickinj_enabled:
-            # PMM injection efficiency
-            self._log('calc', 'pmm injection efficiency  for ' + self.model_module.lattice_version)
+        if nlk_enabled and not kickinj_enabled:
+            # NLK injection efficiency
+            self._log('calc', 'nlk injection efficiency  for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'PMM' in ps_name and ps.enabled: ps.turn_on()
+                if 'NLK' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'PMM' in ps_name: ps.turn_off()
+                if 'NLK' in ps_name: ps.turn_off()
 
-        elif kickinj_enabled and not pmm_enabled:
+        elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
