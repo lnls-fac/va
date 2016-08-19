@@ -12,7 +12,7 @@ record(calc, "BODI-BPM-$(sector)$(pos):MONIT:X")
     field(SCAN, ".1 second")
     field(INPA, "VA-BODI-BPM-$(sector)$(pos):MONIT:X")
     field(INPB, "VA-BODI-BPM-NOISELEVEL")
-    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "nm")
     field(FLNK, "BODI-BPM-$(sector)$(pos):MONIT:Y")
 }
@@ -22,7 +22,7 @@ record(calc, "BODI-BPM-$(sector)$(pos):MONIT:Y")
     field(DESC, "BO BPM sector $(sector) pos $(pos) y")
     field(INPA, "VA-BODI-BPM-$(sector)$(pos):MONIT:Y")
     field(INPB, "VA-BODI-BPM-NOISELEVEL")
-    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "nm")
 }
 

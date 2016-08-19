@@ -16,6 +16,7 @@ TRACK6D = accelerator_model.TRACK6D
 Plane = accelerator_model.Plane
 calc_injection_eff = accelerator_model.calc_injection_eff
 calc_timing_eff = accelerator_model.calc_timing_eff
+orbit_unit = accelerator_model.orbit_unit
 
 
 class BoosterModel(accelerator_model.AcceleratorModel):
@@ -52,16 +53,16 @@ class BoosterModel(accelerator_model.AcceleratorModel):
             idx = self._get_elements_indices(pv_name)
             if 'FAM:MONIT:X' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[0,idx]
+                return orbit_unit*self._orbit[0,idx]
             elif 'FAM:MONIT:Y' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return self._orbit[2,idx]
+                return orbit_unit*self._orbit[2,idx]
             elif 'MONIT:X' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]
-                return self._orbit[0,idx[0]]
+                return orbit_unit*self._orbit[0,idx[0]]
             elif 'MONIT:Y' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]
-                return self._orbit[2,idx[0]]
+                return orbit_unit*self._orbit[2,idx[0]]
             else:
                 return None
         elif 'DI-TUNEH' in pv_name:

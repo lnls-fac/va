@@ -12,7 +12,7 @@ record(calc, "SIDI-BPM-$(sector)$(pos):MONIT:X")
     field(SCAN, ".1 second")
     field(INPA, "VA-SIDI-BPM-$(sector)$(pos):MONIT:X")
     field(INPB, "VA-SIDI-BPM-NOISELEVEL")
-    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU,  "nm")
     field(FLNK, "SIDI-BPM-$(sector)$(pos):MONIT:Y")
 }
@@ -22,7 +22,7 @@ record(calc, "SIDI-BPM-$(sector)$(pos):MONIT:Y")
     field(DESC, "SI BPM sector $(sector) pos $(pos) y")
     field(INPA, "VA-SIDI-BPM-$(sector)$(pos):MONIT:Y")
     field(INPB, "VA-SIDI-BPM-NOISELEVEL")
-    field(CALC, "(1e9)*A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
+    field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU,  "nm")
 }
 

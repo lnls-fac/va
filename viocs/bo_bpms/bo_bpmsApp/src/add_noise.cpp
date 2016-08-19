@@ -19,8 +19,8 @@ long add_noise(struct aSubRecord *psub)
     c = (double*) psub->c;
     noise_level = c[0];
     for(int i=0; i< psub->noa; i++){
-        a[i] = a[i]*(1e9) + get_random()*noise_level;
-        b[i] = b[i]*(1e9) + get_random()*noise_level;
+        a[i] = a[i] + get_random()*noise_level;
+        b[i] = b[i] + get_random()*noise_level;
     }
     psub->vala = a;
     psub->valb = b;
