@@ -10,12 +10,12 @@ from . import tline_model
 from . import booster_model
 from . import ring_model
 
-
 class LiModel(linac_model.LinacModel):
 
     pv_module = _pvs_li
-    prefix = pv_module.prefix
+    naming_system = _sirius.naming_system
     model_module = pv_module.model
+    prefix = model_module.device_names.system.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -36,8 +36,9 @@ class LiModel(linac_model.LinacModel):
 class TbModel(tline_model.TLineModel):
 
     pv_module = _pvs_tb
-    prefix = pv_module.prefix
+    naming_system = _sirius.naming_system
     model_module = pv_module.model
+    prefix = model_module.device_names.system.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -49,8 +50,9 @@ class TbModel(tline_model.TLineModel):
 class BoModel(booster_model.BoosterModel):
 
     pv_module = _pvs_bo
-    prefix = pv_module.prefix
+    naming_system = _sirius.naming_system
     model_module = pv_module.model
+    prefix = model_module.device_names.system.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -65,8 +67,9 @@ class BoModel(booster_model.BoosterModel):
 class TsModel(tline_model.TLineModel):
 
     pv_module = _pvs_ts
-    prefix = pv_module.prefix
+    naming_system = _sirius.naming_system
     model_module = pv_module.model
+    prefix = model_module.device_names.system.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -78,8 +81,9 @@ class TsModel(tline_model.TLineModel):
 class SiModel(ring_model.RingModel):
 
     pv_module = _pvs_si
-    prefix = pv_module.prefix
+    naming_system = _sirius.naming_system
     model_module = pv_module.model
+    prefix = model_module.device_names.system.upper()
     database = pv_module.get_database()
 
     # Injection parameters

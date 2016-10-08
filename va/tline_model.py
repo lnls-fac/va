@@ -13,32 +13,6 @@ orbit_unit = accelerator_model.orbit_unit
 
 class TLineModel(accelerator_model.AcceleratorModel):
 
-    # --- methods implementing response of model to get requests
-
-    def _get_pv_static(self, pv_name):
-        value = super()._get_pv_static(pv_name)
-        if value is not None:
-            return value
-        elif '-BPM-' in pv_name:
-            charge = self._beam_charge.total_value
-            idx = self._get_elements_indices(pv_name)
-            if 'FAM:MONIT:X' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return orbit_unit*self._orbit[0,idx]
-            elif 'FAM:MONIT:Y' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                return orbit_unit*self._orbit[2,idx]
-            elif 'MONIT:X' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]
-                return orbit_unit*self._orbit[0,idx[0]]
-            elif 'MONIT:Y' in pv_name:
-                if self._orbit is None: return [UNDEF_VALUE]
-                return orbit_unit*self._orbit[2,idx[0]]
-            else:
-                return None
-        else:
-            return None
-
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
@@ -53,7 +27,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
         self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)
-        self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
+        #self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber()

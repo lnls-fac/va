@@ -25,91 +25,27 @@ class RingModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_dynamic(self, pv_name):
-        if 'DI-CURRENT' in pv_name:
-            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
-            currents = self._beam_charge.current(time_interval)
-            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
-            return sum(currents_mA)
-        elif 'DI-BCURRENT' in pv_name:
-            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
-            currents = self._beam_charge.current(time_interval)
-            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
-            return currents_mA
-        elif 'PA-LIFETIME' in pv_name:
-            return self._beam_charge.total_lifetime / _u.hour
-        elif 'PA-BLIFETIME' in pv_name:
-            return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
-        else:
-            return None
-
     def _get_pv_static(self, pv_name):
-        value = super()._get_pv_static(pv_name)
-        if value is not None:
-            return value
-        elif '-BPM-' in pv_name:
+        device = self.naming_system.split_name(pv_name)['device']
+        if device == "BPM":
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            if 'FAM:MONIT:X' in pv_name:
+            if self.naming_system.pvnaming_fam in pv_name and 'MonitPosX' in pv_name:
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[0,idx]
-            elif 'FAM:MONIT:Y' in pv_name:
+            elif self.naming_system.pvnaming_fam in pv_name and 'MonitPosY' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[2,idx]
-            elif 'MONIT:X' in pv_name:
+            elif 'MonitPosX' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
                 return orbit_unit*self._orbit[0,idx[0]]
-            elif 'MONIT:Y' in pv_name:
+            elif 'MonitPosY' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
                 return orbit_unit*self._orbit[2,idx[0]]
             else:
                 return None
-        elif 'DI-TUNEH' in pv_name:
-            return self._get_tune_component(Plane.horizontal)
-        elif 'DI-TUNEV' in pv_name:
-            return self._get_tune_component(Plane.vertical)
-        elif 'DI-TUNES' in pv_name:
-            return self._get_tune_component(Plane.longitudinal)
-        elif 'RF-FREQUENCY' in pv_name:
-            return pyaccel.optics.get_rf_frequency(self._accelerator)
-        elif 'RF-VOLTAGE' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            return self._accelerator[idx[0]].voltage
-        elif 'PA-CHROMX' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-CHROMY' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-EMITX' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-EMITY' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-SIGX' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-SIGY' in pv_name:
-            return UNDEF_VALUE
-        elif 'PA-SIGS' in pv_name:
-            return UNDEF_VALUE
         else:
-            return None
-
-  # --- methods implementing response of model to set requests
-
-    def _set_pv_rf(self, pv_name, value):
-        if 'RF-VOLTAGE' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            prev_value = self._accelerator[idx[0]].voltage
-            if value != prev_value:
-                self._accelerator[idx[0]].voltage = value
-                self._state_deprecated = True
-            return True
-        elif 'RF-FREQUENCY' in pv_name:
-            idx = self._get_elements_indices(pv_name)
-            prev_value = self._accelerator[idx[0]].frequency
-            if value != prev_value:
-                self._accelerator[idx[0]].frequency = value
-                self._state_deprecated = True
-            return True
-        return False
+            return super()._get_pv_static(pv_name)
 
     # --- methods that help updating the model state
 
@@ -150,7 +86,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
         # Create record names dictionary
         self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)
-        self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
+        #self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
 
         # Set radiation and cavity on
         if TRACK6D:

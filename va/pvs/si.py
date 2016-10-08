@@ -3,11 +3,9 @@ import sirius as _sirius
 
 # Kingdom-dependent parameters
 model = _sirius.si
-prefix = 'SI'
 
 accelerator = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
-
 
 class _LocalData:
 
@@ -19,65 +17,94 @@ class _LocalData:
 
     @staticmethod
     def _init_record_names():
-        _fake_record_names = get_fake_record_names(family_data)
-        _device_names = model.device_names.get_device_names(family_data)
-        _record_names = {}
-        for key in _device_names.keys():
-            if 'DI-BPM' in key:
-                _record_names[key + ':MONIT:X'] = _device_names[key]
-                _record_names[key + ':MONIT:Y'] = _device_names[key]
-            else:
-                _record_names[key] = _device_names[key]
+        _LocalData.all_record_names = {}
+        if 'di' in model.device_names.subsystems:
+            _LocalData._init_di_record_names()
+        else:
+            _LocalData.di = []
+        if 'ps' in model.device_names.subsystems:
+            _LocalData._init_ps_record_names()
+        else:
+            _LocalData.ps = []
+        if 'ap' in model.device_names.subsystems:
+            _LocalData._init_ap_record_names()
+        else:
+            _LocalData.ap = []
+        if 'rf' in model.device_names.subsystems:
+            _LocalData._init_rf_record_names()
+        else:
+            _LocalData.rf = []
+        if 'ti' in model.device_names.subsystems:
+            _LocalData._init_ti_record_names()
+        else:
+            _LocalData.ti = []
+        _LocalData._init_fk_record_names()
 
-        _LocalData.all_record_names = _record_names
-        _LocalData.all_record_names.update(_fake_record_names)
-        _LocalData.fk      = []
-        _LocalData.fk_pos  = []
-        _LocalData.pa      = []
-        _LocalData.di      = []
-        _LocalData.di_bpms = []
-        _LocalData.ps      = []
-        _LocalData.ps_ch   = []
-        _LocalData.ps_cv   = []
-        _LocalData.pu      = []
-        _LocalData.rf      = []
-        _LocalData.ti      = []
-        for record_name in _LocalData.all_record_names.keys():
-            if 'DI-BPM-' in record_name:
-                _LocalData.di_bpms.append(record_name)
-            elif 'DI-' in record_name:
-                _LocalData.di.append(record_name)
-            elif 'PS-CH' in record_name:
-                _LocalData.ps_ch.append(record_name)
-            elif 'PS-CV' in record_name:
-                _LocalData.ps_cv.append(record_name)
-            elif 'PS-' in record_name:
-                _LocalData.ps.append(record_name)
-            elif 'PA-' in record_name:
-                _LocalData.pa.append(record_name)
-            elif 'FK-' in record_name and '-POS' in record_name:
-                _LocalData.fk_pos.append(record_name)
-            elif 'FK-' in record_name:
-                _LocalData.fk.append(record_name)
-            elif 'RF-' in record_name:
-                _LocalData.rf.append(record_name)
-            elif 'PU-' in record_name:
-                _LocalData.pu.append(record_name)
-            elif 'TI-' in record_name:
-                _LocalData.ti.append(record_name)
+    @staticmethod
+    def _init_di_record_names():
+        _device_names = model.device_names.get_device_names(family_data, 'di')
+        _record_names = {}
+        for device_name in _device_names.keys():
+            device = _sirius.naming_system.split_name(device_name)['device']
+            if device == 'BPM':
+                _record_names[device_name + ':MonitPosX'] = _device_names[device_name]
+                _record_names[device_name + ':MonitPosY'] = _device_names[device_name]
+            elif device == 'TunePkp':
+                _record_names[device_name + ':TuneX'] = _device_names[device_name]
+                _record_names[device_name + ':TuneY'] = _device_names[device_name]
+            elif device == 'DCCT':
+                _record_names[device_name + ':Current'] = _device_names[device_name]
+                _record_names[device_name + ':BCurrent'] = _device_names[device_name]
             else:
-                print('Parameter', record_name, 'not found!')
-        _LocalData.ps = _LocalData.ps + _LocalData.ps_ch + _LocalData.ps_cv + _LocalData.pu
-        _LocalData.di = _LocalData.di + _LocalData.di_bpms
+                _record_names[device_name] = _device_names[device_name]
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.di = list(_record_names.keys())
+
+    @staticmethod
+    def _init_ps_record_names():
+        _device_names = model.device_names.get_device_names(family_data, 'ps')
+        if 'pu' in model.device_names.subsystems:
+            _device_names.update(model.device_names.get_device_names(family_data, 'pu'))
+        _record_names = {}
+        for device_name in _device_names.keys():
+            _record_names[device_name + ':CurrentSP'] = _device_names[device_name]
+            _record_names[device_name + ':CurrentRB'] = _device_names[device_name]
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.ps = list(_record_names.keys())
+
+    @staticmethod
+    def _init_ap_record_names():
+        _record_names = model.device_names.get_device_names(family_data, 'ap')
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.ap = list(_record_names.keys())
+
+    @staticmethod
+    def _init_rf_record_names():
+        _record_names = model.device_names.get_device_names(family_data, 'rf')
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.rf = list(_record_names.keys())
+
+    @staticmethod
+    def _init_ti_record_names():
+        _record_names = model.device_names.get_device_names(family_data, 'ti')
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.ti = list(_record_names.keys())
+
+    @staticmethod
+    def _init_fk_record_names():
+        _record_names = {} # get_fake_record_names(family_data)
+        _LocalData.all_record_names.update(_record_names)
+        _LocalData.fk = []
+        _LocalData.fk_pos  = []
 
     @staticmethod
     def _init_database():
         _LocalData.database = {}
         for p in _LocalData.di:
-            if any([substring in p for substring in ('BCURRENT',)]):
+            if any([substring in p for substring in ('BCurrent',)]):
                 _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number}
-            elif 'DI-BPM' in p:
-                if 'FAM' in p:
+            elif 'BPM' in p:
+                if _sirius.naming_system.pvnaming_fam in p:
                     _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['bpm'])}
                 else:
                     _LocalData.database[p] = {'type' : 'float', 'count': 1}
@@ -85,36 +112,32 @@ class _LocalData:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.ps:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in _LocalData.pa:
-            if any([substring in p for substring in ('BLIFETIME',)]):
+        for p in _LocalData.ap:
+            if any([substring in p for substring in ('BLifetime',)]):
                 _LocalData.database[p] = {'type' : 'float', 'count': model.harmonic_number, 'value': 0.0}
             else:
                 _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.ti:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.rf:
-            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         for p in _LocalData.fk:
             _LocalData.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in _LocalData.fk_pos:
             _LocalData.database[p] = {'type' : 'float', 'count': len(_LocalData.all_record_names[p]['pos'])}
 
+
     @staticmethod
     def _init_dynamical_pvs():
         _LocalData.dynamical_pvs = []
-        _pvs = [
-            _LocalData._get_subsystem('DI-CURRENT'),
-            _LocalData._get_subsystem('DI-BCURRENT'),
-            _LocalData._get_subsystem('PA-LIFETIME'),
-            _LocalData._get_subsystem('PA-BLIFETIME'),
-        ]
-        for pv in _pvs:
-            if pv in _LocalData.all_record_names:
+        for pv in _LocalData.di:
+            if 'Current' in pv:
                 _LocalData.dynamical_pvs.append(pv)
-                if 'DI-' in pv:
-                    _LocalData.di.remove(pv)
-                elif 'PA-' in pv:
-                    _LocalData.pa.remove(pv)
+                _LocalData.di.remove(pv)
+        for pv in _LocalData.ap:
+            if 'Lifetime' in pv:
+                _LocalData.dynamical_pvs.append(pv)
+                _LocalData.ap.remove(pv)
 
     @staticmethod
     def get_all_record_names():
@@ -126,7 +149,7 @@ class _LocalData:
 
     @staticmethod
     def get_read_only_pvs():
-        return _LocalData.di_bpms + _LocalData.pa + _LocalData.di
+        return _LocalData.di + _LocalData.ap
 
     @staticmethod
     def get_read_write_pvs():
@@ -140,77 +163,68 @@ class _LocalData:
     def get_constant_pvs():
         return _LocalData.fk_pos
 
-    @staticmethod
-    def _get_subsystem(rn):
-        return prefix + rn
-
-
-def get_fake_record_names(accelerator):
-
-    if not isinstance(accelerator, dict):
-        family_data = model.get_family_data(accelerator)
-    else:
-        family_data = accelerator
-
-    _dict = {}
-    get_element_names = _sirius.si.device_names.get_element_names
-
-    # Add fake CF pvs for errors
-    _dict = {}
-    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORR-'))
-    # Add fake BEND pvs for errors
-    _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORR-'))
-    # Add fake QUAD pvs for errors
-    _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORR-'))
-    # Add fake SEXT pvs for errors
-    _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORR-'))
-    # Add fake pulsed magnets pvs for errors
-    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORX-'))
-    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORY-'))
-    _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORR-'))
-
-    # Add fake CV pvs for errors
-    sext = get_element_names(family_data, 'sext')
-    cv   = get_element_names(family_data, 'cv')
-    indices = []
-    for d in sext.values():
-        for idx in d.values():
-            indices += [idx]
-    for key in cv.keys():
-        for idx in cv[key].values():
-            if idx not in indices:
-                d = {'SIFK-ERRORX-'+ key : {'cv': idx},
-                     'SIFK-ERRORY-'+ key : {'cv': idx},
-                     'SIFK-ERRORR-'+ key : {'cv': idx}}
-                _dict.update(d)
-
-    _dict['SIFK-SAVEFLATFILE'] = {}
-
-    # Add fake pvs for position
-    elements = []
-    elements += ['b1', 'b2', 'bc']
-    elements += model.families.families_quadrupoles()
-    elements += model.families.families_sextupoles()
-    elements += model.families.families_horizontal_correctors()
-    elements += model.families.families_vertical_correctors()
-    elements += model.families.families_skew_correctors()
-    elements += model.families.families_pulsed_magnets()
-    elements += model.families.families_rf()
-    elements += ['bpm']
-
-    for element in elements:
-        index = family_data[element]['index']
-        _dict.update({prefix + 'FK-'+ element.upper()+'-POS': {'pos': index}})
-
-    return _dict
+# def get_fake_record_names(accelerator):
+#
+#     if not isinstance(accelerator, dict):
+#         family_data = model.get_family_data(accelerator)
+#     else:_device_names
+#
+#     # Add fake CF pvs for errors
+#     _dict = {}
+#     _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORX-'))
+#     _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORY-'))
+#     _dict.update(get_element_names(family_data, 'fc', prefix='SIFK-ERRORR-'))
+#     # Add fake BEND pvs for errors
+#     _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORX-'))
+#     _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORY-'))
+#     _dict.update(get_element_names(family_data, 'bend', prefix='SIFK-ERRORR-'))
+#     # Add fake QUAD pvs for errors
+#     _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORX-'))
+#     _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORY-'))
+#     _dict.update(get_element_names(family_data, 'quad', prefix='SIFK-ERRORR-'))
+#     # Add fake SEXT pvs for errors
+#     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORX-'))
+#     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORY-'))
+#     _dict.update(get_element_names(family_data, 'sext', prefix='SIFK-ERRORR-'))
+#     # Add fake pulsed magnets pvs for errors
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORX-'))
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORY-'))
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix='SIFK-ERRORR-'))
+#
+#     # Add fake CV pvs for errors
+#     sext = get_element_names(family_data, 'sext')
+#     cv   = get_element_names(family_data, 'cv')
+#     indices = []
+#     for d in sext.values():
+#         for idx in d.values():
+#             indices += [idx]
+#     for key in cv.keys():
+#         for idx in cv[key].values():
+#             if idx not in indices:
+#                 d = {'SIFK-ERRORX-'+ key : {'cv': idx},
+#                      'SIFK-ERRORY-'+ key : {'cv': idx},
+#                      'SIFK-ERRORR-'+ key : {'cv': idx}}
+#                 _dict.update(d)
+#
+#     _dict['SIFK-SAVEFLATFILE'] = {}
+#
+#     # Add fake pvs for position
+#     elements = []
+#     elements += ['b1', 'b2', 'bc']
+#     elements += model.families.families_quadrupoles()
+#     elements += model.families.families_sextupoles()
+#     elements += model.families.families_horizontal_correctors()
+#     elements += model.families.families_vertical_correctors()
+#     elements += model.families.families_skew_correctors()
+#     elements += model.families.families_pulsed_magnets()
+#     elements += model.families.families_rf()
+#     elements += ['bpm']
+#
+#     for element in elements:
+#         index = family_data[element]['index']
+#         _dict.update({prefix + 'FK-'+ element.upper()+'-POS': {'pos': index}})
+#
+#     return _dict
 
 _LocalData.build_data()
 

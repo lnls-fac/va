@@ -16,7 +16,7 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = True
 calc_injection_eff = True
 calc_timing_eff = True
-orbit_unit = 1e9  #1e9m -> nm 
+orbit_unit = 1e9  #1e9m -> nm
 
 class Plane(enum.IntEnum):
     horizontal = 0
@@ -47,38 +47,94 @@ class AcceleratorModel(model.Model):
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
 
+    def _get_pv_dynamic(self, pv_name):
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        if subsystem == 'DI' and 'BCurrent' in pv_name:
+            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+            currents = self._beam_charge.current(time_interval)
+            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            return currents_mA
+        elif subsystem == 'DI' and 'Current' in pv_name:
+            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+            currents = self._beam_charge.current(time_interval)
+            currents_mA = [bunch_current / _u.mA for bunch_current in currents]
+            return sum(currents_mA)
+        elif subsystem == 'AP' and 'BLifetime' in pv_name:
+            return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
+        elif subsystem == 'AP' and 'Lifetime' in pv_name:
+            return self._beam_charge.total_lifetime / _u.hour
+        else:
+            return None
+
     def _get_pv_static(self, pv_name):
-        # Process global parameters
-        if 'PS-' in pv_name and 'TI-' not in pv_name:
-            return self._power_supplies[pv_name].current
-        elif 'PU' in pv_name and 'TI-' not in pv_name:
-            return self._pulsed_power_supplies[pv_name].reference_value
-        elif 'EFF' in pv_name:
-            if 'INJ' in pv_name:
-                return UNDEF_VALUE
-                return 100*self._injection_efficiency if self._injection_efficiency is not None else UNDEF_VALUE
-            elif 'EXT' in pv_name:
-                return UNDEF_VALUE
-                return 100*self._ejection_efficiency if self._ejection_efficiency is not None else UNDEF_VALUE
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        device = self.naming_system.split_name(pv_name)['device']
+        if subsystem == 'PS':
+            ps_name = pv_name.split(':Current')[0]
+            return self._power_supplies[ps_name].current
+        elif subsystem == 'PU':
+            ps_name = pv_name.split(':Current')[0]
+            return self._pulsed_power_supplies[ps_name].reference_value
+        elif device == 'BPM' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            if self.naming_system.pvnaming_fam in pv_name and 'MonitPosX' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                return orbit_unit*self._orbit[0,idx]
+            elif self.naming_system.pvnaming_fam in pv_name and 'MonitPosY' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                return orbit_unit*self._orbit[2,idx]
+            elif 'MonitPosX' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]
+                return orbit_unit*self._orbit[0,idx[0]]
+            elif 'MonitPosY' in pv_name:
+                if self._orbit is None: return [UNDEF_VALUE]
+                return orbit_unit*self._orbit[2,idx[0]]
+            else:
+                return None
+        elif subsystem == 'DI' and 'TuneX' in pv_name:
+            return self._get_tune_component(Plane.horizontal)
+        elif subsystem == 'DI' and 'TuneY' in pv_name:
+            return self._get_tune_component(Plane.vertical)
+        elif subsystem == 'DI' and 'TuneS' in pv_name:
+            return self._get_tune_component(Plane.longitudinal)
+        elif subsystem == 'RF' and 'Freq' in pv_name:
+            return pyaccel.optics.get_rf_frequency(self._accelerator)
+        elif subsystem == 'RF' and 'Volt' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            return self._accelerator[idx[0]].voltage
+        elif subsystem == 'AP' and 'ChromX' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'ChromY' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'EmitX' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'EmitY' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'SigX' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'SigY' in pv_name:
+            return UNDEF_VALUE
+        elif subsystem == 'AP' and 'SigS' in pv_name:
+            return UNDEF_VALUE
         else:
             return None
 
     def _get_pv_fake(self, pv_name):
-        if '-ERRORX' in pv_name:
+        if 'ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             return error
-        if '-ERRORY' in pv_name:
+        if 'ERRORY' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             return error
-        if '-ERRORR' in pv_name:
+        if 'ERRORR' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
             return error
-        if '-SAVEFLATFILE' in pv_name:
+        if 'SAVEFLATFILE' in pv_name:
             return 0
-        if '-POS' in pv_name:
+        if 'POS' in pv_name:
             indices = self._get_elements_indices(pv_name, flat=False)
             if isinstance(indices[0], int):
                 pos = pyaccel.lattice.find_spos(self._accelerator, indices)
@@ -95,11 +151,13 @@ class AcceleratorModel(model.Model):
         return None
 
     def _get_pv_timing(self, pv_name):
-        if 'TI-' in pv_name:
-            if 'ENABLED' in pv_name and pv_name in self._enabled2magnet.keys():
+        return 1
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        if subsystem == 'TI':
+            if 'Enbl' in pv_name and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].enabled
-            elif 'DELAY' in pv_name and pv_name in self._delay2magnet.keys():
+            elif 'Delay' in pv_name and pv_name in self._delay2magnet.keys():
                 magnet_name = self._delay2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].delay
             else:
@@ -115,15 +173,34 @@ class AcceleratorModel(model.Model):
         if self._set_pv_fake(pv_name, value): return
         if self._set_pv_timing(pv_name, value): return
 
+    def _set_pv_rf(self, pv_name, value):
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        if subsystem == 'RF' and 'Volt' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            prev_value = self._accelerator[idx[0]].voltage
+            if value != prev_value:
+                self._accelerator[idx[0]].voltage = value
+                self._state_deprecated = True
+            return True
+        elif subsystem == 'RF' and 'Freq' in pv_name:
+            idx = self._get_elements_indices(pv_name)
+            prev_value = self._accelerator[idx[0]].frequency
+            if value != prev_value:
+                self._accelerator[idx[0]].frequency = value
+                self._state_deprecated = True
+            return True
+        return False
+
     def _set_pv_magnets(self, pv_name, value):
-        if 'PS-' in pv_name and 'TI-' not in pv_name:
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        if subsystem == 'PS':
             ps = self._power_supplies[pv_name]
             prev_value = ps.current
             if value != prev_value:
                 ps.current = value
                 self._state_deprecated = True
             return True
-        elif 'PU' in pv_name and 'TI-' not in pv_name:
+        elif subsystem == 'PU':
             ps = self._pulsed_power_supplies[pv_name]
             prev_value = ps.reference_value
             if value != prev_value:
@@ -133,28 +210,28 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_fake(self, pv_name, value):
-        if '-ERRORX' in pv_name:
+        if 'ERRORX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif '-ERRORY' in pv_name:
+        elif 'ERRORY' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errory = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             if value != prev_errory:
                 pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif '-ERRORR' in pv_name:
+        elif 'ERRORR' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorr = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
             if value != prev_errorr:
                 pyaccel.lattice.set_error_rotation_roll(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif '-SAVEFLATFILE' in pv_name:
+        elif 'SAVEFLATFILE' in pv_name:
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
             self._send_queue.put(('s', (pv_name, 0)))
@@ -165,13 +242,14 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_timing(self, pv_name, value):
-        if 'TI-' in pv_name:
-            if 'ENABLED' in pv_name and pv_name in self._enabled2magnet.keys():
+        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        if subsystem == 'TI':
+            if 'Enbl' in pv_name and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 self._pulsed_magnets[magnet_name].enabled = value
                 self._state_deprecated = True
                 return True
-            elif 'DELAY' in pv_name and pv_name in self._delay2magnet.keys():
+            elif 'Delay' in pv_name and pv_name in self._delay2magnet.keys():
                 magnet_name = self._delay2magnet[pv_name]
                 self._pulsed_magnets[magnet_name].delay = value
                 self._state_deprecated = True
@@ -208,7 +286,8 @@ class AcceleratorModel(model.Model):
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
-        name = pv_name.split(':')[0]
+        name_list = pv_name.split(":")
+        name = name_list[0] + ":" + name_list[1]
         data = self._all_pvs[name]
         indices = []
         for key in data.keys():
@@ -248,10 +327,10 @@ class AcceleratorModel(model.Model):
         magnet_names = self.model_module.device_names.get_magnet_names(self._accelerator)
         family_mapping = self.model_module.family_mapping
         excitation_curve_mapping = self.model_module.excitation_curves.get_excitation_curve_mapping(self._accelerator)
-        pulse_curve_mapping = self.model_module.pulsed_magnets.get_pulse_curve_mapping(self._accelerator)
+        pulse_curve_mapping = self.model_module.pulsed_magnets.get_pulse_curve_mapping()
         _, ps2magnet = self.model_module.power_supplies.get_magnet_mapping(self._accelerator)
-        self._magnet2delay, self._delay2magnet = self.model_module.pulsed_magnets.get_magnet_delay_mapping(self._accelerator)
-        self._magnet2enabled, self._enabled2magnet = self.model_module.pulsed_magnets.get_magnet_enabled_mapping(self._accelerator)
+        self._magnet2delay, self._delay2magnet = self.model_module.pulsed_magnets.get_magnet_delay_mapping()
+        self._magnet2enabled, self._enabled2magnet = self.model_module.pulsed_magnets.get_magnet_enabled_mapping()
 
         self._magnets = dict()
         self._pulsed_magnets = dict()
@@ -303,7 +382,7 @@ class AcceleratorModel(model.Model):
             for magnet_name in ps2magnet[ps_name]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if '-FAM' in ps_name:
+            if self.naming_system.pvnaming_fam in ps_name:
                 ps = power_supply.FamilyPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
 
@@ -313,8 +392,8 @@ class AcceleratorModel(model.Model):
             for magnet_name in ps2magnet[ps_name]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if not '-FAM' in ps_name:
-                if 'PU-' in ps_name:
+            if not self.naming_system.pvnaming_fam in ps_name:
+                if 'PU' in ps_name:
                     ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, ps_name=ps_name)
                     self._pulsed_power_supplies[ps_name] = ps
                 else:
