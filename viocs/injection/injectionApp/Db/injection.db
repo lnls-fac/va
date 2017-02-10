@@ -1,63 +1,63 @@
-record(ai, "TBPA-INJEFF")
+record(ai, "TB-Glob:AP-InjEff")
 {
     field(DESC, "TB INJECTION EFFICIENCY")
-    field(INP, "VA-TBPA-INJEFF  NPP NMS")
+    field(INP, "VA-TB-Glob:AP-InjEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "TBPA-EXTEFF")
+record(ai, "TB-Glob:AP-EjeEff")
 {
     field(DESC, "TB EJECTION EFFICIENCY")
-    field(INP, "VA-TBPA-EXTEFF  NPP NMS")
+    field(INP, "VA-TB-Glob:AP-EjeEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "BOPA-INJEFF")
+record(ai, "BO-Glob:AP-InjEff")
 {
     field(DESC, "BO INJECTION EFFICIENCY")
-    field(INP, "VA-BOPA-INJEFF  NPP NMS")
+    field(INP, "VA-BO-Glob:AP-InjEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "BOPA-EXTEFF")
+record(ai, "BO-Glob:AP-EjeEff")
 {
     field(DESC, "BO EJECTION EFFICIENCY")
-    field(INP, "VA-BOPA-EXTEFF  NPP NMS")
+    field(INP, "VA-BO-Glob:AP-EjeEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "TSPA-INJEFF")
+record(ai, "TS-Glob:AP-InjEff")
 {
     field(DESC, "TS INJECTION EFFICIENCY")
-    field(INP, "VA-TSPA-INJEFF  NPP NMS")
+    field(INP, "VA-TS-Glob:AP-InjEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "TSPA-EXTEFF")
+record(ai, "TS-Glob:AP-EjeEff")
 {
     field(DESC, "TS EJECTION EFFICIENCY")
-    field(INP, "VA-TSPA-EXTEFF  NPP NMS")
+    field(INP, "VA-TS-Glob:AP-EjeEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "SIPA-INJEFF")
+record(ai, "SI-Glob:AP-InjEff")
 {
     field(DESC, "SI INJECTION EFFICIENCY")
-    field(INP, "VA-SIPA-INJEFF  NPP NMS")
+    field(INP, "VA-SI-Glob:AP-InjEff  NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }
 
-record(ai, "SIPA-INJEFF-TOTAL")
+record(ai, "SI-Glob:AP-InjEff:Tot")
 {
     field(DESC, "SI TOTAL INJECTION EFFICIENCY")
-    field(INP, "VA-SIPA-INJEFF-TOTAL NPP NMS")
+    field(INP, "VA-SI-Glob:AP-InjEff:Tot NPP NMS")
     field(EGU, "%")
     field(SCAN, ".1 second")
 }

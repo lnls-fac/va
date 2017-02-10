@@ -1,36 +1,36 @@
 
-record(ai, "VA-SIPS-NOISELEVEL")
+record(ai, "VA-SI-Ind:PS-NoiseLvl")
 {
     field(DESC, "Noise level for individual current")
     field(INP, 0.0000000001)
     field(EGU, "A")
 }
 
-record(calc, "SIPS-$(family)-$(pos)-RB")
+record(calc, "SI-$(pos):PS-$(family):Current-RB")
 {
-    field(DESC, "SIPS-$(family)-$(pos) current readback")
+    field(DESC, "SI-$(pos):PS-$(family)$(num) current readback")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-SIPS-$(family)-$(pos)")
-    field(INPB, "VA-SIPS-NOISELEVEL")
+    field(INPA, "VA-SI-$(pos):PS-$(family)$(num)")
+    field(INPB, "VA-SI-Ind:PS-NoiseLvl")
     field(CALC, "A+B*2*(RNDM-.5)")
     field(EGU, "A")
 }
 
-record(ao, "SIPS-$(family)-$(pos)-SP")
+record(ao, "SI-$(pos):PS-$(family)$(num):Current-SP")
 {
-    field(DESC, "SIPS-$(family)-$(pos) current setpoint")
+    field(DESC, "SI-$(pos):PS-$(family)$(num) current setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-SIPS-$(family)-$(pos)")
+    field(OUT, "VA-SI-$(pos):PS-$(family)$(num)")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-SIPS-$(family)-$(pos)")
+record(seq, "SEQ-SI-$(pos):PS-$(family)$(num)")
 {
     field(SCAN, "Event")
     field(EVNT, 123)
-    field(DOL1, "VA-SIPS-$(family)-$(pos)")
-    field(LNK1, "SIPS-$(family)-$(pos)-SP")
-    field(FLNK, "SIPS-$(family)-$(pos)-SP")
+    field(DOL1, "VA-SI-$(pos):PS-$(family)$(num)")
+    field(LNK1, "SI-$(pos):PS-$(family)$(num):Current-SP")
+    field(FLNK, "SI-$(pos):PS-$(family)$(num):Current-SP")
 }

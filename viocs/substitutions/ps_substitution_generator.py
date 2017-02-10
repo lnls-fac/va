@@ -5,39 +5,48 @@ import sirius
 accelerator = sirius.si.create_accelerator()
 
 selected_families = (
-    'FCH',
     'CH',
-    'FCV',
     'CV',
+    'FCH',
+    'FCV',
+    'QS',
     'QDA',
+    'QFA',
     'QDB1',
     'QDB2',
-    'QF1',
-    'QF2',
-    'QF3',
-    'QF4',
-    'QFA',
     'QFB',
-    'QS',
-    'SD1J',
-    'SD2J',
-    'SD3J',
-    'SD1K',
-    'SD2K',
-    'SD3K',
-    'SDA',
-    'SDB',
-    'SF1J',
-    'SF2J',
-    'SF1K',
-    'SF2K',
-    'SFA',
-    'SFB',
+    'QDB1',
+    'QDB2',
+    'QFB',
+    'Q1',
+    'Q2',
+    'Q3',
+    'Q4',
+    'SFA0',
+    'SFA1',
+    'SFA2',
+    'SDA0',
+    'SDA1',
+    'SDA2',
+    'SDA3',
+    'SFB0',
+    'SFB1',
+    'SFB2',
+    'SDB0',
+    'SDB1',
+    'SDB2',
+    'SDB3',
+    'SFP0',
+    'SFP1',
+    'SFP2',
+    'SDP0',
+    'SDP1',
+    'SDP2',
+    'SDP3',
 )
 
 
-record_names_dict = sirius.si.record_names.get_record_names(accelerator)
-record_names = list(record_names_dict.keys())
+record_names = list(sirius.si.get_device_names('SI','ps').keys())
 record_names.sort()
 
 record_names_parts = []
@@ -53,15 +62,13 @@ for rn in record_names:
     families[f].append(p)
 
 for family in selected_families:
-
-    f = open(family.lower()+'.substitutions', 'w')
-    f.write('\n')
-    f.write('file "db/individual.db" {\n')
-    f.write('    pattern { family, pos }\n')
-    for pos in families[family]:
-        t = '        { "' + family + '", "' + pos + '" }\n'
-        if '"FAM"' in t:
-            continue
-        f.write(t)
-    f.write('}')
-    f.close()
+    with open(family.lower()+'.substitutions', 'w') as f:
+        f.write('\n')
+        f.write('file "db/individual.db" {\n')
+        f.write('    pattern { family, pos, num }\n')
+        for pos in families[family]:
+            t = '        { "' + family + '", "' + pos + '" }\n'
+            if '"FAM"' in t:
+                continue
+            f.write(t)
+            f.write('}')

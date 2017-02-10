@@ -1,0 +1,14 @@
+
+file "db/individual.db" {
+    pattern { family, pos, num }
+        { "SFA2", "01C2", "" }
+        { "SFA2", "04C3", "" }
+        { "SFA2", "05C2", "" }
+        { "SFA2", "08C3", "" }
+        { "SFA2", "09C2", "" }
+        { "SFA2", "12C3", "" }
+        { "SFA2", "13C2", "" }
+        { "SFA2", "16C3", "" }
+        { "SFA2", "17C2", "" }
+        { "SFA2", "20C3", "" }
+}

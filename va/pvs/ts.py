@@ -18,23 +18,23 @@ class _LocalData:
     @staticmethod
     def _init_record_names():
         _LocalData.all_record_names = {}
-        if 'di' in model.device_names.subsystems:
+        if 'DI' in model.device_names.disciplines:
             _LocalData._init_di_record_names()
         else:
             _LocalData.di = []
-        if 'ps' in model.device_names.subsystems:
+        if 'PS' in model.device_names.disciplines:
             _LocalData._init_ps_record_names()
         else:
             _LocalData.ps = []
-        if 'ap' in model.device_names.subsystems:
+        if 'AP' in model.device_names.disciplines:
             _LocalData._init_ap_record_names()
         else:
             _LocalData.ap = []
-        if 'rf' in model.device_names.subsystems:
+        if 'RF' in model.device_names.disciplines:
             _LocalData._init_rf_record_names()
         else:
             _LocalData.rf = []
-        if 'ti' in model.device_names.subsystems:
+        if 'TI' in model.device_names.disciplines:
             _LocalData._init_ti_record_names()
         else:
             _LocalData.ti = []
@@ -42,14 +42,14 @@ class _LocalData:
 
     @staticmethod
     def _init_di_record_names():
-        _device_names = model.device_names.get_device_names(family_data, 'di')
+        _device_names = model.device_names.get_device_names(family_data, 'DI')
         _record_names = {}
         for device_name in _device_names.keys():
             device = _sirius.naming_system.split_name(device_name)['device']
             if device == 'BPM':
                 _record_names[device_name + ':MonitPosX'] = _device_names[device_name]
                 _record_names[device_name + ':MonitPosY'] = _device_names[device_name]
-            elif device == 'TunePkp':
+            elif device == 'TuneP':
                 _record_names[device_name + ':TuneX'] = _device_names[device_name]
                 _record_names[device_name + ':TuneY'] = _device_names[device_name]
             elif device == 'DCCT':
@@ -62,9 +62,9 @@ class _LocalData:
 
     @staticmethod
     def _init_ps_record_names():
-        _device_names = model.device_names.get_device_names(family_data, 'ps')
-        if 'pu' in model.device_names.subsystems:
-            _device_names.update(model.device_names.get_device_names(family_data, 'pu'))
+        _device_names = model.device_names.get_device_names(family_data, 'PS')
+        if 'PU' in model.device_names.disciplines:
+            _device_names.update(model.device_names.get_device_names(family_data, 'PU'))
         _record_names = {}
         for device_name in _device_names.keys():
             _record_names[device_name + ':CurrentSP'] = _device_names[device_name]
@@ -74,19 +74,19 @@ class _LocalData:
 
     @staticmethod
     def _init_ap_record_names():
-        _record_names = model.device_names.get_device_names(family_data, 'ap')
+        _record_names = model.device_names.get_device_names(family_data, 'AP')
         _LocalData.all_record_names.update(_record_names)
         _LocalData.ap = list(_record_names.keys())
 
     @staticmethod
     def _init_rf_record_names():
-        _record_names = model.device_names.get_device_names(family_data, 'rf')
+        _record_names = model.device_names.get_device_names(family_data, 'RF')
         _LocalData.all_record_names.update(_record_names)
         _LocalData.rf = list(_record_names.keys())
 
     @staticmethod
     def _init_ti_record_names():
-        _record_names = model.device_names.get_device_names(family_data, 'ti')
+        _record_names = model.device_names.get_device_names(family_data, 'TI')
         _LocalData.all_record_names.update(_record_names)
         _LocalData.ti = list(_record_names.keys())
 
@@ -176,21 +176,21 @@ class _LocalData:
 #     get_element_names = _sirius.ts.device_names.get_element_names
 #
 #     # adds fake Corrector pvs for errors
-#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ERRORX-'))
-#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ERRORY-'))
-#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ERRORR-'))
+#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ErrX-'))
+#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ErrY-'))
+#     _dict.update(get_element_names(family_data, 'corr', prefix = 'TSFK-ErrR-'))
 #     # adds fake BEND pvs for errors
-#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ERRORX-'))
-#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ERRORY-'))
-#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ERRORR-'))
+#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ErrX-'))
+#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ErrY-'))
+#     _dict.update(get_element_names(family_data, 'bend', prefix = 'TSFK-ErrR-'))
 #     # adds fake pulsed magnets pvs for errors
-#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ERRORX-'))
-#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ERRORY-'))
-#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ERRORR-'))
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ErrX-'))
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ErrY-'))
+#     _dict.update(get_element_names(family_data, 'pulsed_magnets', prefix = 'TSFK-ErrR-'))
 #     #adds fake QUAD pvs for errors
-#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ERRORX-'))
-#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ERRORY-'))
-#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ERRORR-'))
+#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ErrX-'))
+#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ErrY-'))
+#     _dict.update(get_element_names(family_data, 'quad', prefix = 'TSFK-ErrR-'))
 #
 #     _dict['TSFK-SAVEFLATFILE'] = {}
 #

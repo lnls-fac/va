@@ -1,36 +1,36 @@
 
-record(ai, "VA-SIPS-FAM-NOISELEVEL")
+record(ai, "VA-SI-Fam:PS-NoiseLvl")
 {
     field(DESC, "Noise level for family current")
     field(INP, 0.0000000001)
     field(EGU, "A")
 }
 
-record(calc, "SIPS-$(family)-FAM-RB")
+record(calc, "SI-Fam:PS-$(family):Current-RB")
 {
-    field(DESC, "SIPS-$(family)-FAM current readback")
+    field(DESC, "SI-Fam:PS-$(family) current readback")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-SIPS-$(family)-FAM")
-    field(INPB, "VA-SIPS-FAM-NOISELEVEL")
+    field(INPA, "VA-SI-Fam:PS-$(family)")
+    field(INPB, "VA-SI-Fam:PS-NoiseLvl")
     field(CALC, "A+B*2*(RNDM-.5)")
     field(EGU, "A")
 }
 
-record(ao, "SIPS-$(family)-FAM-SP")
+record(ao, "SI-Fam:PS-$(family):Current-SP")
 {
-    field(DESC, "SIPS-$(family)-FAM current setpoint")
+    field(DESC, "SI-Fam:PS-$(family) current setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-SIPS-$(family)-FAM")
+    field(OUT, "VA-SI-Fam:PS-$(family)")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-SIPS-$(family)-FAM")
+record(seq, "SEQ-SI-Fam:PS-$(family)")
 {
     field(SCAN, "Event")
     field(EVNT, 123)
-    field(DOL1, "VA-SIPS-$(family)-FAM")
-    field(LNK1, "SIPS-$(family)-FAM-SP")
-    field(FLNK, "SIPS-$(family)-FAM-SP")
+    field(DOL1, "VA-SI-Fam:PS-$(family)")
+    field(LNK1, "SI-Fam:PS-$(family):Current-SP")
+    field(FLNK, "SI-Fam:PS-$(family):Current-SP")
 }

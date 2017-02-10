@@ -1,38 +1,39 @@
-record(calc, "BODI-CURRENT")
+
+record(ai, "VA-BO-35D:DI-DCCT:NoiseLvl")
+{
+field(DESC, "Noise level for beam current")
+field(INP, 10)
+field(EGU, "uA")
+}
+
+record(calc, "BO-35D:DI-DCCT:Current")
 {
     field(DESC, "BO current")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-BODI-CURRENT")
-    field(INPB, "VA-BODI-CURRENT-NOISELEVEL")
+    field(INPA, "VA-BO-35D:DI-DCCT:Current")
+    field(INPB, "VA-BO-35D:DI-DCCT:NoiseLvl")
     field(CALC, "A + (1e-3)*B*(RNDM*2.0 - 1.0)")
     field(EGU, "mA")
 }
 
-record(ai, "VA-BODI-CURRENT-NOISELEVEL")
-{
-    field(DESC, "Noise level for beam current")
-    field(INP, 10)
-    field(EGU, "uA")
-}
-
-record(aSub, "ADD-NOISE-BODI-BCURRENT")
+record(aSub, "Add-Noise-BO-35D:DI-DCCT")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-BODI-BCURRENT")
-    field(INPB, "VA-BODI-CURRENT-NOISELEVEL")
-    field(NOA, 864)
-    field(NOB, 1)
-    field(NOVA, 864)
-    field(FLNK, "BODI-BCURRENT")
+    field(INPA, "VA-BO-35D:DI-DCCT:BunCurrent")
+    field(INPB, "VA-BO-35D:DI-DCCT:NoiseLvl")
+    field(NOA, 828)
+    field(NOC, 1)
+    field(NOVA, 828)
+    field(FLNK, "BO-35D:DI-DCCT:BunCurrent")
 }
 
-record(waveform, "BODI-BCURRENT")
+record(waveform, "BO-35D:DI-DCCT:BunCurrent")
 {
-    field(DESC, "BO bunch current")
-    field(INP, "ADD-NOISE-BODI-BCURRENT.A")
-    field(NELM, 864)
+    field(DESC, "BO bunch current from DCCT 35D")
+    field(INP, "Add-Noise-BO-35D:DI-DCCT.A")
+    field(NELM, 828)
     field(FTVL, "DOUBLE")
     field(EGU, "mA")
 }

@@ -1,24 +1,14 @@
 
 file "db/individual.db" {
-    pattern { family, pos }
-        { "QFA", "01M2" }
-        { "QFA", "02M2" }
-        { "QFA", "03M2" }
-        { "QFA", "04M2" }
-        { "QFA", "05M2" }
-        { "QFA", "06M2" }
-        { "QFA", "07M2" }
-        { "QFA", "08M2" }
-        { "QFA", "09M2" }
-        { "QFA", "10M2" }
-        { "QFA", "11M2" }
-        { "QFA", "12M2" }
-        { "QFA", "13M2" }
-        { "QFA", "14M2" }
-        { "QFA", "15M2" }
-        { "QFA", "16M2" }
-        { "QFA", "17M2" }
-        { "QFA", "18M2" }
-        { "QFA", "19M2" }
-        { "QFA", "20M2" }
+    pattern { family, pos, num }
+        { "QFA", "01M1", "" }
+        { "QFA", "01M2", "" }
+        { "QFA", "05M1", "" }
+        { "QFA", "05M2", "" }
+        { "QFA", "09M1", "" }
+        { "QFA", "09M2", "" }
+        { "QFA", "13M1", "" }
+        { "QFA", "13M2", "" }
+        { "QFA", "17M1", "" }
+        { "QFA", "17M2", "" }
 }

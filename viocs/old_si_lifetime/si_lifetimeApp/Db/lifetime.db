@@ -1,24 +1,24 @@
-record(stringin, "SIPA-LIFETIME")
+record(stringin, "SI-Glob:AP-Lifetime")
 {
     field(DESC, "SI lifetime (hour:min:sec)")
     field(SCAN, "Passive")
 }
 
-record(ai, "SIPA-LIFETIME-SEC")
+record(ai, "SI-Glob:AP-Lifetime:Sec")
 {
     field(DESC, "SI lifetime")
     field(SCAN, "Passive")
     field(EGU, "sec")
 }
 
-record(ao, "SIPA-LIFETIME-PREC")
+record(ao, "SI-Glob:AP-Lifetime:Precision")
 {
     field(DESC, "Lifetime precision")
     field(VAL, 1)
     field(EGU, "%")
 }
 
-record(ao, "SIPA-LIFETIME-DT")
+record(ao, "SI-Glob:AP-Lifetime:TimeIntvl")
 {
     field(DESC, "Time interval between two measures")
     field(VAL, 0.5)

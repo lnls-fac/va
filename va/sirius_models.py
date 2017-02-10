@@ -15,7 +15,7 @@ class LiModel(linac_model.LinacModel):
     pv_module = _pvs_li
     naming_system = _sirius.naming_system
     model_module = pv_module.model
-    prefix = model_module.device_names.system.upper()
+    prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -38,7 +38,7 @@ class TbModel(tline_model.TLineModel):
     pv_module = _pvs_tb
     naming_system = _sirius.naming_system
     model_module = pv_module.model
-    prefix = model_module.device_names.system.upper()
+    prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -52,15 +52,15 @@ class BoModel(booster_model.BoosterModel):
     pv_module = _pvs_bo
     naming_system = _sirius.naming_system
     model_module = pv_module.model
-    prefix = model_module.device_names.system.upper()
+    prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
 
     # Injection parameters
     nr_bunches = model_module.harmonic_number
     _downstream_accelerator_prefix = 'TS'
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _injection_point_label  = 'sept_in'
-    _extraction_point_label = 'sept_ex'
+    _injection_point_label  = 'InjS'
+    _extraction_point_label = 'EjeSF'
     _ramp_interval          = 0.23
 
 
@@ -69,7 +69,7 @@ class TsModel(tline_model.TLineModel):
     pv_module = _pvs_ts
     naming_system = _sirius.naming_system
     model_module = pv_module.model
-    prefix = model_module.device_names.system.upper()
+    prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
 
     # Injection parameters
@@ -83,10 +83,10 @@ class SiModel(ring_model.RingModel):
     pv_module = _pvs_si
     naming_system = _sirius.naming_system
     model_module = pv_module.model
-    prefix = model_module.device_names.system.upper()
+    prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
 
     # Injection parameters
     nr_bunches = model_module.harmonic_number
     _delta_rx, _delta_angle = _sirius.coordinate_system.parameters(prefix)
-    _injection_point_label  = 'eseptinf'
+    _injection_point_label  = 'InjSF'

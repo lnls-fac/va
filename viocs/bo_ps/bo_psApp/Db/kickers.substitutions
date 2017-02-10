@@ -1,7 +1,7 @@
 
 file "db/kickers.db" {
-    pattern { family, pos }
-        { "KICKERINJ", "01D" }
-        { "KICKEREXT", "48D-A"}
-        { "KICKEREXT", "48D-B"}
+    pattern { family, pos, num }
+        { "InjK", "01D", "" }
+        { "EjeK", "48D", "-1"}
+        { "EjeK", "48D", "-2"}
 }

@@ -226,7 +226,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         for ps_name, ps in self._pulsed_power_supplies.items():
             if 'NLK' in ps_name:
                 nlk_enabled = True if ps.enabled else False
-            if 'INJ' in ps_name:
+            if 'Inj' in ps_name:
                 kickinj_enabled = True if ps.enabled else False
 
         if nlk_enabled and not kickinj_enabled:
@@ -243,11 +243,11 @@ class RingModel(accelerator_model.AcceleratorModel):
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'INJ' in ps_name and ps.enabled: ps.turn_on()
+                if 'Inj' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'INJ' in ps_name and ps.enabled: ps.turn_off()
+                if 'Inj' in ps_name and ps.enabled: ps.turn_off()
 
         else:
             self._injection_efficiency = 0
@@ -258,7 +258,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'INJ' in magnet_name:
+            if 'Inj' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time

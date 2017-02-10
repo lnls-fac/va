@@ -27,13 +27,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     def _get_pv_timing(self, pv_name):
         value = super()._get_pv_timing(pv_name)
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        discipline = self.naming_system.split_name(pv_name)['discipline']
         if value is not None:
             return value
-        elif subsystem == 'TI':
-            if 'RAMPPS-ENABLED' in pv_name:
+        elif discipline == 'TI':
+            if 'RampPS-Enbl' in pv_name:
                 return self._rampps_enabled
-            elif 'RAMPPS-DELAY' in pv_name:
+            elif 'RampPS-Delay' in pv_name:
                 return self._rampps_delay
             else:
                 return None
@@ -43,13 +43,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to set requests
 
     def _set_pv_timing(self, pv_name, value):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        discipline = self.naming_system.split_name(pv_name)['discipline']
         if super()._set_pv_timing(pv_name, value): return
-        elif subsystem == 'TI':
-            if 'RAMPPS-ENABLED' in pv_name:
+        elif discipline == 'TI':
+            if 'RampPS-Enbl' in pv_name:
                 self._rampps_enabled = value
                 return True
-            elif 'RAMPPS-DELAY' in pv_name:
+            elif 'RampPS-Delay' in pv_name:
                 self._rampps_delay = value
                 return True
             else:
@@ -155,7 +155,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
             magnet_pos = prev_total_length + magnet.length_to_inj_point
-            if 'EXT' in magnet_name: magnet_pos += ramp_length
+            if 'Eje' in magnet_name: magnet_pos += ramp_length
             magnet.length_to_egun = magnet_pos
             magnets_pos[magnet_name] = magnet_pos
         sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
@@ -272,7 +272,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn on injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'INJ' in ps_name and ps.enabled: ps.turn_on()
+            if 'Inj' in ps_name and ps.enabled: ps.turn_on()
 
         # calc tracking efficiency
         _dict = self._injection_parameters
@@ -283,7 +283,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'INJ' in ps_name: ps.turn_off()
+            if 'Inj' in ps_name: ps.turn_off()
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
@@ -304,7 +304,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         # turn on extraction pulsed magnet
         indices = []
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'EXT' in ps_name: # FIX!!
+            if 'Eje' in ps_name: # FIX!!
                 ps.turn_on()
                 indices.append(ps.magnet_idx)
         idx = min(indices)
@@ -326,7 +326,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'EXT' in ps_name: ps.turn_off()
+            if 'Eje' in ps_name: ps.turn_off()
 
         # send extraction parameters to downstream accelerator
         args_dict = {}
@@ -341,7 +341,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'INJ' in magnet_name:
+            if 'Inj' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time

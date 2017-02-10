@@ -1,59 +1,59 @@
 
-record(event, "EVENT-BORF-SP-INIT")
+record(event, "EVENT-BO-05D:RF-Cav:SP-INIT")
 {
     field(VAL, 124)
 }
 
-record(ai, "BORF-VOLTAGE-RB")
+record(ai, "BO-05D:RF-Cav:VoltInj-RB")
 {
     field(DESC, "BO rf voltage")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INP, "VA-BORF-VOLTAGE")
+    field(INP, "VA-BO-05D:RF-Cav:Volt")
     field(EGU, "V")
 }
 
-record(ai, "BORF-FREQUENCY-RB")
+record(ai, "BO-05D:RF-Cav:Freq-RB")
 {
     field(DESC, "BO rf frequency")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INP, "VA-BORF-FREQUENCY")
+    field(INP, "VA-BO-05D:RF-Cav:Freq")
     field(EGU, "Hz")
 }
 
-record(ao, "BORF-FREQUENCY-SP")
+record(ao, "BO-05D:RF-Cav:Freq-SP")
 {
     field(DESC, "BO rf frequency setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-BORF-FREQUENCY")
+    field(OUT, "VA-BO-05D:RF-Cav:Freq")
     field(EGU, "Hz")
 }
 
-record(seq, "SEQ-BORF-FREQUENCY")
+record(seq, "SEQ-BO-05D:RF-Cav:Freq")
 {
     field(SCAN, "Event")
     field(EVNT, 124)
-    field(DOL1, "VA-BORF-FREQUENCY")
-    field(LNK1, "BORF-FREQUENCY-SP")
-    field(FLNK, "BORF-FREQUENCY-SP")
+    field(DOL1, "VA-BO-05D:RF-Cav:Freq")
+    field(LNK1, "BO-05D:RF-Cav:Freq-SP")
+    field(FLNK, "BO-05D:RF-Cav:Freq-SP")
 }
 
-record(ao, "BORF-VOLTAGE-SP")
+record(ao, "BO-05D:RF-Cav:Volt-SP")
 {
     field(DESC, "BO rf voltage")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-BORF-VOLTAGE")
+    field(OUT, "VA-BO-05D:RF-Cav:Volt")
     field(EGU, "V")
 }
 
-record(seq, "SEQ-BORF-VOLTAGE")
+record(seq, "SEQ-BO-05D:RF-Cav:Volt")
 {
     field(SCAN, "Event")
     field(EVNT, 124)
-    field(DOL1, "VA-BORF-VOLTAGE")
-    field(LNK1, "BORF-VOLTAGE-SP")
-    field(FLNK, "BORF-VOLTAGE-SP")
+    field(DOL1, "VA-BO-05D:RF-Cav:Volt")
+    field(LNK1, "BO-05D:RF-Cav:Volt-SP")
+    field(FLNK, "BO-05D:RF-Cav:Volt-SP")
 }

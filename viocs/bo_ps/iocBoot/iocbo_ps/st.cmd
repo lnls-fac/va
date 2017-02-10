@@ -16,8 +16,7 @@ dbLoadRecords("db/common.db")
 dbLoadRecords("db/bend.db")
 dbLoadRecords("db/kickers.db")
 dbLoadTemplate("db/family.substitutions")
-dbLoadTemplate("db/ch.substitutions")
-dbLoadTemplate("db/cv.substitutions")
+dbLoadTemplate("db/individual.substitutions")
 dbLoadTemplate("db/kickers.substitutions")
 
 cd ${TOP}/iocBoot/${IOC}

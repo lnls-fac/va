@@ -1,4 +1,4 @@
-record(calc, "SIPA-SIGX")
+record(calc, "SI-Glob:AP-SigX")
 {
     field(DESC, "SI HORIZONTAL BEAM SIZE")
     field(EGU, "um")
@@ -8,7 +8,7 @@ record(calc, "SIPA-SIGX")
     field(SCAN, ".1 second")
 }
 
-record(calc, "SIPA-SIGY")
+record(calc, "SI-Glob:AP-SigY")
 {
     field(DESC, "SI VERTICAL BEAM SIZE")
     field(EGU, "um")
@@ -18,7 +18,7 @@ record(calc, "SIPA-SIGY")
     field(SCAN, ".1 second")
 }
 
-record(calc, "SIPA-SIGS")
+record(calc, "SI-Glob:AP-SigS")
 {
     field(DESC, "SI LONGITUDINAL BEAM SIZE")
     field(EGU, "mm")

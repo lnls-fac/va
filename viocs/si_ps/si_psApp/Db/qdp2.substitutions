@@ -1,0 +1,14 @@
+
+file "db/individual.db" {
+    pattern { family, pos, num }
+        { "QDP2", "03M1", "" }
+        { "QDP2", "03M2", "" }
+        { "QDP2", "07M1", "" }
+        { "QDP2", "07M2", "" }
+        { "QDP2", "11M1", "" }
+        { "QDP2", "11M2", "" }
+        { "QDP2", "15M1", "" }
+        { "QDP2", "15M2", "" }
+        { "QDP2", "19M1", "" }
+        { "QDP2", "19M2", "" }
+}

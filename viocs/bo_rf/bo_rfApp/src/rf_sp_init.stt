@@ -1,7 +1,7 @@
 program rf_sp_init
 
 int event_proc;
-assign event_proc to "EVENT-BORF-SP-INIT.PROC";
+assign event_proc to "EVENT-BO-05D:RF-Cav:SP-INIT.PROC";
 
 ss ss1 {
     state init {

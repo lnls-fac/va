@@ -12,6 +12,7 @@ long add_noise(struct aSubRecord *psub)
 {
     double *a;
     double *b;
+    double *c;
     double noise_level;
     a = (double*) psub->a;
     b = (double*) psub->b;

@@ -48,31 +48,31 @@ class AcceleratorModel(model.Model):
         return value
 
     def _get_pv_dynamic(self, pv_name):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
-        if subsystem == 'DI' and 'BCurrent' in pv_name:
+        discipline = self.naming_system.split_name(pv_name)['discipline']
+        if discipline == 'DI' and 'BCurrent' in pv_name:
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
-        elif subsystem == 'DI' and 'Current' in pv_name:
+        elif discipline == 'DI' and 'Current' in pv_name:
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
-        elif subsystem == 'AP' and 'BLifetime' in pv_name:
+        elif discipline == 'AP' and 'BLifetime' in pv_name:
             return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
-        elif subsystem == 'AP' and 'Lifetime' in pv_name:
+        elif discipline == 'AP' and 'Lifetime' in pv_name:
             return self._beam_charge.total_lifetime / _u.hour
         else:
             return None
 
     def _get_pv_static(self, pv_name):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
+        discipline = self.naming_system.split_name(pv_name)['discipline']
         device = self.naming_system.split_name(pv_name)['device']
-        if subsystem == 'PS':
+        if discipline == 'PS':
             ps_name = pv_name.split(':Current')[0]
             return self._power_supplies[ps_name].current
-        elif subsystem == 'PU':
+        elif discipline == 'PU':
             ps_name = pv_name.split(':Current')[0]
             return self._pulsed_power_supplies[ps_name].reference_value
         elif device == 'BPM' in pv_name:
@@ -91,50 +91,50 @@ class AcceleratorModel(model.Model):
                 return orbit_unit*self._orbit[2,idx[0]]
             else:
                 return None
-        elif subsystem == 'DI' and 'TuneX' in pv_name:
+        elif discipline == 'DI' and 'TuneX' in pv_name:
             return self._get_tune_component(Plane.horizontal)
-        elif subsystem == 'DI' and 'TuneY' in pv_name:
+        elif discipline == 'DI' and 'TuneY' in pv_name:
             return self._get_tune_component(Plane.vertical)
-        elif subsystem == 'DI' and 'TuneS' in pv_name:
+        elif discipline == 'DI' and 'TuneS' in pv_name:
             return self._get_tune_component(Plane.longitudinal)
-        elif subsystem == 'RF' and 'Freq' in pv_name:
+        elif discipline == 'RF' and 'Freq' in pv_name:
             return pyaccel.optics.get_rf_frequency(self._accelerator)
-        elif subsystem == 'RF' and 'Volt' in pv_name:
+        elif discipline == 'RF' and 'Volt' in pv_name:
             idx = self._get_elements_indices(pv_name)
             return self._accelerator[idx[0]].voltage
-        elif subsystem == 'AP' and 'ChromX' in pv_name:
+        elif discipline == 'AP' and 'ChromX' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'ChromY' in pv_name:
+        elif discipline == 'AP' and 'ChromY' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'EmitX' in pv_name:
+        elif discipline == 'AP' and 'EmitX' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'EmitY' in pv_name:
+        elif discipline == 'AP' and 'EmitY' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'SigX' in pv_name:
+        elif discipline == 'AP' and 'SigX' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'SigY' in pv_name:
+        elif discipline == 'AP' and 'SigY' in pv_name:
             return UNDEF_VALUE
-        elif subsystem == 'AP' and 'SigS' in pv_name:
+        elif discipline == 'AP' and 'SigS' in pv_name:
             return UNDEF_VALUE
         else:
             return None
 
     def _get_pv_fake(self, pv_name):
-        if 'ERRORX' in pv_name:
+        if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             return error
-        if 'ERRORY' in pv_name:
+        if 'ErrY' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             return error
-        if 'ERRORR' in pv_name:
+        if 'ErrR' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
             return error
-        if 'SAVEFLATFILE' in pv_name:
+        if 'SaveFlatfile' in pv_name:
             return 0
-        if 'POS' in pv_name:
+        if 'Pos' in pv_name:
             indices = self._get_elements_indices(pv_name, flat=False)
             if isinstance(indices[0], int):
                 pos = pyaccel.lattice.find_spos(self._accelerator, indices)
@@ -152,8 +152,8 @@ class AcceleratorModel(model.Model):
 
     def _get_pv_timing(self, pv_name):
         return 1
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
-        if subsystem == 'TI':
+        discipline = self.naming_system.split_name(pv_name)['discipline']
+        if discipline == 'TI':
             if 'Enbl' in pv_name and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].enabled
@@ -174,15 +174,15 @@ class AcceleratorModel(model.Model):
         if self._set_pv_timing(pv_name, value): return
 
     def _set_pv_rf(self, pv_name, value):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
-        if subsystem == 'RF' and 'Volt' in pv_name:
+        discipline = self.naming_system.split_name(pv_name)['discipline']
+        if discipline == 'RF' and 'Volt' in pv_name:
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].voltage
             if value != prev_value:
                 self._accelerator[idx[0]].voltage = value
                 self._state_deprecated = True
             return True
-        elif subsystem == 'RF' and 'Freq' in pv_name:
+        elif discipline == 'RF' and 'Freq' in pv_name:
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].frequency
             if value != prev_value:
@@ -192,15 +192,15 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_magnets(self, pv_name, value):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
-        if subsystem == 'PS':
+        discipline = self.naming_system.split_name(pv_name)['discipline']
+        if discipline == 'PS':
             ps = self._power_supplies[pv_name]
             prev_value = ps.current
             if value != prev_value:
                 ps.current = value
                 self._state_deprecated = True
             return True
-        elif subsystem == 'PU':
+        elif discipline == 'PU':
             ps = self._pulsed_power_supplies[pv_name]
             prev_value = ps.reference_value
             if value != prev_value:
@@ -210,28 +210,28 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_fake(self, pv_name, value):
-        if 'ERRORX' in pv_name:
+        if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
             if value != prev_errorx:
                 pyaccel.lattice.set_error_misalignment_x(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif 'ERRORY' in pv_name:
+        elif 'ErrY' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errory = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
             if value != prev_errory:
                 pyaccel.lattice.set_error_misalignment_y(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif 'ERRORR' in pv_name:
+        elif 'ErrR' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorr = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
             if value != prev_errorr:
                 pyaccel.lattice.set_error_rotation_roll(self._accelerator, idx, value)
                 self._state_deprecated = True
             return True
-        elif 'SAVEFLATFILE' in pv_name:
+        elif 'SaveFlatfile' in pv_name:
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
             self._send_queue.put(('s', (pv_name, 0)))
@@ -242,8 +242,8 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_timing(self, pv_name, value):
-        subsystem = self.naming_system.split_name(pv_name)['subsystem']
-        if subsystem == 'TI':
+        discipline = self.naming_system.split_name(pv_name)['discipline']
+        if discipline == 'TI':
             if 'Enbl' in pv_name and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 self._pulsed_magnets[magnet_name].enabled = value
