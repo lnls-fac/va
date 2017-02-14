@@ -24,25 +24,28 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     def _get_pv_timing(self, pv_name):
         value = super()._get_pv_timing(pv_name)
-        if value is not None:
-            return value
-        elif 'TI-' in pv_name:
-            if 'Cycle' in pv_name:
-                return self._cycle
-            elif 'EGun-Enbl' in pv_name:
-                return self._egun_enabled
-            elif 'EGun-Delay' in pv_name:
+        if value is not None: return value
+        _dict = self.model_module.device_names.split_name(pv_name)
+        discipline = _dict['discipline']
+        device = _dict['device']
+        proper = _dict['proper']
+
+        if not discipline == 'TI': return None
+
+        if proper == 'Cycle': return self._cycle
+        if device == 'EGun':
+            if proper == 'Enbl': return self._egun_enabled
+            elif proper =='Delay':
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
-            elif 'Inj-Bun' in pv_name:
-                if not hasattr(self, '_injection_bunch'):
-                    return UNDEF_VALUE
-                return self._injection_bunch
-            else:
-                return None
+        elif 'Inj-Bun' in pv_name:
+            if not hasattr(self, '_injection_bunch'):
+                return UNDEF_VALUE
+            return self._injection_bunch
         else:
             return None
+
 
     # --- methods implementing response of model to set requests
 
@@ -55,27 +58,29 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     def _set_pv_timing(self, pv_name, value):
         if super()._set_pv_timing(pv_name, value): return
-        elif 'TI' in pv_name:
-            if 'Cycle' in pv_name:
+        _dict = self.model_module.device_names.split_name(pv_name)
+        discipline = _dict['discipline']
+        device = _dict['device']
+        proper = _dict['proper']
+
+        if not discipline == 'TI': return False
+        if device == 'Cycle':
+            if proper == 'StartInj':
                 self._cycle = value
                 self._send_queue.put(('s', (pv_name, 0)))
                 self._injection_cycle()
                 self._cycle = 0
                 return True
-            elif 'TI-EGun-Enbl' in pv_name:
-                self._egun_enabled = value
-                return True
-            elif 'TI-EGun-Delay' in pv_name:
-                self._egun_delay = value
-                return True
-            elif 'Inj-Bun' in pv_name:
-                injection_bunch = int(value)
-                self._master_delay = injection_bunch*self._bunch_separation
-                return True
-            else:
-                return False
-        else:
-            return False
+        elif device == 'EGun':
+            if proper == 'Enbl': self._egun_enabled = value
+            elif proper == 'Delay': self._egun_delay = value
+            else: return False
+            return True
+        elif device == 'InjBun':
+            injection_bunch = int(value)
+            self._master_delay = injection_bunch*self._bunch_separation
+            return True
+        return False
 
     # --- methods that help updating the model state
 
@@ -135,7 +140,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        self._send_queue.put(('s', ('LITI-EGun-Delay', self._egun_delay)))
+        pv_name = self.model_module.get_device_names('TI','EGun','01',proper='Delay')
+        self._send_queue.put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self):
         if not self._cycle: return

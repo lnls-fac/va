@@ -27,13 +27,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     def _get_pv_timing(self, pv_name):
         value = super()._get_pv_timing(pv_name)
-        discipline = self.naming_system.split_name(pv_name)['discipline']
+        discipline = self.device_names.split_name(pv_name)['discipline']
         if value is not None:
             return value
         elif discipline == 'TI':
-            if 'RampPS-Enbl' in pv_name:
+            if 'RampPS:Enbl' in pv_name:
                 return self._rampps_enabled
-            elif 'RampPS-Delay' in pv_name:
+            elif 'RampPS:Delay' in pv_name:
                 return self._rampps_delay
             else:
                 return None
@@ -43,13 +43,13 @@ class BoosterModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to set requests
 
     def _set_pv_timing(self, pv_name, value):
-        discipline = self.naming_system.split_name(pv_name)['discipline']
+        discipline = self.device_names.split_name(pv_name)['discipline']
         if super()._set_pv_timing(pv_name, value): return
         elif discipline == 'TI':
-            if 'RampPS-Enbl' in pv_name:
+            if 'RampPS:Enbl' in pv_name:
                 self._rampps_enabled = value
                 return True
-            elif 'RampPS-Delay' in pv_name:
+            elif 'RampPS:Delay' in pv_name:
                 self._rampps_delay = value
                 return True
             else:
