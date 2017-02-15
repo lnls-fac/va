@@ -13,6 +13,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._set_pulsed_magnets_parameters()
+        self._injection_bunch = 0.0 #olhar valor da pv
 
     # --- methods implementing response of model to get requests
 
@@ -74,8 +75,8 @@ class LinacModel(accelerator_model.AcceleratorModel):
                 self._cycle = 0
                 return True
             elif proper == 'InjBun':
-                injection_bunch = int(value)
-                self._master_delay = injection_bunch*self._bunch_separation
+                self._injection_bunch = int(value)
+                self._master_delay = self._injection_bunch*self._bunch_separation
                 return True
         elif device == 'EGun':
             if proper == 'Enbl': self._egun_enabled = value
