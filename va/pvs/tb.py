@@ -1,15 +1,12 @@
 from sirius import tb as model
-from .LocalData import LocalData
+from .LocalData import _LocalData
 
-# Kingdom-dependent parameters
-model = _sirius.tb
-
-accelerator = model.create_accelerator()
+accelerator,_ = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 
 # build local data
-_local_data = LocalData(family_data,model)
-del LocalData
+_local_data = _LocalData(family_data,model)
+del _LocalData
 
 # --- Module API ---
 get_all_record_names = _local_data.get_all_record_names

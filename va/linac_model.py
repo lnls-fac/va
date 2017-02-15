@@ -28,21 +28,23 @@ class LinacModel(accelerator_model.AcceleratorModel):
         _dict = self.model_module.device_names.split_name(pv_name)
         discipline = _dict['discipline']
         device = _dict['device']
-        proper = _dict['proper']
+        proper = _dict['property']
 
         if not discipline == 'TI': return None
 
-        if proper == 'Cycle': return self._cycle
+        if device == 'Cycle':
+            if proper == 'StartInj':
+                return self._cycle
+            elif proper == 'InjBun':
+                if not hasattr(self, '_injection_bunch'):
+                    return UNDEF_VALUE
+                return self._injection_bunch
         if device == 'EGun':
             if proper == 'Enbl': return self._egun_enabled
             elif proper =='Delay':
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
-        elif 'Inj-Bun' in pv_name:
-            if not hasattr(self, '_injection_bunch'):
-                return UNDEF_VALUE
-            return self._injection_bunch
         else:
             return None
 
@@ -61,7 +63,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         _dict = self.model_module.device_names.split_name(pv_name)
         discipline = _dict['discipline']
         device = _dict['device']
-        proper = _dict['proper']
+        proper = _dict['property']
 
         if not discipline == 'TI': return False
         if device == 'Cycle':
@@ -71,14 +73,14 @@ class LinacModel(accelerator_model.AcceleratorModel):
                 self._injection_cycle()
                 self._cycle = 0
                 return True
+            elif proper == 'InjBun':
+                injection_bunch = int(value)
+                self._master_delay = injection_bunch*self._bunch_separation
+                return True
         elif device == 'EGun':
             if proper == 'Enbl': self._egun_enabled = value
             elif proper == 'Delay': self._egun_delay = value
             else: return False
-            return True
-        elif device == 'InjBun':
-            injection_bunch = int(value)
-            self._master_delay = injection_bunch*self._bunch_separation
             return True
         return False
 
@@ -88,7 +90,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         pass
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator = self.model_module.create_accelerator()
+        self._accelerator,_ = self.model_module.create_accelerator()
         self._append_marker()
         self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)
         #self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
@@ -140,7 +142,7 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        pv_name = self.model_module.get_device_names('TI','EGun','01',proper='Delay')
+        pv_name = self.model_module.device_names.join_name('TI','EGun','01',proper='Delay')
         self._send_queue.put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self):

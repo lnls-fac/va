@@ -23,7 +23,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
             self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator = self.model_module.create_accelerator()
+        self._accelerator,_ = self.model_module.create_accelerator()
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
         self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)

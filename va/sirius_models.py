@@ -13,7 +13,6 @@ from . import ring_model
 class LiModel(linac_model.LinacModel):
 
     pv_module = _pvs_li
-    naming_system = _sirius.naming_system
     model_module = pv_module.model
     prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
@@ -36,7 +35,6 @@ class LiModel(linac_model.LinacModel):
 class TbModel(tline_model.TLineModel):
 
     pv_module = _pvs_tb
-    naming_system = _sirius.naming_system
     model_module = pv_module.model
     prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
@@ -50,7 +48,6 @@ class TbModel(tline_model.TLineModel):
 class BoModel(booster_model.BoosterModel):
 
     pv_module = _pvs_bo
-    naming_system = _sirius.naming_system
     model_module = pv_module.model
     prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
@@ -67,7 +64,6 @@ class BoModel(booster_model.BoosterModel):
 class TsModel(tline_model.TLineModel):
 
     pv_module = _pvs_ts
-    naming_system = _sirius.naming_system
     model_module = pv_module.model
     prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()
@@ -81,7 +77,6 @@ class TsModel(tline_model.TLineModel):
 class SiModel(ring_model.RingModel):
 
     pv_module = _pvs_si
-    naming_system = _sirius.naming_system
     model_module = pv_module.model
     prefix = model_module.device_names.section.upper()
     database = pv_module.get_database()

@@ -60,7 +60,7 @@ class ExcitationCurve:
         low = value_range[0]
         high = value_range[1]
         if not low <= value <= high:
-            msg = 'value out of range (%f, %f)' % (low, high)
+            msg = 'value %f out of range (%f, %f)' % (value, low, high)
             raise ValueError(msg)
 
     def _interpolate_current(self, current, field_array):

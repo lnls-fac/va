@@ -48,7 +48,7 @@ class AcceleratorModel(model.Model):
         return value
 
     def _get_pv_dynamic(self, pv_name):
-        discipline = self.device_names.split_name(pv_name)['discipline']
+        discipline = self.model_module.device_names.split_name(pv_name)['discipline']
         if discipline == 'DI' and 'BbBCurrent' in pv_name:
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
@@ -67,20 +67,20 @@ class AcceleratorModel(model.Model):
             return None
 
     def _get_pv_static(self, pv_name):
-        discipline = self.device_names.split_name(pv_name)['discipline']
-        device = self.device_names.split_name(pv_name)['device']
+        _dict = self.model_module.device_names.split_name(pv_name)
+        discipline  = _dict['discipline']
+        device      = _dict['device']
+        device_name = _dict['device_name']
         if discipline == 'PS':
-            ps_name = pv_name.split(':Current')[0]
-            return self._power_supplies[ps_name].current
+            return self._power_supplies[device_name].current
         elif discipline == 'PU':
-            ps_name = pv_name.split(':Current')[0]
-            return self._pulsed_power_supplies[ps_name].reference_value
+            return self._pulsed_power_supplies[device_name].reference_value
         elif device == 'BPM' in pv_name:
             idx = self._get_elements_indices(pv_name)
-            if self.device_names.pvnaming_fam in pv_name and 'PosX-Mon' in pv_name:
+            if self.model_module.device_names.pvnaming_fam in pv_name and 'PosX-Mon' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[0,idx]
-            elif self.device_names.pvnaming_fam in pv_name and 'PosY-Mon' in pv_name:
+            elif self.model_module.device_names.pvnaming_fam in pv_name and 'PosY-Mon' in pv_name:
                 if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[2,idx]
             elif 'PosX-Mon' in pv_name:
@@ -147,12 +147,9 @@ class AcceleratorModel(model.Model):
         else:
             return None
 
-    def _get_pv_dynamic(self, pv_name):
-        return None
-
     def _get_pv_timing(self, pv_name):
         return 1
-        discipline = self.device_names.split_name(pv_name)['discipline']
+        discipline = self.model_module.device_names.split_name(pv_name)['discipline']
         if discipline == 'TI':
             if 'Enbl' in pv_name and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
@@ -174,7 +171,7 @@ class AcceleratorModel(model.Model):
         if self._set_pv_timing(pv_name, value): return
 
     def _set_pv_rf(self, pv_name, value):
-        discipline = self.device_names.split_name(pv_name)['discipline']
+        discipline = self.model_module.device_names.split_name(pv_name)['discipline']
         if discipline == 'RF' and 'Volt' in pv_name:
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].voltage
@@ -192,16 +189,18 @@ class AcceleratorModel(model.Model):
         return False
 
     def _set_pv_magnets(self, pv_name, value):
-        discipline = self.device_names.split_name(pv_name)['discipline']
+        _dict = self.model_module.device_names.split_name(pv_name)
+        discipline = _dict['discipline']
+        device_name = _dict['device_name']
         if discipline == 'PS':
-            ps = self._power_supplies[pv_name]
+            ps = self._power_supplies[device_name]
             prev_value = ps.current
             if value != prev_value:
                 ps.current = value
                 self._state_deprecated = True
             return True
         elif discipline == 'PU':
-            ps = self._pulsed_power_supplies[pv_name]
+            ps = self._pulsed_power_supplies[device_name]
             prev_value = ps.reference_value
             if value != prev_value:
                 ps.reference_value = value
@@ -245,7 +244,7 @@ class AcceleratorModel(model.Model):
         _dict = self.model_module.device_names.split_name(pv_name)
         discipline = _dict['discipline']
         device = _dict['device']
-        proper = _dict['proper']
+        proper = _dict['property']
         if not discipline == 'TI': return False
         if proper=='Enbl' and pv_name in self._enabled2magnet.keys():
             magnet_name = self._enabled2magnet[pv_name]
@@ -324,13 +323,13 @@ class AcceleratorModel(model.Model):
     def _init_magnets_and_power_supplies(self):
         accelerator = self._accelerator
         accelerator_data = self.model_module.accelerator_data
-        magnet_names = self.model_module.get_magnet_names(self._accelerator)
+        magnet_names = self.model_module.get_magnet_names(accelerator)
         family_mapping = self.model_module.family_mapping
-        excitation_curve_mapping = self.model_module.device_names.get_excitation_curve_mapping(self._accelerator)
-        pulse_curve_mapping = self.model_module.device_names.get_pulse_curve_mapping()
-        _, ps2magnet = self.model_module.device_names.get_magnet2power_supply_mapping(self._accelerator)
-        self._magnet2delay, self._delay2magnet = self.model_module.device_names.get_magnet_delay_mapping()
-        self._magnet2enabled, self._enabled2magnet = self.model_module.device_names.get_magnet_enabled_mapping()
+        excitation_curve_mapping = self.model_module.device_names.get_excitation_curve_mapping(accelerator)
+        pulse_curve_mapping = self.model_module.device_names.get_pulse_curve_mapping(accelerator)
+        _, ps2magnet = self.model_module.device_names.get_magnet2power_supply_mapping(accelerator)
+        self._magnet2delay, self._delay2magnet = self.model_module.device_names.get_magnet_delay_mapping(accelerator)
+        self._magnet2enabled, self._enabled2magnet = self.model_module.device_names.get_magnet_enabled_mapping(accelerator)
 
         self._magnets = dict()
         self._pulsed_magnets = dict()
@@ -382,7 +381,7 @@ class AcceleratorModel(model.Model):
             for magnet_name in ps2magnet[ps_name]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if self.device_names.pvnaming_fam in ps_name:
+            if self.model_module.device_names.pvnaming_fam in ps_name:
                 ps = power_supply.FamilyPowerSupply(magnets, model=self, ps_name=ps_name)
                 self._power_supplies[ps_name] = ps
 
@@ -392,7 +391,7 @@ class AcceleratorModel(model.Model):
             for magnet_name in ps2magnet[ps_name]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if not self.device_names.pvnaming_fam in ps_name:
+            if not self.model_module.device_names.pvnaming_fam in ps_name:
                 if 'PU' in ps_name:
                     ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, ps_name=ps_name)
                     self._pulsed_power_supplies[ps_name] = ps
@@ -430,6 +429,8 @@ class AcceleratorModel(model.Model):
             self._update_injection_efficiency = True
         elif 'injection_cycle' in _dict.keys():
             self._received_charge = True
+            print(self.prefix)
             self._update_state()
             self._injection_cycle(**_dict['injection_cycle'])
+            print(self.prefix)
             self._received_charge = False

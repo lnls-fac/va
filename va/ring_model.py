@@ -16,7 +16,7 @@ calc_injection_eff = accelerator_model.calc_injection_eff
 calc_timing_eff = accelerator_model.calc_timing_eff
 orbit_unit = accelerator_model.orbit_unit
 
-_nlk_famnam = 'nlk'
+_nlk_famnam = 'InjNLK'
 
 class RingModel(accelerator_model.AcceleratorModel):
 
@@ -26,20 +26,20 @@ class RingModel(accelerator_model.AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_static(self, pv_name):
-        device = self.naming_system.split_name(pv_name)['device']
+        device = self.model_module.device_names.split_name(pv_name)['device']
         if device == "BPM":
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            if self.naming_system.pvnaming_fam in pv_name and 'MonitPosX' in pv_name:
+            if self.model_module.device_names.pvnaming_fam in pv_name and 'PosX-Mon' in pv_name:
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[0,idx]
-            elif self.naming_system.pvnaming_fam in pv_name and 'MonitPosY' in pv_name:
+            elif self.model_module.device_names.pvnaming_fam in pv_name and 'PosY-Mon' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[2,idx]
-            elif 'MonitPosX' in pv_name:
+            elif 'PosX-Mon' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
                 return orbit_unit*self._orbit[0,idx[0]]
-            elif 'MonitPosY' in pv_name:
+            elif 'PosY-Mon' in pv_name:
                 if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
                 return orbit_unit*self._orbit[2,idx[0]]
             else:
@@ -126,7 +126,7 @@ class RingModel(accelerator_model.AcceleratorModel):
             magnet_pos = prev_total_length + magnet.length_to_inj_point
             magnet.length_to_egun = magnet_pos
             magnets_pos[magnet_name] = magnet_pos
-            if 'NLK' in magnet_name: magnet.enabled = 0
+            if 'InjNLK' in magnet_name: magnet.enabled = 0
         sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
         for i in range(len(sorted_magnets_pos)):
@@ -224,30 +224,30 @@ class RingModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'NLK' in ps_name:
+            if 'InjNLK' in ps_name:
                 nlk_enabled = True if ps.enabled else False
-            if 'Inj' in ps_name:
+            if 'InjDpK' in ps_name:
                 kickinj_enabled = True if ps.enabled else False
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
             self._log('calc', 'nlk injection efficiency  for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'NLK' in ps_name and ps.enabled: ps.turn_on()
+                if 'InjNLK' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'NLK' in ps_name: ps.turn_off()
+                if 'InjNLK' in ps_name: ps.turn_off()
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'Inj' in ps_name and ps.enabled: ps.turn_on()
+                if 'InjDpK' in ps_name and ps.enabled: ps.turn_on()
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'Inj' in ps_name and ps.enabled: ps.turn_off()
+                if 'InjDpK' in ps_name and ps.enabled: ps.turn_off()
 
         else:
             self._injection_efficiency = 0
@@ -258,7 +258,7 @@ class RingModel(accelerator_model.AcceleratorModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'Inj' in magnet_name:
+            if 'InjDpK' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time
