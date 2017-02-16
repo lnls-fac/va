@@ -38,7 +38,7 @@ class _LocalData:
         _device_names = self.model.get_device_names(self.family_data, 'DI')
         _record_names = {}
         for device_name in _device_names.keys():
-            device = self.model.device_names.split_name(device_name)['device']
+            device = self.model.device_names.split_name(device_name)['Device']
             if device == 'BPM':
                 _record_names[device_name + ':PosX-Mon'] = _device_names[device_name]
                 _record_names[device_name + ':PosY-Mon'] = _device_names[device_name]
@@ -74,7 +74,7 @@ class _LocalData:
         _device_names = self.model.get_device_names(self.family_data, 'RF')
         _record_names = {}
         for device_name in _device_names.keys():
-            device = self.model.device_names.split_name(device_name)['device']
+            device = self.model.device_names.split_name(device_name)['Device']
             if 'RFCav' in device:
                 _record_names[device_name + ':Freq'] = _device_names[device_name]
                 _record_names[device_name + ':Volt'] = _device_names[device_name]

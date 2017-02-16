@@ -15,6 +15,7 @@ class ExcitationCurve:
         """
         self._load_excitation_curve(magnet)
 
+
     @property
     def main_harmonic(self):
         return self._main_harmonic

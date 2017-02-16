@@ -40,6 +40,7 @@ class Magnet(object):
             total_length += self._accelerator[idx].length
             total_angle  += self._accelerator[idx].angle
 
+
             if len_polynom < self._len_fields:
                 self._accelerator[idx].polynom_b = resize_polynom(self._accelerator[idx].polynom_b, self._len_fields)
                 self._accelerator[idx].polynom_a = resize_polynom(self._accelerator[idx].polynom_a, self._len_fields)
@@ -145,8 +146,11 @@ class Magnet(object):
             normal_fields   = resize_polynom(normal_fields, len_polynom)
             skew_fields     = resize_polynom(skew_fields,   len_polynom)
 
-            delta_polynom_b = -field_profile_b*normal_fields/(self._accelerator[idx].length*self._accelerator.brho)
-            delta_polynom_a = -field_profile_a*skew_fields  /(self._accelerator[idx].length*self._accelerator.brho)
+            delta_polynom_b = -field_profile_b*normal_fields/(self._accelerator.brho)
+            delta_polynom_a = -field_profile_a*skew_fields  /(self._accelerator.brho)
+            if self._accelerator[idx].length != 0.0:
+                delta_polynom_b /= self._accelerator[idx].length
+                delta_polynom_a /= self._accelerator[idx].length
 
             self._accelerator[idx].polynom_b += delta_polynom_b
             self._accelerator[idx].polynom_a += delta_polynom_a

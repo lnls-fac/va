@@ -19,11 +19,11 @@ class LiModel(linac_model.LinacModel):
 
     # Injection parameters
     _downstream_accelerator_prefix = 'TB'
-    _delta_rx, _delta_angle        = _sirius.coordinate_system.parameters(prefix)
+    _delta_rx, _delta_angle        = 0.0, 0.0 #_sirius.coordinate_system.parameters(prefix)
     _emittance                     = model_module.accelerator_data['emittance']
     _energy_spread                 = model_module.accelerator_data['energy_spread']
     _global_coupling               = model_module.accelerator_data['global_coupling']
-    _twiss_at_exit                 = model_module.accelerator_data['twiss_at_exit'].make_dict()
+    _twiss_at_match                = model_module.accelerator_data['twiss_at_match'].make_dict()
     _frequency                     = model_module.frequency
     _single_bunch_charge           = model_module.single_bunch_charge
     _multi_bunch_charge            = model_module.multi_bunch_charge

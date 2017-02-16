@@ -25,27 +25,22 @@ class RingModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_static(self, pv_name):
-        device = self.model_module.device_names.split_name(pv_name)['device']
-        if device == "BPM":
+    def _get_pv_static(self, pv_name, name_parts):
+        Discipline = name_parts['Discipline']
+        Device     = name_parts['Device']
+        Property   = name_parts['Property']
+        if Discipline == 'DI' and Device == 'BPM':
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            if self.model_module.device_names.pvnaming_fam in pv_name and 'PosX-Mon' in pv_name:
+            if Property == 'PosX-Mon':
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[0,idx]
-            elif self.model_module.device_names.pvnaming_fam in pv_name and 'PosY-Mon' in pv_name:
-                if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+            elif Property == 'PosY-Mon':
+                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[2,idx]
-            elif 'PosX-Mon' in pv_name:
-                if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
-                return orbit_unit*self._orbit[0,idx[0]]
-            elif 'PosY-Mon' in pv_name:
-                if self._orbit is None  or charge == 0.0: return [UNDEF_VALUE]
-                return orbit_unit*self._orbit[2,idx[0]]
-            else:
-                return None
+            return None
         else:
-            return super()._get_pv_static(pv_name)
+            return super()._get_pv_static(pv_name, name_parts)
 
     # --- methods that help updating the model state
 
@@ -264,7 +259,7 @@ class RingModel(accelerator_model.AcceleratorModel):
                 rise_time = magnet.rise_time
 
         for i in range(len(charge)):
-            idx = round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number)
+            idx = int(round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number))
             new_charge[idx] = charge[i]
             new_charge_time[idx] = charge_time[i]
 

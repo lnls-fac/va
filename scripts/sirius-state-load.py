@@ -20,7 +20,7 @@ _folder = os.path.join(lnls.folder_db, 'machine_configuration')
 _machines = ['li', 'tb', 'bo', 'ts', 'si']
 
 def server_connected():
-    test_pv = epics.pv.PV('VA-SIDI-CURRENT')
+    test_pv = epics.pv.PV('VA-SI-Fam:DI-BPM:PosX-Mon')
     if test_pv.get() is not None:
         return True
     else:
@@ -38,7 +38,7 @@ def read_configuration_file(machine, filename):
                     line = line.replace('\n', '')
                     line = line.replace(' ', '')
                     l = line.split(':')
-                    _dict[l[0]] = l[1]
+                    _dict[l[:-1]] = l[-1]
     except:
         print('Could not open file "' + filename + '"')
     return _dict

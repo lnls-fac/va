@@ -25,12 +25,12 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_timing(self, pv_name):
-        value = super()._get_pv_timing(pv_name)
-        discipline = self.device_names.split_name(pv_name)['discipline']
-        if value is not None:
-            return value
-        elif discipline == 'TI':
+    def _get_pv_timing(self, pv_name, name_parts):
+        value = super()._get_pv_timing(pv_name, name_parts)
+        if value is not None: return value
+
+        Discipline = name_parts['Discipline']
+        if Discipline == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 return self._rampps_enabled
             elif 'RampPS:Delay' in pv_name:
@@ -42,10 +42,11 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to set requests
 
-    def _set_pv_timing(self, pv_name, value):
-        discipline = self.device_names.split_name(pv_name)['discipline']
-        if super()._set_pv_timing(pv_name, value): return
-        elif discipline == 'TI':
+    def _set_pv_timing(self, pv_name, value, name_parts):
+        if super()._set_pv_timing(pv_name, value, name_parts): return
+
+        Discipline = name_parts['Discipline']
+        if Discipline == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 self._rampps_enabled = value
                 return True
@@ -347,7 +348,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
                 rise_time = magnet.rise_time
 
         for i in range(len(charge)):
-            idx = round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number)
+            idx = int(round(round((charge_time[i] - (delay - flight_time + rise_time))/bunch_separation) % harmonic_number))
             new_charge[idx] = charge[i]
             new_charge_time[idx] = charge_time[i]
 

@@ -2,9 +2,10 @@
 import pyaccel
 from . import accelerator_model
 from . import beam_charge
+from . import injection
 from . import utils
 
-
+calc_injection_eff = accelerator_model.calc_injection_eff
 UNDEF_VALUE = accelerator_model.UNDEF_VALUE
 
 
@@ -13,36 +14,35 @@ class LinacModel(accelerator_model.AcceleratorModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._set_pulsed_magnets_parameters()
-        self._injection_bunch = 0.0 #olhar valor da pv
+        self._injection_bunch = 1
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_fake(self, pv_name):
-        if 'Mode' in pv_name:
+    def _get_pv_fake(self, pv_name, name_parts):
+        Discipline = name_parts['Discipline']
+        if Discipline == 'FK' and 'Mode' in pv_name:
             return self._single_bunch_mode
-        return super()._get_pv_fake(pv_name)
+        return super()._get_pv_fake(pv_name, name_parts)
 
 
-    def _get_pv_timing(self, pv_name):
-        value = super()._get_pv_timing(pv_name)
+    def _get_pv_timing(self, pv_name, name_parts):
+        value = super()._get_pv_timing(pv_name, name_parts)
         if value is not None: return value
-        _dict = self.model_module.device_names.split_name(pv_name)
-        discipline = _dict['discipline']
-        device = _dict['device']
-        proper = _dict['property']
 
-        if not discipline == 'TI': return None
-
-        if device == 'Cycle':
-            if proper == 'StartInj':
+        Discipline = name_parts['Discipline']
+        Device     = name_parts['Device']
+        Property   = name_parts['Property']
+        if not Discipline == 'TI': return None
+        if Device == 'Cycle':
+            if Property == 'StartInj':
                 return self._cycle
-            elif proper == 'InjBun':
+            elif Property == 'InjBun':
                 if not hasattr(self, '_injection_bunch'):
                     return UNDEF_VALUE
                 return self._injection_bunch
-        if device == 'EGun':
-            if proper == 'Enbl': return self._egun_enabled
-            elif proper =='Delay':
+        if Device == 'EGun':
+            if Property == 'Enbl': return self._egun_enabled
+            elif Property =='Delay':
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
@@ -52,53 +52,61 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     # --- methods implementing response of model to set requests
 
-    def _set_pv_fake(self, pv_name, value):
-        if 'Mode' in pv_name:
+    def _set_pv_fake(self, pv_name, value, name_parts):
+        Discipline = name_parts['Discipline']
+        Device     = name_parts['Device']
+        Property   = name_parts['Property']
+        if Discipline == 'FK' and 'Mode' in pv_name:
             self._single_bunch_mode = value
             return True
-        return super()._set_pv_fake(pv_name, value)
+        return super()._set_pv_fake(pv_name, value, name_parts)
 
 
-    def _set_pv_timing(self, pv_name, value):
-        if super()._set_pv_timing(pv_name, value): return
-        _dict = self.model_module.device_names.split_name(pv_name)
-        discipline = _dict['discipline']
-        device = _dict['device']
-        proper = _dict['property']
+    def _set_pv_timing(self, pv_name, value, name_parts):
+        if super()._set_pv_timing(pv_name, value, name_parts): return
 
-        if not discipline == 'TI': return False
-        if device == 'Cycle':
-            if proper == 'StartInj':
+        Discipline = name_parts['Discipline']
+        Device     = name_parts['Device']
+        Property   = name_parts['Property']
+        if not Discipline == 'TI': return False
+        if Device == 'Cycle':
+            if Property == 'StartInj':
                 self._cycle = value
                 self._send_queue.put(('s', (pv_name, 0)))
                 self._injection_cycle()
                 self._cycle = 0
                 return True
-            elif proper == 'InjBun':
+            elif Property == 'InjBun':
                 self._injection_bunch = int(value)
                 self._master_delay = self._injection_bunch*self._bunch_separation
                 return True
-        elif device == 'EGun':
-            if proper == 'Enbl': self._egun_enabled = value
-            elif proper == 'Delay': self._egun_delay = value
+        elif Device == 'EGun':
+            if Property == 'Enbl': self._egun_enabled = value
+            elif Property == 'Delay': self._egun_delay = value
             else: return False
             return True
         return False
 
     # --- methods that help updating the model state
 
-    def _update_state(self):
-        pass
+    def _update_state(self, force=False):
+        if force or self._state_deprecated or self._update_injection_efficiency:
+            self._calc_transport_efficiency()
+            self._state_deprecated = False
+            self._update_injection_efficiency = False
+            self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._accelerator,_ = self.model_module.create_accelerator()
+        self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
         self._all_pvs = self.model_module.device_names.get_device_names(self._accelerator)
         #self._all_pvs.update(self.pv_module.get_fake_record_names(self._accelerator))
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
         self._beam_dump(message1,message2,c,a)
         self._set_vacuum_chamber()
-        self._send_injection_parameters()
+        self._state_deprecated = True
+        self._update_state()
         self._bunch_separation = 6*(1/self._frequency)
         self._egun_enabled = 1
         self._egun_delay = 0
@@ -117,14 +125,29 @@ class LinacModel(accelerator_model.AcceleratorModel):
 
     # --- auxiliary methods
 
-    def _send_injection_parameters(self):
-        _dict = { 'injection_parameters' : {
+    def _calc_transport_efficiency(self):
+        inj_params =  {
             'emittance': self._emittance,
             'energy_spread': self._energy_spread,
             'global_coupling': self._global_coupling,
-            'init_twiss': self._twiss_at_exit}
-        }
-        self._send_parameters_to_downstream_accelerator(_dict)
+            'init_twiss': self._twiss_at_match}
+
+        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
+        _dict = {}
+        _dict.update(inj_params)
+        _dict.update(self._get_vacuum_chamber())
+        _dict.update(self._get_coordinate_system_parameters())
+
+        idx = pyaccel.lattice.find_indices(self._accelerator,'fam_name','twiss_at_match')
+        acc = self._accelerator[idx:]
+        loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(acc, **_dict)
+        self._transport_efficiency = 1.0 - loss_fraction
+        self._orbit = self._twiss.co
+
+        args_dict = {}
+        args_dict.update(inj_params)
+        args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
+        self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
 
     def _set_pulsed_magnets_parameters(self):
         _dict = { 'pulsed_magnet_parameters' : {
@@ -167,6 +190,11 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
         charge_time = [self._master_delay + self._egun_delay + i*self._bunch_separation for i in range(len(charge))]
+
+        if calc_injection_eff:
+            efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
+            charge = [bunch_charge * efficiency for bunch_charge in charge]
+            self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
         _dict = {'injection_cycle' : {'charge': charge,
                                       'charge_time': charge_time,

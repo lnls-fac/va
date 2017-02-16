@@ -31,7 +31,7 @@ _rname_functions = {
 }
 
 def server_connected():
-    test_pv = epics.pv.PV('VA-SIDI-CURRENT')
+    test_pv = epics.pv.PV('VA-SI-Fam:DI-BPM:PosX-Mon')
     if test_pv.get() is not None:
         return True
     else:
@@ -53,8 +53,8 @@ def insert_new_pv(pv_name, lines):
     try:
         pv = epics.pv.PV(pv_name)
         pv_value = pv.get()
-        pv_units = str(pv.units).split("'")[1]
-        text = pv_name + ' ' * (_max_pv_name_length - len(pv_name)) + ' : ' + str(pv_value) + pv_units
+        # pv_units = str(pv.units).split("'")[1]
+        text = pv_name + ' ' * (_max_pv_name_length - len(pv_name)) + ' : ' + str(pv_value) #+ pv_units
         pv.disconnect()
     except:
         text = pv_name + ' ' * (_max_pv_name_length - len(pv_name)) + ' # [NOT FOUND]'
