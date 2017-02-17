@@ -22,7 +22,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
-    print(init_twiss.co)
+    # print(init_twiss.co)
 
     try:
         twiss, m66 = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
@@ -84,8 +84,6 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     init_pos = init_twiss.co
 
-    # print(init_twiss.co)
-
     if len(hmax) == len(accelerator):
         indices = 'open'
     elif len(hmax) == len(accelerator)+1:
@@ -103,6 +101,9 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
             pyaccel.tracking.TrackingException):
         loss_fraction = 1.0
         return loss_fraction
+
+    iii = pyaccel.lattice.find_indices(accelerator,'fam_name','InjDpK')[0]
+    # print(twiss[iii].co)
 
     de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
     de_probability = numpy.zeros(len(de))

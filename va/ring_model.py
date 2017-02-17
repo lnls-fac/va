@@ -57,7 +57,7 @@ class RingModel(accelerator_model.AcceleratorModel):
 
     def _calc_efficiencies(self):
         # Calculate nlk and on-axis injection efficiencies
-        if self._update_injection_efficiency and (self._received_charge or self._injection_efficiency is None):
+        if self._update_injection_efficiency:# and (self._received_charge or self._injection_efficiency is None):
             self._update_injection_efficiency = False
             self._calc_injection_efficiency()
 

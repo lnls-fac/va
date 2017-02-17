@@ -101,8 +101,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         _dict.update(self._get_coordinate_system_parameters())
 
         for ps in self._pulsed_power_supplies.values(): ps.turn_on()
-        loss_fraction, self._twiss, self._m66 = \
-            injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
+        loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
         for ps in self._pulsed_power_supplies.values(): ps.turn_off()
