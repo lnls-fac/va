@@ -22,6 +22,8 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     coupling = kwargs['global_coupling']
 
+    print(init_twiss.co)
+
     try:
         twiss, m66 = pyaccel.optics.calc_twiss(accelerator, init_twiss = init_twiss, indices ='open')
         betax, etax, betay, etay = twiss.betax, twiss.etax, twiss.betay, twiss.etay
@@ -81,6 +83,8 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     """
     init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = _process_loss_fraction_args(accelerator, **kwargs)
     init_pos = init_twiss.co
+
+    # print(init_twiss.co)
 
     if len(hmax) == len(accelerator):
         indices = 'open'

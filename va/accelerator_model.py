@@ -76,9 +76,13 @@ class AcceleratorModel(model.Model):
         Device_name= name_parts['Device_name']
         Property   = name_parts['Property']
         if Discipline == 'PS':
-            return self._power_supplies[Device_name].current
+            dev = self._power_supplies[Device_name]
+            if Property.endswith('-SP'): return dev.current
+            if Property.endswith('-RB'): return dev.current
         elif Discipline == 'PU':
-            return self._pulsed_power_supplies[Device_name].reference_value
+            dev = self._pulsed_power_supplies[Device_name]
+            if Property.endswith('-SP'): return dev.reference_value
+            if Property.endswith('-RB'): return dev.current
         elif Discipline == 'DI':
             if Device == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -214,14 +218,15 @@ class AcceleratorModel(model.Model):
     def _set_pv_magnets(self, pv_name, value, name_parts):
         Discipline = name_parts['Discipline']
         Device_name= name_parts['Device_name']
-        if Discipline == 'PS':
+        Property   = name_parts['Property']
+        if Discipline == 'PS' and Property.endswith('-SP'):
             ps = self._power_supplies[Device_name]
             prev_value = ps.current
             if value != prev_value:
                 ps.current = value
                 self._state_deprecated = True
             return True
-        elif Discipline == 'PU':
+        elif Discipline == 'PU' and Property.endswith('-SP'):
             ps = self._pulsed_power_supplies[Device_name]
             prev_value = ps.reference_value
             if value != prev_value:

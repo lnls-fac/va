@@ -67,6 +67,7 @@ class Model:
 
     def _process_requests(self):
         while not self._recv_queue.empty():
+            print(self.prefix)
             request = self._recv_queue.get()
             self._process_request(request)
 
@@ -84,15 +85,11 @@ class Model:
         self._set_pv(pv_name, value)
 
     def _update_pvs(self):
-        if self._state_changed:
-            for pv in self.pv_module.get_read_only_pvs() + self.pv_module.get_dynamical_pvs():
-                value = self._get_pv(pv)
-                self._send_queue.put(('s', (pv, value)))
-            self._state_changed = False
-        else:
-            for pv in self.pv_module.get_dynamical_pvs():
-                value = self._get_pv(pv)
-                self._send_queue.put(('s', (pv, value)))
+        pvs = self.pv_module.get_dynamical_pvs()
+        pvs += self.pv_module.get_read_only_pvs() if self._state_changed else []
+        for pv in pvs:
+            self._send_queue.put(('s', (pv, self._get_pv(pv))))
+        self._state_changed = False
 
     def empty_queues(self):
         while not self._send_queue.empty():

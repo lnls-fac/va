@@ -209,6 +209,10 @@ class BoosterModel(accelerator_model.AcceleratorModel):
                 self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         # Beam is lost
         except pyaccel.tracking.TrackingException:
+            print(self._pulsed_power_supplies['BO-48D:PU-EjeK'].current)
+            print(self._pulsed_power_supplies['BO-01D:PU-InjK'].current)
+            print(self._accelerator[self._pulsed_power_supplies['BO-01D:PU-InjK']._magnets.pop()._indices[0]])
+            print(self._accelerator[self._pulsed_power_supplies['BO-48D:PU-EjeK']._magnets.pop()._indices[0]])
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
 
     def _calc_linear_optics(self):
@@ -273,7 +277,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn on injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'Inj' in ps_name and ps.enabled: ps.turn_on()
+            if 'InjK' in ps_name and ps.enabled: ps.turn_on()
 
         # calc tracking efficiency
         _dict = self._injection_parameters
@@ -284,7 +288,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'Inj' in ps_name: ps.turn_off()
+            if 'InjK' in ps_name: ps.turn_off()
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
@@ -305,7 +309,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         # turn on extraction pulsed magnet
         indices = []
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'Eje' in ps_name: # FIX!!
+            if 'EjeK' in ps_name: # FIX!!
                 ps.turn_on()
                 indices.append(ps.magnet_idx)
         idx = min(indices)
@@ -321,13 +325,14 @@ class BoosterModel(accelerator_model.AcceleratorModel):
 
         self._ejection_efficiency = 1.0 - tracking_loss_fraction
 
+        # turn off injection pulsed magnet
+        for ps_name, ps in self._pulsed_power_supplies.items():
+            if 'EjeK' in ps_name:
+                ps.turn_off()
+
         # Change energy
         self._accelerator.energy = 0.15e9 # FIX!!
         self.model_module.lattice.set_rf_voltage(self._accelerator, self._accelerator.energy)
-
-        # turn off injection pulsed magnet
-        for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'Eje' in ps_name: ps.turn_off()
 
         # send extraction parameters to downstream accelerator
         args_dict = {}
@@ -342,7 +347,7 @@ class BoosterModel(accelerator_model.AcceleratorModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'Inj' in magnet_name:
+            if 'InjK' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time

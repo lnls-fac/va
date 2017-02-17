@@ -98,7 +98,7 @@ class PulsedMagnetPowerSupply(IndividualPowerSupply):
     def __init__(self, magnets, model, ps_name, current=None):
         super().__init__(magnets, model=model, ps_name=ps_name)
         self._reference_value = 0
-        # self._reference_value = self.current
+        self._reference_value = 1.0*self.current
 
     @property
     def reference_value(self):
@@ -123,7 +123,7 @@ class PulsedMagnetPowerSupply(IndividualPowerSupply):
         return idx
 
     def turn_on(self):
-        self.current = self.reference_value
+        self.current = 1.0*self.reference_value
 
     def turn_off(self):
         self.current = 0

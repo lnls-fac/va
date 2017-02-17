@@ -65,4 +65,5 @@ def process_and_wait_interval(processing_function, interval):
 def _wait_interval(start_time, interval):
     delta_t = time.time() - start_time
     if 0 < delta_t < interval:
+        # print(interval - delta_t)
         time.sleep(interval - delta_t)

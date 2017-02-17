@@ -9,7 +9,7 @@ from . import model
 from . import sirius_models
 from . import utils
 
-WAIT_TIMEOUT = 0.1
+WAIT_TIMEOUT = 0.5
 JOIN_TIMEOUT = 10.0
 INIT_TIMEOUT = 20.0
 
@@ -35,11 +35,9 @@ def run(prefix):
     server.createPV(prefix, pv_database)
 
     num_parties = len(models) + 1 # number of parties for barrier
-    finalisation_barrier = multiprocessing.Barrier(num_parties,
-        timeout=JOIN_TIMEOUT)
+    finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
 
-    processes = create_model_processes(models, stop_event,
-        finalisation_barrier)
+    processes = create_model_processes(models, stop_event, finalisation_barrier)
     start_model_processes(processes)
     start_driver_thread(processes, stop_event, start_event, finalisation_barrier)
 
@@ -96,7 +94,7 @@ def create_model_processes(models, stop_event, finalisation_barrier):
         mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event,
             finalisation_barrier)
         processes.append(mp)
-        
+
     return processes
 
 

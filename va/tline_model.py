@@ -106,7 +106,7 @@ class TLineModel(accelerator_model.AcceleratorModel):
         self._transport_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
         for ps in self._pulsed_power_supplies.values(): ps.turn_off()
-        # print(self._twiss[-1].co)
+
         args_dict = {}
         args_dict.update(self._injection_parameters)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
@@ -135,3 +135,4 @@ class TLineModel(accelerator_model.AcceleratorModel):
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
         self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})
+        print(self.prefix)

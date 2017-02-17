@@ -63,7 +63,13 @@ class _LocalData:
             _record_names[device_name + ':Current-SP'] = _device_names[device_name]
             _record_names[device_name + ':Current-RB'] = _device_names[device_name]
         self.all_record_names.update(_record_names)
-        self.ps = list(_record_names.keys())
+        self.ps_rb = []
+        self.ps    = []
+        for rec in _record_names.keys():
+            if rec.endswith('-RB'):
+                self.ps_rb.append(rec)
+            else:
+                self.ps.append(rec)
 
     def _init_ap_record_names(self):
         _record_names = self.model.get_device_names(self.family_data, 'AP')
@@ -75,7 +81,7 @@ class _LocalData:
         _record_names = {}
         for device_name in _device_names.keys():
             device = self.model.device_names.split_name(device_name)['Device']
-            if 'RFCav' in device:
+            if device.endswith('Cav'):
                 _record_names[device_name + ':Freq'] = _device_names[device_name]
                 _record_names[device_name + ':Volt'] = _device_names[device_name]
             else:
@@ -116,6 +122,8 @@ class _LocalData:
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in self.ps:
             self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in self.ps_rb:
+            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in self.ap:
             if any([substring in p for substring in ('BbBCurrLT',)]):
                 self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}
@@ -148,7 +156,7 @@ class _LocalData:
         return self.database
 
     def get_read_only_pvs(self):
-        return self.di + self.ap
+        return self.di + self.ap + self.ps_rb
 
     def get_read_write_pvs(self):
         return self.ps + self.fk + self.rf + self.ti
