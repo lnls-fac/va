@@ -209,10 +209,6 @@ class BoosterModel(accelerator_model.AcceleratorModel):
                 self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
         # Beam is lost
         except pyaccel.tracking.TrackingException:
-            print(self._pulsed_power_supplies['BO-48D:PU-EjeK'].current)
-            print(self._pulsed_power_supplies['BO-01D:PU-InjK'].current)
-            print(self._accelerator[self._pulsed_power_supplies['BO-01D:PU-InjK']._magnets.pop()._indices[0]])
-            print(self._accelerator[self._pulsed_power_supplies['BO-48D:PU-EjeK']._magnets.pop()._indices[0]])
             self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
 
     def _calc_linear_optics(self):

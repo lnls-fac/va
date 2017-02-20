@@ -67,7 +67,6 @@ class Model:
 
     def _process_requests(self):
         while not self._recv_queue.empty():
-            # print(self.prefix)
             request = self._recv_queue.get()
             self._process_request(request)
 

@@ -134,4 +134,3 @@ class TLineModel(accelerator_model.AcceleratorModel):
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
         self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})
-        print(self.prefix)
