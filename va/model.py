@@ -85,7 +85,7 @@ class Model:
 
     def _update_pvs(self):
         pvs = self.pv_module.get_dynamical_pvs()
-        pvs += self.pv_module.get_read_only_pvs() if self._state_changed else []
+        pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
             self._send_queue.put(('s', (pv, self._get_pv(pv))))
         self._state_changed = False

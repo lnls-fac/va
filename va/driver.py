@@ -65,6 +65,7 @@ class PCASDriver(Driver):
     def _process_requests(self):
         for process in self._processes.values():
             recv_queue = process.recv_queue
+            # print(process.model_prefix, ' : ', recv_queue.qsize())
             while not recv_queue.empty():
                 request = recv_queue.get()
                 self._process_request(request)
