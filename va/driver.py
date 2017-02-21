@@ -65,7 +65,6 @@ class PCASDriver(Driver):
     def _process_requests(self):
         for process in self._processes.values():
             recv_queue = process.recv_queue
-            # print(process.model_prefix, ' : ', recv_queue.qsize())
             while not recv_queue.empty():
                 request = recv_queue.get()
                 self._process_request(request)
@@ -136,7 +135,7 @@ class PCASDriver(Driver):
             process = self._get_pv_process(reason)
             if self._is_process_pv_writable(process, reason):
                 self.setParam(reason, value)
-                self.pvDB[reason].flag = False # avoid double camonitor update
+                # self.pvDB[reason].flag = False # avoid double camonitor update
                 self._queue.put((process, reason, value))
                 msg = reason + ' ' + str(value)
                 utils.log('write', msg, c='yellow', a=['bold'])

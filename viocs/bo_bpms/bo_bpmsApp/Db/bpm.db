@@ -6,21 +6,21 @@ record(ai, "VA-BO-Fam:DI-BPM:NoiseLvl")
     field(EGU, "nm")
 }
 
-record(calc, "BO-$(sector)U:DI-BPM:MonitPosX")
+record(calc, "BO-$(sector)U:DI-BPM:PosX-Mon")
 {
     field(DESC, "BO BPM sector $(sector) pos U x")
     field(SCAN, ".1 second")
-    field(INPA, "VA-BO-$(sector)U:DI-BPM:MonitPosX")
+    field(INPA, "VA-BO-$(sector)U:DI-BPM:PosX-Mon")
     field(INPB, "VA-BO-Fam:DI-BPM:NoiseLvl")
     field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "nm")
-    field(FLNK, "BO-$(sector)U:DI-BPM:MonitPosY")
+    field(FLNK, "BO-$(sector)U:DI-BPM:PosY-Mon")
 }
 
-record(calc, "BO-$(sector)U:DI-BPM:MonitPosY")
+record(calc, "BO-$(sector)U:DI-BPM:PosY-Mon")
 {
     field(DESC, "BO BPM sector $(sector) pos U y")
-    field(INPA, "VA-BO-$(sector)U:DI-BPM:MonitPosY")
+    field(INPA, "VA-BO-$(sector)U:DI-BPM:PosY-Mon")
     field(INPB, "VA-BO-Fam:DI-BPM:NoiseLvl")
     field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
     field(EGU, "nm")
@@ -30,28 +30,28 @@ record(aSub, "Add-Noise-BO-Fam:DI-BPM")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-BO-Fam:DI-BPM:MonitPosX")
-    field(INPB, "VA-BO-Fam:DI-BPM:MonitPosY")
+    field(INPA, "VA-BO-Fam:DI-BPM:PosX-Mon")
+    field(INPB, "VA-BO-Fam:DI-BPM:PosY-Mon")
     field(INPC, "VA-BO-Fam:DI-BPM:NoiseLvl")
     field(NOA, 50)
     field(NOB, 50)
     field(NOC, 1)
     field(NOVA, 50)
     field(NOVB, 50)
-    field(FLNK, "BO-Fam:DI-BPM:MonitPosX")
+    field(FLNK, "BO-Fam:DI-BPM:PosX-Mon")
 }
 
-record(waveform, "BO-Fam:DI-BPM:MonitPosX")
+record(waveform, "BO-Fam:DI-BPM:PosX-Mon")
 {
     field(DESC, "BO BPM FAM X")
     field(INP, "Add-Noise-BO-Fam:DI-BPM.A")
     field(NELM, 50)
     field(FTVL, "DOUBLE")
     field(EGU, "nm")
-    field(FLNK, "BO-Fam:DI-BPM:MonitPosY")
+    field(FLNK, "BO-Fam:DI-BPM:PosY-Mon")
 }
 
-record(waveform, "BO-Fam:DI-BPM:MonitPosY")
+record(waveform, "BO-Fam:DI-BPM:PosY-Mon")
 {
     field(DESC, "BO BPM FAM Y")
     field(INP, "Add-Noise-BO-Fam:DI-BPM.B")
