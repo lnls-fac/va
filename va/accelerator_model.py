@@ -93,11 +93,11 @@ class AcceleratorModel(model.Model):
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                     return orbit_unit*self._orbit[2,idx]
                 return None
-            elif Property == 'Freq1':
+            elif Property == 'Freq1-Mon':
                 return self._get_tune_component(Plane.horizontal)
-            elif Property == 'Freq2':
+            elif Property == 'Freq2-Mon':
                 return self._get_tune_component(Plane.vertical)
-            elif Property == 'Freq3':
+            elif Property == 'Freq3-Mon':
                 return self._get_tune_component(Plane.longitudinal)
             return None
         elif Discipline == 'RF':
@@ -173,6 +173,8 @@ class AcceleratorModel(model.Model):
         Property   = name_parts['Property']
         if Section == 'LI':
             if Device.startswith(('AccStr','ICT','Bun','Scrn','SHB')):
+                return 1
+            if pv_name.endswith('-Cmd'):
                 return 1
         if Section == 'BO':
             if Device.startswith(('GSL','STDMOE','TuneS','Scrn',)):

@@ -34,8 +34,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
         Property   = name_parts['Property']
         if not Discipline == 'TI': return None
         if Device == 'Cycle':
-            if Property == 'StartInj':
-                return self._cycle
             elif Property == 'InjBun':
                 if not hasattr(self, '_injection_bunch'):
                     return UNDEF_VALUE
@@ -70,11 +68,9 @@ class LinacModel(accelerator_model.AcceleratorModel):
         Property   = name_parts['Property']
         if not Discipline == 'TI': return False
         if Device == 'Cycle':
-            if Property == 'StartInj':
-                self._cycle = value
+            if Property == 'StartInj-Cmd':
                 self._send_queue.put(('s', (pv_name, 0)))
                 self._injection_cycle()
-                self._cycle = 0
                 return True
             elif Property == 'InjBun':
                 self._injection_bunch = int(value)
@@ -112,7 +108,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._egun_delay = 0
         self._master_delay = 0
         self._single_bunch_mode = 0
-        self._cycle = 0
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
@@ -170,7 +165,6 @@ class LinacModel(accelerator_model.AcceleratorModel):
         self._send_queue.put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self):
-        if not self._cycle: return
 
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Starting injection')
