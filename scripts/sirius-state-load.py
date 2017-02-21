@@ -5,6 +5,7 @@ import epics
 import lnls
 import sys
 
+prefix = 'VA-'
 
 if len(sys.argv) > 2:
     machine = sys.argv[1]
@@ -20,7 +21,7 @@ _folder = os.path.join(lnls.folder_db, 'machine_configuration')
 _machines = ['li', 'tb', 'bo', 'ts', 'si']
 
 def server_connected():
-    test_pv = epics.pv.PV('VA-SIDI-CURRENT')
+    test_pv = epics.pv.PV(prefix+'SIDI-CURRENT')
     if test_pv.get() is not None:
         return True
     else:

@@ -135,7 +135,7 @@ class PCASDriver(Driver):
             process = self._get_pv_process(reason)
             if self._is_process_pv_writable(process, reason):
                 self.setParam(reason, value)
-                self.pvDB[reason].flag = False # avoid double camonitor update
+                #self.pvDB[reason].flag = False # avoid double camonitor update
                 self._queue.put((process, reason, value))
                 msg = reason + ' ' + str(value)
                 utils.log('write', msg, c='yellow', a=['bold'])
