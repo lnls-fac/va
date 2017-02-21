@@ -184,6 +184,8 @@ class RingModel(accelerator_model.AcceleratorModel):
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
         except pyaccel.tracking.TrackingException:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
+        except ValueError:
+            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
 
     def _calc_equilibrium_parameters(self):
         if self._m66 is None: return
