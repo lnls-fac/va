@@ -12,6 +12,14 @@ from . import area_structure
 class ASModel(area_structure.AreaStructure):
     _first_accelerator_prefix = 'LI'
 
+    def get_pv(self, pv_name):
+        name_parts = self.device_names.split_name(pv_name)
+        if name_parts['Device']== 'Cycle':
+            if name_parts['Property'] == 'Start-Cmd':
+                return 1
+            if name_parts['Property'] == 'InjBun':
+                return 1
+
 
 class LiModel(accelerators_model.LinacModel):
 

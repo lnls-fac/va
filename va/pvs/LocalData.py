@@ -321,7 +321,7 @@ class RecordNames:
         _record_names = {}
         for device_name in _device_names.keys():
             if 'Cycle' in device_name:
-                _record_names[device_name + ':StartInj-Cmd'] = _device_names[device_name]
+                _record_names[device_name + ':Start-Cmd'] = _device_names[device_name]
                 _record_names[device_name + ':InjBun'] = _device_names[device_name]
             else:
                 _record_names[device_name + ':Enbl']  = _device_names[device_name]
