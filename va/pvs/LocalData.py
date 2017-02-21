@@ -47,8 +47,8 @@ class _LocalData:
                 _record_names[device_name + ':Freq2'] = _device_names[device_name]
                 _record_names[device_name + ':Freq3'] = _device_names[device_name]
             elif device == 'DCCT':
-                _record_names[device_name + ':Current'] = _device_names[device_name]
-                _record_names[device_name + ':BbBCurrent'] = _device_names[device_name]
+                _record_names[device_name + ':Current-Mon'] = _device_names[device_name]
+                _record_names[device_name + ':BbBCurrent-Mon'] = _device_names[device_name]
             else:
                 _record_names[device_name] = _device_names[device_name]
         self.all_record_names.update(_record_names)

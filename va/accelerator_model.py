@@ -53,19 +53,19 @@ class AcceleratorModel(model.Model):
     def _get_pv_dynamic(self, pv_name, name_parts):
         Discipline = name_parts['Discipline']
         Property   = name_parts['Property']
-        if Discipline == 'DI' and Property == 'BbBCurrent':
+        if Discipline == 'DI' and Property == 'BbBCurrent-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
-        elif Discipline == 'DI' and Property == 'Current':
+        elif Discipline == 'DI' and Property == 'Current-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
-        elif Discipline == 'AP' and Property == 'BbBCurrLT':
+        elif Discipline == 'AP' and Property == 'BbBCurrLT-Mon':
             return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
-        elif Discipline == 'AP' and Property == 'CurrLT':
+        elif Discipline == 'AP' and Property == 'CurrLT-Mon':
             return self._beam_charge.total_lifetime / _u.hour
         else:
             return None
