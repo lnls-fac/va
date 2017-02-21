@@ -5,8 +5,8 @@ import signal
 import multiprocessing
 import pcaspy
 from . import driver
-from . import model
-from . import sirius_models
+from . import area_structure
+from . import sirius_area_structures
 from . import utils
 
 WAIT_TIMEOUT = 0.1
@@ -26,19 +26,19 @@ def run(prefix):
     stop_event = multiprocessing.Event() # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
-    models = get_models()
-    pv_database = get_pv_database(models)
-    pv_names = get_pv_names(models)
+    area_structures = get_area_structures()
+    pv_database = get_pv_database(area_structures)
+    pv_names = get_pv_names(area_structures)
     utils.print_banner(prefix, **pv_names)
 
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
 
-    num_parties = len(models) + 1 # number of parties for barrier
+    num_parties = len(area_structures) + 1 # number of parties for barrier
     finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
 
-    processes = create_model_processes(models, stop_event, finalisation_barrier)
-    start_model_processes(processes)
+    processes = create_area_structure_processes(area_structures, stop_event, finalisation_barrier)
+    start_area_structure_processes(processes)
     start_driver_thread(processes, stop_event, start_event, finalisation_barrier)
 
     wait_for_initialisation()
@@ -58,47 +58,48 @@ def set_global_stop_event(signum, frame):
     stop_event.set()
 
 
-def get_models():
-    models = (
-        sirius_models.LiModel,
-        sirius_models.TbModel,
-        sirius_models.BoModel,
-        sirius_models.TsModel,
-        sirius_models.SiModel,
+def get_area_structures():
+    area_structures = (
+        # sirius_area_structures.ASModel,
+        sirius_area_structures.LiModel,
+        sirius_area_structures.TbModel,
+        sirius_area_structures.BoModel,
+        sirius_area_structures.TsModel,
+        sirius_area_structures.SiModel,
     )
 
-    return models
+    return area_structures
 
 
-def get_pv_database(models):
+def get_pv_database(area_structures):
     pv_database = {}
-    for m in models:
+    for m in area_structures:
         pv_database.update(m.database)
     pv_database['QUIT'] = {'type':'float', 'value':0, 'count':1}
     return pv_database
 
 
-def get_pv_names(models):
+def get_pv_names(area_structures):
     pv_names = {}
-    for m in models:
+    for As in area_structures:
         # Too low level?
-        model_pv_names = {m.prefix.lower()+'_pv_names': m.database.keys()}
-        pv_names.update(model_pv_names)
+        area_structure_pv_names = {As.prefix.lower()+'_pv_names': As.database.keys()}
+        pv_names.update(area_structure_pv_names)
 
     return pv_names
 
 
-def create_model_processes(models, stop_event, finalisation_barrier):
+def create_area_structure_processes(area_structures, stop_event, finalisation_barrier):
     processes = []
-    for m in models:
-        mp = model.ModelProcess(m, WAIT_TIMEOUT, stop_event,
+    for As in area_structures:
+        Asp = area_structure.AreaStructureProcess(As, WAIT_TIMEOUT, stop_event,
             finalisation_barrier)
-        processes.append(mp)
+        processes.append(Asp)
 
     return processes
 
 
-def start_model_processes(processes):
+def start_area_structure_processes(processes):
     for p in processes:
         p.start()
 
@@ -118,7 +119,7 @@ def wait_for_initialisation():
     global start_event
     global stop_event
     t0 = time.time()
-    utils.log('start', 'waiting model initialisation')
+    utils.log('start', 'waiting area structure initialisation')
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
@@ -139,6 +140,6 @@ def join_processes(processes):
 
 
 def old_wait_for_initialisation(interval):
-    utils.log('start', 'waiting %d s for model initialisation' % interval)
+    utils.log('start', 'waiting %d s for area structure initialisation' % interval)
     time.sleep(JOIN_TIMEOUT)
     utils.log('start', 'starting server')

@@ -4,24 +4,24 @@ import time
 from . import utils
 
 
-class ModelProcess(multiprocessing.Process):
+class AreaStructureProcess(multiprocessing.Process):
 
-    def __init__(self, model, interval, stop_event, finalisation):
-        """Initialise, start and manage model and model processing.
+    def __init__(self, area_structure, interval, stop_event, finalisation):
+        """Initialise, start and manage area_structure and area_structure processing.
 
-        Keyword arguments: see start_and_run_model
+        Keyword arguments: see start_and_run_area_structure
         """
         send_queue = multiprocessing.Queue()
         recv_queue = multiprocessing.Queue()
         self.send_queue = send_queue
         self.recv_queue = recv_queue
-        self.model = model
-        self.model_prefix = model.prefix
+        self.area_structure = area_structure
+        self.area_structure_prefix = area_structure.prefix
 
         super().__init__(
-            target=start_and_run_model,
+            target=start_and_run_area_structure,
             kwargs={
-                'model': model,
+                'area_structure': area_structure,
                 'interval': interval,
                 'stop_event': stop_event,
                 # Queues are supposed to be exchanged
@@ -32,27 +32,27 @@ class ModelProcess(multiprocessing.Process):
         )
 
 
-def start_and_run_model(model, interval, stop_event, finalisation, **kwargs):
-    """Start periodic processing of model
+def start_and_run_area_structure(area_structure, interval, stop_event, finalisation, **kwargs):
+    """Start periodic processing of area_structure
 
     Keyword arguments:
-    model -- model class
+    area_structure -- area_structure class
     interval -- processing interval [s]
     stop_event -- event to stop processing
     finalisation -- barrier to wait before finalisation
-    **kwargs -- extra arguments to model __init__
+    **kwargs -- extra arguments to area_structure __init__
     """
-    m = model(**kwargs)
+    As = area_structure(**kwargs)
     while not stop_event.is_set():
-        utils.process_and_wait_interval(m.process, interval)
+        utils.process_and_wait_interval(As.process, interval)
     else:
         finalisation.wait()
-        m.empty_queues()
+        As.empty_queues()
         finalisation.wait()
-        m.finalise()
+        As.finalise()
 
 
-class Model:
+class AreaStructure:
 
     def __init__(self, send_queue, recv_queue, log_func=utils.log, **kwargs):
         self._send_queue = send_queue
@@ -75,9 +75,12 @@ class Model:
         if cmd == 's':
             self._set_parameter(data)
         elif cmd == 'p':
-            self._get_parameters_from_upstream_accelerator(data)
+            self._get_parameters_from_other_area_structure(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
+
+    def _update_state():
+        return 1
 
     def _set_parameter(self, data):
         pv_name, value = data
@@ -101,4 +104,4 @@ class Model:
         self._send_queue.join_thread()
         self._recv_queue.close()
         self._recv_queue.join_thread()
-        utils.log('exit', 'model ' + self.prefix)
+        utils.log('exit', 'area_structure ' + self.prefix)

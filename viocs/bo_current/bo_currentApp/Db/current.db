@@ -1,18 +1,18 @@
 
-record(ai, "VA-BO-35D:DI-DCCT:NoiseLvl")
+record(ai, "BO-Glob:AP-CurrLT:NoiseLvl")
 {
 field(DESC, "Noise level for beam current")
 field(INP, 10)
 field(EGU, "uA")
 }
 
-record(calc, "BO-35D:DI-DCCT:Current")
+record(calc, "BO-Glob:AP-CurrLT:Current-Mon")
 {
     field(DESC, "BO current")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-BO-35D:DI-DCCT:Current")
-    field(INPB, "VA-BO-35D:DI-DCCT:NoiseLvl")
+    field(INPA, "VA-BO-35D:DI-DCCT:Current-Mon")
+    field(INPB, "BO-Glob:DI-DCCT:NoiseLvl")
     field(CALC, "A + (1e-3)*B*(RNDM*2.0 - 1.0)")
     field(EGU, "mA")
 }
@@ -21,8 +21,8 @@ record(aSub, "Add-Noise-BO-35D:DI-DCCT")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-BO-35D:DI-DCCT:BunCurrent")
-    field(INPB, "VA-BO-35D:DI-DCCT:NoiseLvl")
+    field(INPA, "VA-BO-35D:DI-DCCT:BbBCurrent-Mon")
+    field(INPB, "BO-Glob:AP-CurrLT:NoiseLvl")
     field(NOA, 828)
     field(NOC, 1)
     field(NOVA, 828)

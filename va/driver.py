@@ -48,8 +48,8 @@ class PCASDriver(Driver):
         self._processes = dict()
         self._processes_initialisation = dict()
         for p in processes:
-            self._processes[p.model_prefix] = p
-            self._processes_initialisation[p.model_prefix] = False
+            self._processes[p.area_structure_prefix] = p
+            self._processes_initialisation[p.area_structure_prefix] = False
 
     def process(self):
         self._process_writes()
@@ -73,11 +73,11 @@ class PCASDriver(Driver):
         cmd, data = request
         if cmd == 's': # set PV value in EPICS memory DB
             self._set_parameter_in_memory(data)
-        elif cmd == 'p': # pass to model
-            self._pass_to_model(data)
+        elif cmd == 'p': # pass to area_structure
+            self._pass_to_area_structure(data)
         elif cmd == 'sp': # initialise setpoints
             self._set_sp_parameters_in_memory(data)
-        elif cmd == 'a': # anomalous condition signed by model
+        elif cmd == 'a': # anomalous condition signed by area_structure
             utils.log('!error', data, c='red')
             self._stop_event.set()
         elif cmd == 'i':
@@ -89,16 +89,16 @@ class PCASDriver(Driver):
         pv_name, value = data
         self.setParam(pv_name, value)
 
-    def _pass_to_model(self, data):
+    def _pass_to_area_structure(self, data):
         prefix, args_dict = data
-        self._send_to_model('p', prefix, args_dict)
+        self._send_to_area_structure('p', prefix, args_dict)
 
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             self.setParam(pv_name, value)
 
-    def _send_to_model(self, cmd, prefix, args):
+    def _send_to_area_structure(self, cmd, prefix, args):
         try:
             process = self._processes[prefix]
             process.send_queue.put((cmd, args))
@@ -153,6 +153,6 @@ class PCASDriver(Driver):
         return process
 
     def _is_process_pv_writable(self, process, reason):
-        read_only_pvs = process.model.pv_module.get_read_only_pvs()
-        dynamic_pvs = process.model.pv_module.get_dynamical_pvs()
+        read_only_pvs = process.area_structure.pv_module.get_read_only_pvs()
+        dynamic_pvs = process.area_structure.pv_module.get_dynamical_pvs()
         return reason not in read_only_pvs + dynamic_pvs
