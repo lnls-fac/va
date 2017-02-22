@@ -227,8 +227,12 @@ class AcceleratorModel(area_structure.AreaStructure):
             ps = self._power_supplies[Device_name]
             prev_value = ps.current
             if value != prev_value:
-                ps.current = value
-                self._state_deprecated = True
+                try:
+                    ps.current = value
+                    self._state_deprecated = True
+                except ValueError:
+                    utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                    return False
             return True
         elif Discipline == 'PU' and Property.endswith('-SP'):
             ps = self._pulsed_power_supplies[Device_name]
