@@ -1,41 +1,41 @@
 
-record(calc, "BO-Fam:PS-Bend:Current-SP")
+record(calc, "BO-Fam:PS-B:Current-RB")
 {
     field(DESC, "BOPS-BEND simultaneous current readback")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "BO-Fam:PS-Bend-1:Current-RB")
-    field(INPB, "BO-Fam:PS-Bend-2:Current-RB")
+    field(INPA, "BO-Fam:PS-B-1:Current-RB")
+    field(INPB, "BO-Fam:PS-B-2:Current-RB")
     field(CALC, ".5*(A+B)")
     field(EGU, "A")
 }
 
-record(ao, "BO-Fam:PS-Bend:Current-SP")
+record(ao, "BO-Fam:PS-B:Current-SP")
 {
     field(DESC, "BOPS-BEND simultaneous current setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    #field(OUT, "SEQ-BO-Fam:PS-Bend:Current-SP")
-    field(FLNK, "SEQ-BO-Fam:PS-Bend:Current-SP PP")
+    #field(OUT, "SEQ-BO-Fam:PS-B:Current-SP")
+    field(FLNK, "SEQ-BO-Fam:PS-B:Current-SP PP")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-BO-Fam:PS-Bend-Current-SP")
+record(seq, "SEQ-BO-Fam:PS-B-Current-SP")
 {
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(DOL1, "BO-Fam:PS-Bend-Current-SP")
-    field(DOL2, "BO-Fam:PS-Bend-Current-SP")
-    field(LNK1, "BO-Fam:PS-Bend-1:Current-SP PP")
-    field(LNK2, "BO-Fam:PS-Bend-2:Current-SP PP")
+    field(DOL1, "BO-Fam:PS-B-Current-SP")
+    field(DOL2, "BO-Fam:PS-B-Current-SP")
+    field(LNK1, "BO-Fam:PS-B-1:Current-SP PP")
+    field(LNK2, "BO-Fam:PS-B-2:Current-SP PP")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-BO-Fam:PS-Bend:Current-SP-INIT")
+record(seq, "SEQ-BO-Fam:PS-B:Current-SP-INIT")
 {
     field(SCAN, "Event")
     field(EVNT, 125)
-    field(DOL1, "VA-BO-Fam:PS-Bend-1")
-    field(LNK1, "BO-Fam:PS-Bend:Current-SP")
-    field(FLNK, "BO-Fam:PS-Bend:Current-SP")
+    field(DOL1, "VA-BO-Fam:PS-B-1:Current-SP")
+    field(LNK1, "BO-Fam:PS-B:Current-SP")
+    field(FLNK, "BO-Fam:PS-B:Current-SP")
 }

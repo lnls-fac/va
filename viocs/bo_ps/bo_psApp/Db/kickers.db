@@ -6,31 +6,31 @@ record(ai, "VA-BO-Ind:PU-NOISELEVEL")
     field(EGU, "A")
 }
 
-record(calc, "BO-$(pos):PU-$(family)$(num):Current-RB")
+record(calc, "BO-$(pos):PU-$(family):Current-RB")
 {
-    field(DESC, "BO-$(pos):PU-$(family)$(num) voltage readback")
+    field(DESC, "BO-$(pos):PU-$(family) voltage readback")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-BO-$(pos):PU-$(family)$(num)")
+    field(INPA, "VA-BO-$(pos):PU-$(family):Current-RB")
     field(INPB, "VA-BO-Ind:PU-NOISELEVEL")
     field(CALC, "A+B*2*(RNDM-.5)")
     field(EGU, "A")
 }
 
-record(ao, "BO-$(pos):PU-$(family)$(num):Current-SP")
+record(ao, "BO-$(pos):PU-$(family):Current-SP")
 {
-    field(DESC, "BO-$(pos):PU-$(family)$(num) voltage setpoint")
+    field(DESC, "BO-$(pos):PU-$(family) voltage setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-BO-$(pos):PU-$(family)$(num)")
+    field(OUT, "VA-BO-$(pos):PU-$(family):Current-SP")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-BO-$(pos):PU-$(family)$(num)")
+record(seq, "SEQ-BO-$(pos):PU-$(family):Current-SP")
 {
     field(SCAN, "Event")
     field(EVNT, 123)
-    field(DOL1, "VA-BO-$(pos):PU-$(family)$(num)")
-    field(LNK1, "BO-$(pos):PU-$(family)$(num):Current-SP")
-    field(FLNK, "BO-$(pos):PU-$(family)$(num):Current-SP")
+    field(DOL1, "VA-BO-$(pos):PU-$(family):Current-SP")
+    field(LNK1, "BO-$(pos):PU-$(family):Current-SP")
+    field(FLNK, "BO-$(pos):PU-$(family):Current-SP")
 }

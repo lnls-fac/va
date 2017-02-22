@@ -1,5 +1,5 @@
 
-record(ai, "VA-BO-Fam:PS-NOISELEVEL")
+record(ai, "BO-Fam:PS-NOISELEVEL")
 {
     field(DESC, "Noise level for family current")
     field(INP, 0.001)
@@ -11,7 +11,7 @@ record(calc, "BO-Fam:PS-$(family):Current-RB")
     field(DESC, "BO-Fam:PS-$(family) current readback")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INPA, "VA-BO-Fam:PS-$(family)")
+    field(INPA, "VA-BO-Fam:PS-$(family):Current-RB")
     field(INPB, "VA-BO-Fam:PS-NOISELEVEL")
     field(CALC, "A+B*2*(RNDM-.5)")
     field(EGU, "A")
@@ -22,15 +22,15 @@ record(ao, "BO-Fam:PS-$(family):Current-SP")
     field(DESC, "BO-Fam:PS-$(family) current setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-BO-Fam:PS-$(family)")
+    field(OUT, "VA-BO-Fam:PS-$(family):Current-SP")
     field(EGU, "A")
 }
 
-record(seq, "SEQ-BO-Fam:PS-$(family)")
+record(seq, "SEQ-BO-Fam:PS-$(family):Current-SP")
 {
     field(SCAN, "Event")
     field(EVNT, 125)
-    field(DOL1, "VA-BO-Fam:PS-$(family)")
+    field(DOL1, "VA-BO-Fam:PS-$(family):Current-SP")
     field(LNK1, "BO-Fam:PS-$(family):Current-SP")
     field(FLNK, "BO-Fam:PS-$(family):Current-SP")
 }

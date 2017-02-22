@@ -2,8 +2,8 @@
 record(ai, "BO-Glob:AP-CurrLT:NoiseLvl")
 {
 field(DESC, "Noise level for beam current")
-field(INP, 10)
-field(EGU, "uA")
+field(INP, 10e-3)
+field(EGU, "mA")
 }
 
 record(calc, "BO-Glob:AP-CurrLT:Current-Mon")
@@ -13,7 +13,7 @@ record(calc, "BO-Glob:AP-CurrLT:Current-Mon")
     field(PREC, 10)
     field(INPA, "VA-BO-35D:DI-DCCT:Current-Mon")
     field(INPB, "BO-Glob:DI-DCCT:NoiseLvl")
-    field(CALC, "A + (1e-3)*B*(RNDM*2.0 - 1.0)")
+    field(CALC, "A + B*(RNDM*2.0 - 1.0)")
     field(EGU, "mA")
 }
 
@@ -26,10 +26,10 @@ record(aSub, "Add-Noise-BO-35D:DI-DCCT")
     field(NOA, 828)
     field(NOC, 1)
     field(NOVA, 828)
-    field(FLNK, "BO-35D:DI-DCCT:BunCurrent")
+    field(FLNK, "BO-Glob:AP-CurrLT:BbBCurrent-Mon")
 }
 
-record(waveform, "BO-35D:DI-DCCT:BunCurrent")
+record(waveform, "BO-Glob:AP-CurrLT:BbBCurrent-Mon")
 {
     field(DESC, "BO bunch current from DCCT 35D")
     field(INP, "Add-Noise-BO-35D:DI-DCCT.A")

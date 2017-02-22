@@ -341,18 +341,18 @@ class RecordNames:
         self.database = {}
         for p in self.di:
             if any([substring in p for substring in ('BbBCurrent',)]):
-                self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number}
+                self.database[p] = {'type' : 'float', 'unit':'mA', 'count': self.model.harmonic_number}
             elif 'BPM' in p:
                 if self.device_names.pvnaming_fam in p:
-                    self.database[p] = {'type' : 'float', 'count': len(self.all_record_names[p]['BPM'])}
+                    self.database[p] = {'type' : 'float', 'unit':'m', 'count': len(self.all_record_names[p]['BPM'])}
                 else:
-                    self.database[p] = {'type' : 'float', 'count': 1}
+                    self.database[p] = {'type' : 'float', 'unit':'m', 'count': 1}
             else:
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in self.ps:
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
         for p in self.ps_rb:
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
         for p in self.ap:
             if any([substring in p for substring in ('BbBCurrLT',)]):
                 self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}

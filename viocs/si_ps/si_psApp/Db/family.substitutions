@@ -35,5 +35,6 @@ file "db/family.db" {
         { "SFP0" }
         { "SFP1" }
         { "SFP2" }
-        { "BEND" }
+        { "B1B2-1" }
+        { "B1B2-2" }
 }

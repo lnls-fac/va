@@ -2,6 +2,7 @@
 
 import os as _os
 from . import server
+from . import pvs
 
 
 with open(_os.path.join(__path__[0], 'VERSION'), 'r') as _f:

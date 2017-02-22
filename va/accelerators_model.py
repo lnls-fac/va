@@ -18,7 +18,7 @@ UNDEF_VALUE = utils.UNDEF_VALUE
 TRACK6D = True
 calc_injection_eff = True
 calc_timing_eff = True
-orbit_unit = 1e9  #1e9m -> nm
+orbit_unit = 1 # in meters m
 
 class Plane(enum.IntEnum):
     horizontal = 0

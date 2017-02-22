@@ -1,6 +1,6 @@
 
 file "db/kickers.db" {
     pattern { family, pos }
-        { "InjDK",  "01SA" }
+        { "InjDpK", "01SA" }
         { "InjNLK", "01SA"}
 }

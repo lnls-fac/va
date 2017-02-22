@@ -1,59 +1,59 @@
 
-record(event, "EVENT-SI-03SA:RF-Cav:SP-INIT")
+record(event, "EVENT-SI-03SP:RF-Cav:SP-INIT")
 {
     field(VAL, 128)
 }
 
-record(ai, "SI-03SA:RF-Cav:Volt-RB")
+record(ai, "SI-03SP:RF-Cav:Volt-RB")
 {
     field(DESC, "SI rf voltage")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INP, "VA-SI-03SA:RF-Cav:Volt")
+    field(INP, "VA-SI-03SP:RF-Cav:Volt")
     field(EGU, "V")
 }
 
-record(ai, "SI-03SA:RF-Cav:Freq-RB")
+record(ai, "SI-03SP:RF-Cav:Freq-RB")
 {
     field(DESC, "SI rf frequency")
     field(SCAN, ".1 second")
     field(PREC, 10)
-    field(INP, "VA-SI-03SA:RF-Cav:Freq")
+    field(INP, "VA-SI-03SP:RF-Cav:Freq")
     field(EGU, "Hz")
 }
 
-record(ao, "SI-03SA:RF-Cav:Freq-SP")
+record(ao, "SI-03SP:RF-Cav:Freq-SP")
 {
     field(DESC, "SI rf frequency setpoint")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-SI-03SA:RF-Cav:Freq")
+    field(OUT, "VA-SI-03SP:RF-Cav:Freq")
     field(EGU, "Hz")
 }
 
-record(seq, "SEQ-SI-03SA:RF-Cav:Freq")
+record(seq, "SEQ-SI-03SP:RF-Cav:Freq")
 {
     field(SCAN, "Event")
     field(EVNT, 128)
-    field(DOL1, "VA-SI-03SA:RF-Cav:Freq")
-    field(LNK1, "SI-03SA:RF-Cav:Freq-SP")
-    field(FLNK, "SI-03SA:RF-Cav:Freq-SP")
+    field(DOL1, "VA-SI-03SP:RF-Cav:Freq")
+    field(LNK1, "SI-03SP:RF-Cav:Freq-SP")
+    field(FLNK, "SI-03SP:RF-Cav:Freq-SP")
 }
 
-record(ao, "SI-03SA:RF-Cav:Volt-SP")
+record(ao, "SI-03SP:RF-Cav:Volt-SP")
 {
     field(DESC, "SI rf voltage")
     field(SCAN, "Passive")
     field(PREC, 10)
-    field(OUT, "VA-SI-03SA:RF-Cav:Volt")
+    field(OUT, "VA-SI-03SP:RF-Cav:Volt")
     field(EGU, "V")
 }
 
-record(seq, "SEQ-SI-03SA:RF-Cav:Volt")
+record(seq, "SEQ-SI-03SP:RF-Cav:Volt")
 {
     field(SCAN, "Event")
     field(EVNT, 128)
-    field(DOL1, "VA-SI-03SA:RF-Cav:Volt")
-    field(LNK1, "SI-03SA:RF-Cav:Volt-SP")
-    field(FLNK, "SI-03SA:RF-Cav:Volt-SP")
+    field(DOL1, "VA-SI-03SP:RF-Cav:Volt")
+    field(LNK1, "SI-03SP:RF-Cav:Volt-SP")
+    field(FLNK, "SI-03SP:RF-Cav:Volt-SP")
 }

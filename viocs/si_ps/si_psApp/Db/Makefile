@@ -11,6 +11,7 @@ include $(TOP)/configure/CONFIG
 # Create and install (or just install) into <top>/db
 # databases, templates, substitutions like this
 DB += common.db
+DB += bend.db
 DB += family.db
 DB += family.substitutions
 DB += individual.db

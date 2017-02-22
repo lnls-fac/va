@@ -2,60 +2,60 @@
 record(ai, "VA-TB-Fam:DI-BPM:NoiseLvl")
 {
     field(DESC, "Noise level for bpm")
-    field(INP, 100)
-    field(EGU, "nm")
+    field(INP, 100e-9)
+    field(EGU, "m")
 }
 
-record(calc, "TB-$(sector):DI-BPM$(pos):MonitPosX")
+record(calc, "TB-$(sector):DI-BPM$(pos):PosX-Mon")
 {
     field(DESC, "TB BPM sector $(sector) pos $(pos) x")
     field(SCAN, ".1 second")
-    field(INPA, "VA-TB-$(sector):DI-BPM$(pos):MonitPosX")
+    field(INPA, "VA-TB-$(sector):DI-BPM$(pos):PosX-Mon")
     field(INPB, "VA-TB-Fam:DI-BPM:NoiseLvl")
     field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
-    field(EGU, "nm")
-    field(FLNK, "TB-$(sector):DI-BPM$(pos):MonitPosY")
+    field(EGU, "m")
+    field(FLNK, "TB-$(sector):DI-BPM$(pos):PosY-Mon")
 }
 
-record(calc, "TB-$(sector):DI-BPM$(pos):MonitPosY")
+record(calc, "TB-$(sector):DI-BPM$(pos):PosY-Mon")
 {
     field(DESC, "TB BPM sector $(sector) pos $(pos) y")
-    field(INPA, "VA-TB-$(sector):DI-BPM$(pos):MonitPosY")
+    field(INPA, "VA-TB-$(sector):DI-BPM$(pos):PosY-Mon")
     field(INPB, "VA-TB-Fam:DI-BPM:NoiseLvl")
     field(CALC, "A + B*(2.0*RNDM - 1.0)*(2.0*RNDM - 1.0)")
-    field(EGU, "nm")
+    field(EGU, "m")
 }
 
 record(aSub, "ADD-NOISE-TBDI-BPM")
 {
     field(SCAN, ".1 second")
     field(SNAM, "add_noise")
-    field(INPA, "VA-TB-Fam:DI-BPM:MonitPosX")
-    field(INPB, "VA-TB-Fam:DI-BPM:MonitPosY")
+    field(INPA, "VA-TB-Fam:DI-BPM:PosX-Mon")
+    field(INPB, "VA-TB-Fam:DI-BPM:PosY-Mon")
     field(INPC, "VA-TB-Fam:DI-BPM:NoiseLvl")
     field(NOA, 6)
     field(NOB, 6)
     field(NOC, 1)
     field(NOVA, 6)
     field(NOVB, 6)
-    field(FLNK, "TB-Fam:DI-BPM:MonitPosX")
+    field(FLNK, "TB-Fam:DI-BPM:PosX-Mon")
 }
 
-record(waveform, "TB-Fam:DI-BPM:MonitPosX")
+record(waveform, "TB-Fam:DI-BPM:PosX-Mon")
 {
     field(DESC, "TB BPM FAM X")
     field(INP, "ADD-NOISE-TBDI-BPM.A")
     field(NELM, 6)
     field(FTVL, "DOUBLE")
-    field(EGU, "nm")
-    field(FLNK, "TB-Fam:DI-BPM:MonitPosY")
+    field(EGU, "m")
+    field(FLNK, "TB-Fam:DI-BPM:PosY-Mon")
 }
 
-record(waveform, "TB-Fam:DI-BPM:MonitPosY")
+record(waveform, "TB-Fam:DI-BPM:PosY-Mon")
 {
     field(DESC, "TB BPM FAM Y")
     field(INP, "ADD-NOISE-TBDI-BPM.B")
     field(NELM, 6)
     field(FTVL, "DOUBLE")
-    field(EGU, "nm")
+    field(EGU, "m")
 }
