@@ -18,7 +18,8 @@ def print_banner(prefix, li_pv_names=None,
                          bo_pv_names=None,
                          ts_pv_names=None,
                          si_pv_names=None,
-                         ti_pv_names=None):
+                         ti_pv_names=None,
+                         as_pv_names=None):
 
     def c(msg,color=None,attrs=None):
         if not attrs:
@@ -31,8 +32,8 @@ def print_banner(prefix, li_pv_names=None,
     print(c(r"  //     ' ",'white')+c("@@     ",'magenta') + " | " + c("LNLS Accelerator Physics Group", attrs=['bold']))
     print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Documentation: https://github.com/lnls-fac/va"))
     print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~  ",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
-    print(c(r"    ^^   ^^       ",'white') + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
-    print(r"              "+c("\|/ ",'green') + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
+    print(c(r"    ^^   ^^       ",'white')     + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
+    print(r"              "+c("\|/ ",'green')  + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
     if li_pv_names is not None:
         print(c(r"                  ",'white') + " | " + c("Number of LI pvs: {0}".format(len(li_pv_names))))
     if ti_pv_names is not None:
@@ -41,6 +42,8 @@ def print_banner(prefix, li_pv_names=None,
         print(c(r"                  ",'white') + " | " + c("Number of TB pvs: {0}".format(len(tb_pv_names))))
     if ts_pv_names is not None:
         print(c(r"                  ",'white') + " | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
+    if as_pv_names is not None:
+        print(c(r"                  ",'white') + " | " + c("Number of AS pvs: {0}".format(len(as_pv_names))))
     print(r"")
 
 

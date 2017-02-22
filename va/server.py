@@ -60,7 +60,7 @@ def set_global_stop_event(signum, frame):
 
 def get_area_structures():
     area_structures = (
-        # sirius_area_structures.ASModel,
+        sirius_area_structures.ASModel,
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
         sirius_area_structures.BoModel,
@@ -73,8 +73,8 @@ def get_area_structures():
 
 def get_pv_database(area_structures):
     pv_database = {}
-    for m in area_structures:
-        pv_database.update(m.database)
+    for As in area_structures:
+        pv_database.update(As.database)
     pv_database['QUIT'] = {'type':'float', 'value':0, 'count':1}
     return pv_database
 

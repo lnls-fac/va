@@ -304,14 +304,6 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._beam_charge.dump()
         return charge
 
-    def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
-        sp_pv_list = []
-        for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
-            value = self._get_pv(pv)
-            sp_pv_list.append((pv,value))
-        self._send_queue.put(('sp', sp_pv_list ))
-
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
         Device_name = self.device_names.split_name(pv_name)['Device_name']
@@ -443,31 +435,13 @@ class AcceleratorModel(area_structure.AreaStructure):
     def _send_initialisation_sign(self):
         self._send_queue.put(('i', self.prefix))
 
-    def _send_parameters_to_downstream_accelerator(self, _dict):
-        prefix = self._downstream_accelerator_prefix
-        self._send_queue.put(('p', (prefix, _dict)))
-
-    def _get_parameters_from_other_area_structure(self, _dict):
-        if 'pulsed_magnet_parameters' in _dict.keys():
-            self._set_pulsed_magnets_parameters(**_dict['pulsed_magnet_parameters'])
-        elif 'update_delays' in _dict.keys():
-            self._update_pulsed_magnets_delays(_dict['update_delays'])
-        elif 'injection_parameters' in _dict.keys():
-            self._injection_parameters = _dict['injection_parameters']
-            self._update_injection_efficiency = True
-        elif 'injection_cycle' in _dict.keys():
-            self._received_charge = True
-            self._update_state()
-            self._injection_cycle(**_dict['injection_cycle'])
-            self._received_charge = False
-
 
 class LinacModel(AcceleratorModel):
 
     def __init__(self, **kwargs):
+        self._injection_bunch = 1
         super().__init__(**kwargs)
         self._set_pulsed_magnets_parameters()
-        self._injection_bunch = 1
 
     # --- methods implementing response of model to get requests
 
@@ -486,11 +460,6 @@ class LinacModel(AcceleratorModel):
         Device     = name_parts['Device']
         Property   = name_parts['Property']
         if not Discipline == 'TI': return None
-        if Device == 'Cycle':
-            if Property == 'InjBun':
-                if not hasattr(self, '_injection_bunch'):
-                    return UNDEF_VALUE
-                return self._injection_bunch
         if Device == 'EGun':
             if Property == 'Enbl': return self._egun_enabled
             elif Property =='Delay':
@@ -520,16 +489,7 @@ class LinacModel(AcceleratorModel):
         Device     = name_parts['Device']
         Property   = name_parts['Property']
         if not Discipline == 'TI': return False
-        if Device == 'Cycle':
-            if Property == 'StartInj-Cmd':
-                self._send_queue.put(('s', (pv_name, 0)))
-                self._injection_cycle()
-                return True
-            elif Property == 'InjBun':
-                self._injection_bunch = int(value)
-                self._master_delay = self._injection_bunch*self._bunch_separation
-                return True
-        elif Device == 'EGun':
+        if Device == 'EGun':
             if Property == 'Enbl': self._egun_enabled = value
             elif Property == 'Delay': self._egun_delay = value
             else: return False
@@ -556,10 +516,8 @@ class LinacModel(AcceleratorModel):
         self._set_vacuum_chamber()
         self._state_deprecated = True
         self._update_state()
-        self._bunch_separation = 6*(1/self._frequency)
         self._egun_enabled = 1
         self._egun_delay = 0
-        self._master_delay = 0
         self._single_bunch_mode = 0
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
@@ -595,7 +553,8 @@ class LinacModel(AcceleratorModel):
         args_dict = {}
         args_dict.update(inj_params)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'injection_parameters' : args_dict})
 
     def _set_pulsed_magnets_parameters(self):
         _dict = { 'pulsed_magnet_parameters' : {
@@ -603,25 +562,23 @@ class LinacModel(AcceleratorModel):
             'magnet_pos'        : 0,
             'nominal_delays'    : {'EGun' : self._egun_delay},}
         }
-        self._send_parameters_to_downstream_accelerator(_dict)
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = _dict)
 
     def _update_pulsed_magnets_delays(self, delays):
         for magnet_name, delay in delays.items():
             if 'EGun' in magnet_name:
                 self._egun_delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_parameters_to_downstream_accelerator({'update_delays' : delays})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
         pv_name = self.device_names.join_name('TI','EGun','01',proper='Delay')
         self._send_queue.put(('s', (pv_name, self._egun_delay)))
 
-    def _injection_cycle(self):
-
-        self._log(message1 = 'cycle', message2 = '--')
-        self._log(message1 = 'cycle', message2='Starting injection')
-        self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
+    def _injection_cycle(self, **kwargs):
 
         if self._egun_enabled:
             if self._single_bunch_mode:
@@ -636,18 +593,17 @@ class LinacModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        charge_time = [self._master_delay + self._egun_delay + i*self._bunch_separation for i in range(len(charge))]
+        charge_time = [kwargs['master_delay'] + self._egun_delay + i*kwargs['bunch_separation'] for i in range(len(charge))]
 
         if calc_injection_eff:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
             self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        _dict = {'injection_cycle' : {'charge': charge,
-                                      'charge_time': charge_time,
-                                      'master_delay': self._master_delay,
-                                      'bunch_separation': self._bunch_separation}}
-        self._send_parameters_to_downstream_accelerator(_dict)
+        kwargs['charge']      =  charge
+        kwargs['charge_time'] = charge_time
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'injection_cycle' : kwargs})
 
 
 class TLineModel(AcceleratorModel):
@@ -715,14 +671,16 @@ class TLineModel(AcceleratorModel):
             'magnet_pos'       : magnet_pos,
             'nominal_delays'   : nominal_delays,}
         }
-        self._send_parameters_to_downstream_accelerator(_dict)
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = _dict)
 
     def _update_pulsed_magnets_delays(self, delays):
         for magnet_name, delay in delays.items():
             if magnet_name in self._pulsed_magnets.keys():
                 self._pulsed_magnets[magnet_name].delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_parameters_to_downstream_accelerator({'update_delays' : delays})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
@@ -748,7 +706,8 @@ class TLineModel(AcceleratorModel):
         args_dict = {}
         args_dict.update(self._injection_parameters)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'injection_parameters' : args_dict})
 
     def _injection_cycle(self, **kwargs):
         charge = kwargs['charge']
@@ -772,13 +731,11 @@ class TLineModel(AcceleratorModel):
 
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
-        self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'injection_cycle' : kwargs})
 
 
 class BoosterModel(AcceleratorModel):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     # --- methods implementing response of model to get requests
 
@@ -836,12 +793,12 @@ class BoosterModel(AcceleratorModel):
             return
 
         # Calculate injection efficiency
-        if self._update_injection_efficiency and (self._received_charge or self._injection_efficiency is None):
+        if self._update_injection_efficiency:# and (self._received_charge or self._injection_efficiency is None):
             self._update_injection_efficiency = False
             self._calc_injection_efficiency()
 
         # Calculate ejection efficiency
-        if self._update_ejection_efficiency  and (self._received_charge or self._ejection_efficiency is None):
+        if self._update_ejection_efficiency:# and (self._received_charge or self._ejection_efficiency is None):
             self._update_ejection_efficiency = False
             self._calc_ejection_efficiency()
 
@@ -891,7 +848,7 @@ class BoosterModel(AcceleratorModel):
         self._tunes = None
         self._transfer_matrices = None
         self._summary = None
-        self._received_charge = False
+        # self._received_charge = False
         self._injection_efficiency = None
         self._ejection_efficiency  = None
 
@@ -933,14 +890,16 @@ class BoosterModel(AcceleratorModel):
             'magnet_pos'       : magnet_pos,
             'nominal_delays'   : nominal_delays,}
         }
-        self._send_parameters_to_downstream_accelerator(_dict)
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = _dict)
 
     def _update_pulsed_magnets_delays(self, delays):
         for magnet_name, delay in delays.items():
             if magnet_name in self._pulsed_magnets.keys():
                 self._pulsed_magnets[magnet_name].delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_parameters_to_downstream_accelerator({'update_delays' : delays})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
@@ -1092,7 +1051,8 @@ class BoosterModel(AcceleratorModel):
         args_dict.update(ejection_parameters)
         if twiss is not None:
             args_dict['init_twiss'] = twiss[-1].make_dict()
-            self._send_parameters_to_downstream_accelerator({'injection_parameters' : args_dict})
+            self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                          _dict  = {'injection_parameters' : args_dict})
 
     def _change_injection_bunch(self, charge, charge_time, master_delay, bunch_separation):
         harmonic_number = self._accelerator.harmonic_number
@@ -1153,13 +1113,11 @@ class BoosterModel(AcceleratorModel):
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
         kwargs['ejection_efficiency'] = self._ejection_efficiency if self._ejection_efficiency is not None else 0
-        self._send_parameters_to_downstream_accelerator({'injection_cycle' : kwargs})
+        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
+                                                      _dict  = {'injection_cycle' : kwargs})
 
 
 class StorageRingModel(AcceleratorModel):
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     # --- methods implementing response of model to get requests
 
@@ -1240,7 +1198,7 @@ class StorageRingModel(AcceleratorModel):
         self._transfer_matrices = None
         self._summary = None
         self._injection_efficiency = None
-        self._received_charge = False
+        # self._received_charge = False
 
    # --- auxiliary methods
 

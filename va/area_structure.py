@@ -79,7 +79,7 @@ class AreaStructure:
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
 
-    def _update_state():
+    def _update_state(self):
         return 1
 
     def _set_parameter(self, data):
@@ -105,3 +105,28 @@ class AreaStructure:
         self._recv_queue.close()
         self._recv_queue.join_thread()
         utils.log('exit', 'area_structure ' + self.prefix)
+
+    def _send_parameters_to_other_area_structure(self, prefix, _dict):
+        self._send_queue.put(('p', (prefix, _dict)))
+
+    def _get_parameters_from_other_area_structure(self, _dict):
+        if 'pulsed_magnet_parameters' in _dict.keys():
+            self._set_pulsed_magnets_parameters(**_dict['pulsed_magnet_parameters'])
+        elif 'update_delays' in _dict.keys():
+            self._update_pulsed_magnets_delays(_dict['update_delays'])
+        elif 'injection_parameters' in _dict.keys():
+            self._injection_parameters = _dict['injection_parameters']
+            self._update_injection_efficiency = True
+        elif 'injection_cycle' in _dict.keys():
+            # self._received_charge = True
+            self._update_state()
+            self._injection_cycle(**_dict['injection_cycle'])
+            # self._received_charge = False
+
+    def _init_sp_pv_values(self):
+        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
+        sp_pv_list = []
+        for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
+            value = self._get_pv(pv)
+            sp_pv_list.append((pv,value))
+        self._send_queue.put(('sp', sp_pv_list ))

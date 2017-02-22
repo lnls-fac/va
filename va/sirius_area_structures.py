@@ -1,5 +1,6 @@
 
 import sirius as _sirius
+from .pvs import As as _pvs_As
 from .pvs import li as _pvs_li
 from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
@@ -11,14 +12,58 @@ from . import area_structure
 
 class ASModel(area_structure.AreaStructure):
     _first_accelerator_prefix = 'LI'
+    _bunch_separation  = 6*(1/_pvs_li.model.frequency)
+    _injection_bunch_increment = int(_pvs_li.model.frequency*_pvs_li.model.multi_bunch_pulse_duration/6)
 
-    def get_pv(self, pv_name):
+    pv_module = _pvs_As
+    device_names = pv_module.device_names
+    prefix = device_names.section.upper()
+    database = pv_module.get_database()
+
+
+    def __init__(self, **kwargs):
+        self._injection_bunch = 0
+        self._master_delay = 0.0
+        super().__init__(**kwargs)
+        self._init_sp_pv_values()
+
+    def _get_pv(self, pv_name):
         name_parts = self.device_names.split_name(pv_name)
-        if name_parts['Device']== 'Cycle':
+        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'Cycle':
+            if name_parts['Property'] == 'Start-Cmd'    : return 1
+            elif name_parts['Property'] == 'InjBun'     : return self._injection_bunch
+            elif name_parts['Property'] == 'InjBunIncr' : return self._injection_bunch_increment
+        return None
+
+    def _set_pv(self,pv_name, value):
+        name_parts = self.device_names.split_name(pv_name)
+        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'Cycle':
             if name_parts['Property'] == 'Start-Cmd':
-                return 1
-            if name_parts['Property'] == 'InjBun':
-                return 1
+                self._injection_cycle()
+            elif name_parts['Property'] == 'InjBun':
+                self._injection_bunch = int(value)
+                self._master_delay = self._injection_bunch * self._bunch_separation
+            elif name_parts['Property'] == 'InjBunIncr':
+                self._injection_bunch_increment = int(value)
+            else: return False
+        else: return False
+        return True
+
+    def _injection_cycle(self):
+
+        self._log(message1 = 'cycle', message2 = '--')
+        self._log(message1 = 'cycle', message2='Starting injection')
+        self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
+
+        _dict = {'injection_cycle' : {'master_delay': self._master_delay,
+                                      'bunch_separation': self._bunch_separation}}
+        # Shift the injection bunch for next injection:
+        self._injection_bunch += self._injection_bunch_increment
+        self._master_delay = self._injection_bunch*self._bunch_separation
+        pv_name = self.device_names.join_name('TI','Cycle','Inj',proper='InjBun')
+        self._send_queue.put(('s',(pv_name,self._injection_bunch)))
+        self._send_parameters_to_other_area_structure(prefix = self._first_accelerator_prefix,
+                                                      _dict  = _dict)
 
 
 class LiModel(accelerators_model.LinacModel):

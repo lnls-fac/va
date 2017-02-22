@@ -41,7 +41,7 @@ class DeviceNames:
     pvnaming_inj  = 'Inj'
 
     def __init__(self, section, el_names, fam_names, glob_names, inj_names,
-                excitation_curves_mapping, pulse_curve_mapping, get_family_data):
+                excitation_curves_mapping, pulse_curve_mapping, get_family_data=None):
         self.section = section
         self.el_names = el_names  # All these Family names must be defined in family_data dictionary
         self.fam_names = fam_names  # All these Family names must be defined in family_data dictionary
@@ -64,7 +64,7 @@ class DeviceNames:
         instance, proper, field)
 
     ##### Device Names ######
-    def get_device_names(self, accelerator, discipline = None):
+    def get_device_names(self, accelerator=None, discipline = None):
         """Return a dictionary of device names for given discipline
         each entry is another dictionary of model families whose
         values are the indices in the pyaccel model of the magnets
@@ -73,7 +73,7 @@ class DeviceNames:
         family_data = accelerator
         if accelerator is None:
             family_data = None
-        if not isinstance(accelerator, dict):
+        elif not isinstance(accelerator, dict):
             family_data = self.get_family_data(accelerator)
 
         if discipline == None:
@@ -247,6 +247,7 @@ class RecordNames:
             self._init_ps_record_names()
         else:
             self.ps = []
+            self.ps_rb = []
         if 'AP' in self.device_names.disciplines:
             self._init_ap_record_names()
         else:
@@ -321,8 +322,9 @@ class RecordNames:
         _record_names = {}
         for device_name in _device_names.keys():
             if 'Cycle' in device_name:
-                _record_names[device_name + ':Start-Cmd'] = _device_names[device_name]
-                _record_names[device_name + ':InjBun'] = _device_names[device_name]
+                _record_names[device_name + ':Start-Cmd']   = _device_names[device_name]
+                _record_names[device_name + ':InjBun']      = _device_names[device_name]
+                _record_names[device_name + ':InjBunIncr']  = _device_names[device_name]
             else:
                 _record_names[device_name + ':Enbl']  = _device_names[device_name]
                 _record_names[device_name + ':Delay'] = _device_names[device_name]
