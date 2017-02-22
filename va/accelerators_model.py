@@ -81,10 +81,22 @@ class AcceleratorModel(area_structure.AreaStructure):
             dev = self._power_supplies[Device_name]
             if Property.endswith('-SP'): return dev.current
             if Property.endswith('-RB'): return dev.current
+            if Property.endswith('PwrState-Sel'): return dev.pwr_state
+            if Property.endswith('PwrState-Sts'): return dev.pwr_state
+            if Property.endswith('OpMode-Sel'): return dev.op_mode
+            if Property.endswith('OpMode-Sts'): return dev.op_mode
+            if Property.endswith('CtrlMode-Mon'): return dev.ctrl_mode
+            if Property.endswith('Reset-Cmd'): return 0
         elif Discipline == 'PU':
             dev = self._pulsed_power_supplies[Device_name]
             if Property.endswith('-SP'): return dev.reference_value
             if Property.endswith('-RB'): return dev.current
+            if Property.endswith('PwrState-Sel'): return dev.pwr_state
+            if Property.endswith('PwrState-Sts'): return dev.pwr_state
+            if Property.endswith('OpMode-Sel'): return dev.op_mode
+            if Property.endswith('OpMode-Sts'): return dev.op_mode
+            if Property.endswith('CtrlMode-Mon'): return dev.ctrl_mode
+            if Property.endswith('Reset-Cmd'): return 0
         elif Discipline == 'DI':
             if Device == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -223,24 +235,75 @@ class AcceleratorModel(area_structure.AreaStructure):
         Discipline = name_parts['Discipline']
         Device_name= name_parts['Device_name']
         Property   = name_parts['Property']
-        if Discipline == 'PS' and Property.endswith('-SP'):
-            ps = self._power_supplies[Device_name]
-            prev_value = ps.current
-            if value != prev_value:
-                try:
-                    ps.current = value
+        if Discipline == 'PS':
+            if Property.endswith('-SP'):
+                ps = self._power_supplies[Device_name]
+                prev_value = ps.current
+                if value != prev_value:
+                    try:
+                        ps.current = value
+                        self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
+                return True
+            if Property.endswith('PwrState-Sel'):
+                ps = self._power_supplies[Device_name]
+                prev_value = ps.pwr_state
+                if value != prev_value:
+                    try:
+                        ps.pwr_state = value
+                        if value == 0: # 'Off' selection
+                            ps.current = 0
+                        else:
+                            ps.current = ps._current_sp
+                        self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
+            if Property.endswith('OpMode-Sel'):
+                ps = self._power_supplies[Device_name]
+                prev_value = ps.pwr_state
+                if value != prev_value:
+                    try:
+                        ps.op_mode = value
+                        #self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
+
+        elif Discipline == 'PU':
+            if Property.endswith('-SP'):
+                ps = self._pulsed_power_supplies[Device_name]
+                prev_value = ps.reference_value
+                if value != prev_value:
+                    ps.reference_value = value
                     self._state_deprecated = True
-                except ValueError:
-                    utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                    return False
-            return True
-        elif Discipline == 'PU' and Property.endswith('-SP'):
-            ps = self._pulsed_power_supplies[Device_name]
-            prev_value = ps.reference_value
-            if value != prev_value:
-                ps.reference_value = value
-                self._state_deprecated = True
-            return True
+                return True
+            if Property.endswith('PwrState-Sel'):
+                ps = self._power_supplies[Device_name]
+                prev_value = ps.pwr_state
+                if value != prev_value:
+                    try:
+                        ps.pwr_state = value
+                        if value == 0: # 'Off' selection
+                            ps.current = 0
+                        else:
+                            ps.current = ps._current_sp
+                        self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
+            if Property.endswith('OpMode-Sel'):
+                ps = self._power_supplies[Device_name]
+                prev_value = ps.pwr_state
+                if value != prev_value:
+                    try:
+                        ps.op_mode = value
+                        #self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
         return False
 
     def _set_pv_fake(self, pv_name, value, name_parts):

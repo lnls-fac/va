@@ -290,11 +290,18 @@ class RecordNames:
         for device_name in _device_names.keys():
             _record_names[device_name + ':Current-SP'] = _device_names[device_name]
             _record_names[device_name + ':Current-RB'] = _device_names[device_name]
+            _record_names[device_name + ':PwrState-Sel'] = _device_names[device_name]
+            _record_names[device_name + ':PwrState-Sts'] = _device_names[device_name]
+            _record_names[device_name + ':OpMode-Sel'] = _device_names[device_name]
+            _record_names[device_name + ':OpMode-Sts'] = _device_names[device_name]
+            _record_names[device_name + ':CtrlMode-Mon'] = _device_names[device_name]
+            _record_names[device_name + ':Reset-Cmd'] = _device_names[device_name]
+
         self.all_record_names.update(_record_names)
         self.ps_rb = []
         self.ps    = []
         for rec in _record_names.keys():
-            if rec.endswith('-RB'):
+            if rec.endswith(('-RB','-Sts','-Mon')):
                 self.ps_rb.append(rec)
             else:
                 self.ps.append(rec)
@@ -350,9 +357,27 @@ class RecordNames:
             else:
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         for p in self.ps:
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            if p.endswith('-SP'):
+                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            elif p.endswith('PwrState-Sel'):
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            elif p.endswith('OpMode-Sel'):
+                self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            elif p.endswith('CtrlMode-Mon'):
+                self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
+            elif p.endswith('Reset-Cmd'):
+                self.database[p] = {'type' : 'int'}
+            else:
+                raise Exception('PS PV type not recognized!')
         for p in self.ps_rb:
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            if p.endswith('PwrState-Sts'):
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            elif p.endswith('OpMode-Sts'):
+                self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            elif p.endswith('CtrlMode-Mon'):
+                self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
+            else:
+                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
         for p in self.ap:
             if any([substring in p for substring in ('BbBCurrLT',)]):
                 self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}

@@ -12,6 +12,9 @@ class PowerSupply(object):
         self._model = model
         self._ps_name = ps_name
         self._magnets = magnets
+        self._pwr_state = 1
+        self.ctrl_mode = 0
+        self._op_mode = 0
         for m in magnets:
             m.add_power_supply(self)
 
@@ -21,10 +24,34 @@ class PowerSupply(object):
 
     @current.setter
     def current(self, value):
+        if self.ctrl_mode == 1: return # CtrlState: Local
         self._current = value
+        self._current_sp = value
         for m in self._magnets:
             m.process()
 
+    @property
+    def pwr_state(self):
+        return self._pwr_state
+
+    @pwr_state.setter
+    def pwr_state(self, value):
+        if self.ctrl_mode == 1: return # ctrl_mode: Local
+        self._pwr_state = value
+        if value == 0:
+            self._current_sp = self._current
+            self.current = 0
+        else:
+            self._current = self._current_sp
+
+    @property
+    def op_mode(self):
+        return self._op_mode
+
+    @op_mode.setter
+    def op_mode(self, value):
+        if self.ctrl_mode == 1: return # ctrl_mode: Local
+        self._op_mode = value
 
 class FamilyPowerSupply(PowerSupply):
 
