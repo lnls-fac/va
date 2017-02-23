@@ -296,7 +296,6 @@ class RecordNames:
             _record_names[device_name + ':OpMode-Sts'] = _device_names[device_name]
             _record_names[device_name + ':CtrlMode-Mon'] = _device_names[device_name]
             _record_names[device_name + ':Reset-Cmd'] = _device_names[device_name]
-
         self.all_record_names.update(_record_names)
         self.ps_rb = []
         self.ps    = []

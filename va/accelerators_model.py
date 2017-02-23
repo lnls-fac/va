@@ -77,20 +77,11 @@ class AcceleratorModel(area_structure.AreaStructure):
         Device     = name_parts['Device']
         Device_name= name_parts['Device_name']
         Property   = name_parts['Property']
-        if Discipline == 'PS':
-            dev = self._power_supplies[Device_name]
-            if Property.endswith('-SP'): return dev.current
-            if Property.endswith('-RB'): return dev.current
-            if Property.endswith('PwrState-Sel'): return dev.pwr_state
-            if Property.endswith('PwrState-Sts'): return dev.pwr_state
-            if Property.endswith('OpMode-Sel'): return dev.op_mode
-            if Property.endswith('OpMode-Sts'): return dev.op_mode
-            if Property.endswith('CtrlMode-Mon'): return dev.ctrl_mode
-            if Property.endswith('Reset-Cmd'): return 0
-        elif Discipline == 'PU':
-            dev = self._pulsed_power_supplies[Device_name]
-            if Property.endswith('-SP'): return dev.reference_value
-            if Property.endswith('-RB'): return dev.current
+        if Discipline in ('PS','PU'):
+            if Discipline == 'PS': dev = self._power_supplies[Device_name]
+            elif Discipline == 'PU': dev = self._pulsed_power_supplies[Device_name]
+            if Property.endswith('-SP'): return dev.current_sp
+            if Property.endswith('-RB'): return dev.current_rb
             if Property.endswith('PwrState-Sel'): return dev.pwr_state
             if Property.endswith('PwrState-Sts'): return dev.pwr_state
             if Property.endswith('OpMode-Sel'): return dev.op_mode
@@ -235,68 +226,30 @@ class AcceleratorModel(area_structure.AreaStructure):
         Discipline = name_parts['Discipline']
         Device_name= name_parts['Device_name']
         Property   = name_parts['Property']
-        if Discipline == 'PS':
+        if Discipline in ('PS','PU'):
+            if Discipline == 'PS':   ps = self._power_supplies[Device_name]
+            elif Discipline == 'PU': ps = self._pulsed_power_supplies[Device_name]
             if Property.endswith('-SP'):
-                ps = self._power_supplies[Device_name]
-                prev_value = ps.current
+                prev_value = ps.current_sp
                 if value != prev_value:
                     try:
-                        ps.current = value
+                        ps.current_sp = value
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
                         return False
                 return True
             if Property.endswith('PwrState-Sel'):
-                ps = self._power_supplies[Device_name]
                 prev_value = ps.pwr_state
                 if value != prev_value:
                     try:
                         ps.pwr_state = value
-                        if value == 0: # 'Off' selection
-                            ps.current = 0
-                        else:
-                            ps.current = ps._current_sp
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
                         return False
             if Property.endswith('OpMode-Sel'):
-                ps = self._power_supplies[Device_name]
-                prev_value = ps.pwr_state
-                if value != prev_value:
-                    try:
-                        ps.op_mode = value
-                        #self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-
-        elif Discipline == 'PU':
-            if Property.endswith('-SP'):
-                ps = self._pulsed_power_supplies[Device_name]
-                prev_value = ps.reference_value
-                if value != prev_value:
-                    ps.reference_value = value
-                    self._state_deprecated = True
-                return True
-            if Property.endswith('PwrState-Sel'):
-                ps = self._power_supplies[Device_name]
-                prev_value = ps.pwr_state
-                if value != prev_value:
-                    try:
-                        ps.pwr_state = value
-                        if value == 0: # 'Off' selection
-                            ps.current = 0
-                        else:
-                            ps.current = ps._current_sp
-                        self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-            if Property.endswith('OpMode-Sel'):
-                ps = self._power_supplies[Device_name]
-                prev_value = ps.pwr_state
+                prev_value = ps.op_mode
                 if value != prev_value:
                     try:
                         ps.op_mode = value
@@ -454,6 +407,8 @@ class AcceleratorModel(area_structure.AreaStructure):
                 m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
             elif family_type == 'skew_quadrupole':
                 m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
+            elif family_type in ('solenoid','magnetic_lens'):
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
             else:
                 m = None
 
@@ -715,7 +670,7 @@ class TLineModel(AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+        for ps in self._pulsed_power_supplies.values(): ps.pwr_state = 0
 
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -764,11 +719,11 @@ class TLineModel(AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        for ps in self._pulsed_power_supplies.values(): ps.turn_on()
+        for ps in self._pulsed_power_supplies.values(): ps.pwr_state = 1
         loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
-        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+        for ps in self._pulsed_power_supplies.values(): ps.pwr_state = 0
 
         args_dict = {}
         args_dict.update(self._injection_parameters)
@@ -929,7 +884,7 @@ class BoosterModel(AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+        for ps in self._pulsed_power_supplies.values(): ps.pwr_state = 0
 
         one_turn_time = self._accelerator.length/_light_speed
         ramp_length =  int(self._ramp_interval/one_turn_time)*self._accelerator.length
@@ -1056,7 +1011,7 @@ class BoosterModel(AcceleratorModel):
 
         # turn on injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in ps_name and ps.enabled: ps.turn_on()
+            if 'InjK' in ps_name and ps.enabled: ps.pwr_state = 1
 
         # calc tracking efficiency
         _dict = self._injection_parameters
@@ -1067,7 +1022,7 @@ class BoosterModel(AcceleratorModel):
 
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in ps_name: ps.turn_off()
+            if 'InjK' in ps_name: ps.pwr_state = 0
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
@@ -1089,7 +1044,7 @@ class BoosterModel(AcceleratorModel):
         indices = []
         for ps_name, ps in self._pulsed_power_supplies.items():
             if 'EjeK' in ps_name: # FIX!!
-                ps.turn_on()
+                ps.pwr_state = 1
                 indices.append(ps.magnet_idx)
         idx = min(indices)
         accelerator = self._accelerator[idx:self._extraction_point+1]
@@ -1107,7 +1062,7 @@ class BoosterModel(AcceleratorModel):
         # turn off injection pulsed magnet
         for ps_name, ps in self._pulsed_power_supplies.items():
             if 'EjeK' in ps_name:
-                ps.turn_off()
+                ps.pwr_state = 0
 
         # Change energy
         self._accelerator.energy = 0.15e9 # FIX!!
@@ -1277,7 +1232,7 @@ class StorageRingModel(AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.turn_off()
+        for ps in self._pulsed_power_supplies.values(): ps.pwr_state = 0
 
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -1393,21 +1348,21 @@ class StorageRingModel(AcceleratorModel):
             # NLK injection efficiency
             self._log('calc', 'nlk injection efficiency  for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in ps_name and ps.enabled: ps.turn_on()
+                if 'InjNLK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in ps_name: ps.turn_off()
+                if 'InjNLK' in ps_name: ps.pwr_state = 0
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in ps_name and ps.enabled: ps.turn_on()
+                if 'InjDpK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
             for ps_name, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in ps_name and ps.enabled: ps.turn_off()
+                if 'InjDpK' in ps_name and ps.enabled: ps.pwr_state = 0
 
         else:
             self._injection_efficiency = 0

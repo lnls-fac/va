@@ -14,39 +14,52 @@ class PowerSupply(object):
         self._magnets = magnets
         self._pwr_state = 1
         self.ctrl_mode = 0
+        self._current_rb = 0
+        self._current_sp = 0
         self._op_mode = 0
+        self._interlock = 0
         for m in magnets:
             m.add_power_supply(self)
 
     @property
-    def current(self):
-        return self._current
+    def interlock(self):
+        return self._interlock
 
-    @current.setter
-    def current(self, value):
-        if self.ctrl_mode == 1: return # CtrlState: Local
-        self._current = value
-        self._current_sp = value
-        for m in self._magnets:
-            m.process()
+    @property
+    def current_rb(self):
+        return self._current_rb
+
+    @property
+    def current_sp(self):
+        return self._current_sp
 
     @property
     def pwr_state(self):
         return self._pwr_state
+
+    @property
+    def op_mode(self):
+        return self._op_mode
+
+    def _current_rb_setter(self, value): # called only from within this class
+        self._current_rb = value
+        for m in self._magnets:
+            m.process()
+
+    @current_sp.setter
+    def current_sp(self, value):
+        if self.ctrl_mode == 1 or self.op_mode: return # CtrlState: Local
+        self._current_rb_setter(value)
+        self._current_sp = value
 
     @pwr_state.setter
     def pwr_state(self, value):
         if self.ctrl_mode == 1: return # ctrl_mode: Local
         self._pwr_state = value
         if value == 0:
-            self._current_sp = self._current
-            self.current = 0
+            self._current_rb_setter(0)
         else:
-            self._current = self._current_sp
-
-    @property
-    def op_mode(self):
-        return self._op_mode
+            self._current_rb_setter(self._current_sp)
 
     @op_mode.setter
     def op_mode(self, value):
@@ -64,23 +77,26 @@ class FamilyPowerSupply(PowerSupply):
             for m in magnets:
                 total_current += m.get_current_from_field()
                 n += 1
-            self._current = total_current/n
+            self.current_sp = total_current/n
         else:
-            self._current = 0.0
+            self.current_sp = 0.0
 
     @property
-    def current(self):
-        return self._current
+    def current_sp(self):
+        return self._current_sp
 
-    @current.setter
-    def current(self, value):
+    @current_sp.setter
+    def current_sp(self, value):
+        if self.ctrl_mode == 1 or self.op_mode: return # CtrlState: Local
         if isinstance(list(self._magnets)[0], magnet.BoosterDipoleMagnet):
             all_power_supplies = self._model._power_supplies.values()
             booster_bend_ps = []
             for ps in all_power_supplies:
                 if isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
                     booster_bend_ps.append(ps)
-                    ps._current = value
+                    self._current_rb_setter(value)
+                    self._current_sp = value
+
 
             # Change the accelerator energy
             change_energy = True
@@ -88,18 +104,14 @@ class FamilyPowerSupply(PowerSupply):
                 for m in ps._magnets:
                     m.process(change_energy=change_energy)
                     change_energy = False
-                if ps != self:
-                    # Update pv
-                    self._model._send_queue.put(('s', (ps._ps_name, value)))
 
             # Change strengths of all magnets when accelerator energy is changed
             for ps in all_power_supplies:
                 for m in ps._magnets: m.renormalize_magnet()
 
         else:
-            self._current = value
-            for m in self._magnets:
-                m.process()
+            self._current_rb_setter(value)
+            self._current_sp = value
 
 
 class IndividualPowerSupply(PowerSupply):
@@ -114,25 +126,17 @@ class IndividualPowerSupply(PowerSupply):
             power_supplies = m._power_supplies.difference({self})
             ps_current = 0.0
             for ps in power_supplies:
-                ps_current += ps.current
-            self._current = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
+                ps_current += ps.current_rb
+            self.current_sp = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
         else:
-            self._current = 0.0
+            self.current_sp = 0.0
 
 
 class PulsedMagnetPowerSupply(IndividualPowerSupply):
 
     def __init__(self, magnets, model, ps_name, current=None):
         super().__init__(magnets, model=model, ps_name=ps_name)
-        self._reference_value = 1.0*self.current
-
-    @property
-    def reference_value(self):
-        return self._reference_value
-
-    @reference_value.setter
-    def reference_value(self, value):
-        self._reference_value = value
+        if current is not None: self.current_sp = current
 
     @property
     def enabled(self):
@@ -147,9 +151,3 @@ class PulsedMagnetPowerSupply(IndividualPowerSupply):
         magnet = list(self._magnets)[0]
         idx = magnet.indices[0]
         return idx
-
-    def turn_on(self):
-        self.current = 1.0*self.reference_value
-
-    def turn_off(self):
-        self.current = 0

@@ -70,20 +70,20 @@ class Magnet(object):
                 else:
                     self._field_profile_b[:,n] = numpy.array([1/self._nr_segs]*self._nr_segs)
 
-        self._current = self.get_current_from_field()
+        self._current_rb = self.get_current_from_field()
 
     def add_power_supply(self, power_supply):
         self._power_supplies.add(power_supply)
 
     def process(self):
         """Change strengths of the magnet when the current is changed"""
-        prev_current = self._current
+        prev_current = self._current_rb
         prev_normal_fields = self._excitation_curve.get_normal_fields_from_current(prev_current)
         prev_skew_fields   = self._excitation_curve.get_skew_fields_from_current(prev_current)
 
         current = 0.0
         for ps in self._power_supplies:
-            current += ps.current
+            current += ps.current_rb
         new_normal_fields = self._excitation_curve.get_normal_fields_from_current(current)
         new_skew_fields   = self._excitation_curve.get_skew_fields_from_current(current)
 
@@ -91,7 +91,7 @@ class Magnet(object):
         delta_skew_fields   = numpy.array(new_skew_fields) - numpy.array(prev_skew_fields)
 
         self.value = [delta_normal_fields, delta_skew_fields]
-        self._current = current
+        self._current_rb = current
 
     def renormalize_magnet(self):
         """Change strengths of the magnet when accelerator energy is changed"""
@@ -115,8 +115,7 @@ class Magnet(object):
         return self._indices
 
     def get_current_from_field(self):
-        current = self._excitation_curve.get_current_from_field(self.value)
-        return current
+        return self._excitation_curve.get_current_from_field(self.value)
 
     def _get_value(self):
         # Get the integrated field correspondent to the main harmonic value
@@ -172,13 +171,13 @@ class BoosterDipoleMagnet(Magnet):
         self._electron_rest_energy_ev = e0
 
     def process(self, change_energy = False):
-        prev_current = self._current
+        prev_current = self._current_rb
         prev_normal_fields = self._excitation_curve.get_normal_fields_from_current(prev_current)
         prev_skew_fields   = self._excitation_curve.get_skew_fields_from_current(prev_current)
 
         current = 0.0
         for ps in self._power_supplies:
-            current += ps.current/2.0
+            current += ps.current_rb/2.0
         new_normal_fields = self._excitation_curve.get_normal_fields_from_current(current)
         new_skew_fields   = self._excitation_curve.get_skew_fields_from_current(current)
 
@@ -197,7 +196,7 @@ class BoosterDipoleMagnet(Magnet):
         # Don't change the main harmonic value of polynom_b
         delta_normal_fields[0] = 0.0
         self.value = [delta_normal_fields, delta_skew_fields]
-        self._current = current
+        self._current_rb = current
 
 
 class NormalMagnet(Magnet):
