@@ -5,7 +5,7 @@ _section = 'TB'
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'PS': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
-           'QD2B','QF3','QD3','QF4','QD4'],
+           'QD2B','QF3','QD3','QF4','QD4','B'],
     'MA': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
            'QD2B','QF3','QD3','QF4','QD4','B'],
     'TI': ['InjS'],
@@ -14,7 +14,7 @@ _el_names = { # All these Family names must be defined in family_data dictionary
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
     'DI': ['BPM'],
-    'PS': ['B'],
+    # 'PS': ['B'],
     'MA': ['B']
 }
 _glob_names = dict() # These Family names can be any name
