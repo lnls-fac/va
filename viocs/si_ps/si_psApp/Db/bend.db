@@ -1,0 +1,41 @@
+
+record(calc, "SI-Fam:PS-B1B2:Current-RB")
+{
+    field(DESC, "BOPS-BEND simultaneous current readback")
+    field(SCAN, ".1 second")
+    field(PREC, 10)
+    field(INPA, "SI-Fam:PS-B1B2-1:Current-RB")
+    field(INPB, "SI-Fam:PS-B1B2-2:Current-RB")
+    field(CALC, ".5*(A+B)")
+    field(EGU, "A")
+}
+
+record(ao, "SI-Fam:PS-B1B2:Current-SP")
+{
+    field(DESC, "BOPS-BEND simultaneous current setpoint")
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    #field(OUT, "SEQ-SI-Fam:PS-B1B2:Current-SP")
+    field(FLNK, "SEQ-SI-Fam:PS-B1B2:Current-SP PP")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-SI-Fam:PS-B1B2-Current-SP")
+{
+    field(SCAN, "Passive")
+    field(PREC, 10)
+    field(DOL1, "SI-Fam:PS-B1B2-Current-SP")
+    field(DOL2, "SI-Fam:PS-B1B2-Current-SP")
+    field(LNK1, "SI-Fam:PS-B1B2-1:Current-SP PP")
+    field(LNK2, "SI-Fam:PS-B1B2-2:Current-SP PP")
+    field(EGU, "A")
+}
+
+record(seq, "SEQ-SI-Fam:PS-B1B2:Current-SP-INIT")
+{
+    field(SCAN, "Event")
+    field(EVNT, 123)
+    field(DOL1, "VA-SI-Fam:PS-B1B2-1:Current-SP")
+    field(LNK1, "SI-Fam:PS-B1B2:Current-SP")
+    field(FLNK, "SI-Fam:PS-B1B2:Current-SP")
+}

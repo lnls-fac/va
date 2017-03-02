@@ -1,3 +1,14 @@
+from .ioc import get_pv_database, SimpleServer, MyDriver
+
+pv_database = get_pv_database()
+
+server = SimpleServer()
+server.createPV(prefix, pv_database)
+
+driver = MyDriver(pv_database)
+
+while True:
+    server.process(0.1)
 import random
 import multiprocessing
 import signal
@@ -16,7 +27,7 @@ def get_pv_database():
     for ArS in area_structures:
         pv_database = ArS.record_names.get_database()
         for pv_name, value in pv_database.items():
-            # value.update({'scan':0.5})
+            value.update({'scan':0.1})
             parts = ArS.device_names.split_name(pv_name)
             if parts['Discipline'] == 'DI' and parts['Device'] == 'BPM':
                 my_database[pv_name] = value
@@ -35,21 +46,23 @@ class MyDriver(Driver):
             self.setParam(pv_name,pv.get())
         self.updatePVs()
 
-    # Not used right now. It is usefull to add a callback to a pv when processing is not needed
-    def onChanges(self,pvname=None,value=None, **kwargs):
-        self._add_noise(pvname[4:], value)
-        self.updatePVs()
+    # # Not used right now. It is usefull to add a callback to a pv when processing is not needed
+    # def onChanges(self,pvname=None,value=None, **kwargs):
+    #     self._add_noise(pvname[4:], value)
+    #     self.updatePVs()
 
     def read(self, reason):
+        self._add_noise(reason,self.pv_database[reason].get())
+        self.updatePVs()
         return super().read(reason)
 
     def write(self,reason,value):
         return True
 
-    def process(self):
-        for pv_name, pv in self.pv_database.items():
-            self._add_noise(pv_name, pv.get())
-        self.updatePVs()
+    # def process(self):
+    #     for pv_name, pv in self.pv_database.items():
+    #         self._add_noise(pv_name, pv.get())
+    #     self.updatePVs()
 
     def _add_noise(self,pv_name, value):
         if value is None: return
@@ -73,6 +86,6 @@ if __name__ == '__main__':
 
     server_thread.start()
     while not stop_event.is_set():
-        driver.process()
+        # driver.process()
         time.sleep(INTERVAL)
     server_thread.stop()
