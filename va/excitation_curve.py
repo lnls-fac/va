@@ -7,13 +7,13 @@ _HEADER_CHAR = '#'
 
 class ExcitationCurve:
 
-    def __init__(self, magnet): # generalise: pass magnet name
+    def __init__(self, magnet, polarity): # generalise: pass magnet name
         """Conversion between current and field
 
         Keyword argument:
         magnet -- magnet excitation curve file name
         """
-        self._load_excitation_curve(magnet)
+        self._load_excitation_curve(magnet,polarity)
 
 
     @property
@@ -79,81 +79,45 @@ class ExcitationCurve:
     def _interpolate_main_field(self, field, field_array, current_array):
         return _numpy.interp(field, field_array, current_array)
 
-    def _load_excitation_curve(self, magnet):
-        self._read_excitation_curve_from_file(file_name=magnet)
+    def _load_excitation_curve(self, file_name, polarity):
 
-    def _read_excitation_curve_from_file(self, file_name):
         with open(file_name, encoding='latin-1') as f:
             lines = [line.strip() for line in f]
 
-        self._process_excitation_curve_file_lines(lines)
-
-    def _process_excitation_curve_file_lines(self, lines):
-        conversion_data = []
+        data = []
         for line in lines:
-            if line.startswith(_HEADER_CHAR):
-                self._process_header_line(line)
-            else:
-                conversion_data.append([float(word) for word in line.split()])
+            if line.startswith(_HEADER_CHAR):  self._process_header_line(line)
+            else:  data.append([float(word) for word in line.split()])
 
-        self._check_harmonics()
-        self._build_interpolation_tables_from_conversion_data(conversion_data)
-
-    def _process_header_line(self, line):
-        words = self._get_words_from_header_line(line)
-        if 'main_harmonic' in words:
-            self._read_main_harmonic_and_type_from_words(words)
-        elif 'harmonics' in words:
-            self._read_harmonics_from_words(words)
-
-    def _get_words_from_header_line(self, line):
-        lowercase_header_line = line.lower()
-        lowercase_line = lowercase_header_line.strip(_HEADER_CHAR)
-        words = lowercase_line.split()
-
-        return words
-
-    def _read_main_harmonic_and_type_from_words(self, words):
-        self._read_main_harmonic_from_words(words)
-        self._read_curve_type_from_words(words)
-
-    def _read_main_harmonic_from_words(self, words):
-        self._main_harmonic = int(words[1])
-
-    def _read_curve_type_from_words(self, words):
-        if len(words) <= 2:
-            self._curve_type = 'normal' # default
-        elif words[2] in ('normal', 'skew'):
-            self._curve_type = words[2]
-        else:
-            raise ValueError("invalid curve type: '" + words[2] + "'")
-
-    def _read_harmonics_from_words(self, words):
-        self._harmonics = [int(n) for n in words[1:]]
-        self._highest_harmonic = max(self._harmonics)
-
-    def _check_harmonics(self):
-        if not hasattr(self, '_main_harmonic'):
-            raise AttributeError('missing main_harmonic')
-
-        if not hasattr(self, '_harmonics'):
-            raise AttributeError('missing harmonics')
-
+        if not hasattr(self, '_main_harmonic'): raise AttributeError('missing main_harmonic')
+        if not hasattr(self, '_harmonics'):     raise AttributeError('missing harmonics')
         self._main_harmonic_index = self._harmonics.index(self._main_harmonic)
 
-    def _build_interpolation_tables_from_conversion_data(self, data):
         data = _numpy.array(data)
         current = data[:, 0] # current
-        fields = data[:, 1:] # integrated fields (normal and skew)
+        fields = polarity*data[:, 1:] # integrated fields (normal and skew)
 
-        self._check_fields_table_size(fields)
-        self._prepare_interpolation_tables(current, fields)
-
-    def _check_fields_table_size(self, fields):
         if _numpy.size(fields, 1) != 2*(len(self._harmonics)):
             msg = ('Mismatch between number of columns and size of ' +
                 'harmonics list in excitation curve')
             raise Exception(msg)
+        self._prepare_interpolation_tables(current, fields)
+
+    def _process_header_line(self, line):
+        lowercase_header_line = line.lower()
+        lowercase_line = lowercase_header_line.strip(_HEADER_CHAR)
+        words = lowercase_line.split()
+        if 'main_harmonic' in words:
+            self._main_harmonic = int(words[1])
+            if len(words) <= 2:
+                self._curve_type = 'normal' # default
+            elif words[2] in ('normal', 'skew'):
+                self._curve_type = words[2]
+            else:
+                raise ValueError("invalid curve type: '" + words[2] + "'")
+        elif 'harmonics' in words:
+            self._harmonics = [int(n) for n in words[1:]]
+            self._highest_harmonic = max(self._harmonics)
 
     def _prepare_interpolation_tables(self, current, fields):
         # Interpolation requires increasing x

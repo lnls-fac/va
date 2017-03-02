@@ -1,4 +1,4 @@
-from sirius import bo as model
+from models import bo as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'BO'
@@ -22,22 +22,22 @@ _glob_names = {# These Family names can be any name
 }
 _inj_names = dict()
 ##### Excitation Curves #######
-_excitation_curves_mapping = {
-    ('B',)    : 'boma-b.txt',
-    ('QF',)   : 'boma-qf.txt',
-    ('QD',)   : 'boma-qd.txt',
-    ('QS',)   : 'boma-qs.txt',
-    ('SF',)   : 'boma-sf.txt',
-    ('SD',)   : 'boma-sd.txt',
-    ('CH',)   : 'boma-ch.txt',
-    ('CV',)   : 'boma-cv.txt',
-    ('InjK',) : 'bopm-injk.txt',
-    ('EjeK',) : 'bopm-ejek.txt',
-}
+_excitation_curves_mapping = (
+    (('B',)    , ('bo-dipole-b.txt',1)),
+    (('QF',)   , ('bo-quadrupole-qf.txt',1)),
+    (('QD',)   , ('bo-quadrupole-qd.txt',1)),
+    (('QS',)   , ('bo-quadrupole-qs.txt',1)),
+    (('SF',)   , ('bo-sextupole-sf.txt',1)),
+    (('SD',)   , ('bo-sextupole-sd.txt',1)),
+    (('CH',)   , ('bo-corrector-ch.txt',1)),
+    (('CV',)   , ('bo-corrector-cv.txt',1)),
+    (('InjK',) , ('bo-kicker-injk.txt',1)),
+    (('EjeK',) , ('bo-kicker-ejek.txt',1)),
+)
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'EjeK':'bopm-ejek-pulse.txt',
-    'InjK':'bopm-injk-pulse.txt',
+    'EjeK':'bo-kicker-ejek.txt',
+    'InjK':'bo-kicker-injk.txt',
 }
 
 device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,

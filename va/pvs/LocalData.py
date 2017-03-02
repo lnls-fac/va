@@ -21,11 +21,11 @@ class DeviceNames:
         self.get_family_data = get_family_data
 
     def split_name(self, name):
-        return siriuspy.split_name(name)
+        return siriuspy.naming_system.split_name(name)
 
     def join_name(self, discipline, device, subsection,
         instance=None, proper=None, field=None):
-        return siriuspy.join_name(self.section, discipline, device, subsection,
+        return siriuspy.naming_system.join_name(self.section, discipline, device, subsection,
         instance, proper, field)
 
     ##### Device Names ######
@@ -133,8 +133,8 @@ class DeviceNames:
         tis_dev = set(self.get_device_names(accelerator, 'TI').keys())
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            dev = split_name(pm)['Device']
-            ins = split_name(pm)['Instance']
+            dev = self.split_name(pm)['Device']
+            ins = self.split_name(pm)['Instance']
             dev += '-'+ins if ins else ins
             ti = [i for i in tis_dev if dev in i][0]
             mapping[pm] = ti + delay_or_enbl
@@ -167,7 +167,7 @@ class DeviceNames:
         mapping = {}
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            dev = split_name(pm)['Device']
+            dev = self.split_name(pm)['Device']
             mapping[pm] = self.pulse_curve_mapping[dev]
 
         return mapping
@@ -182,10 +182,16 @@ class DeviceNames:
         magnets = self.get_magnet_names(accelerator)
 
         ec = dict()
-        for fams, curve in self.excitation_curves_mapping.items():
+        for fams, curve in self.excitation_curves_mapping:
             for name in magnets:
                 device = self.split_name(name)['Device']
-                if device.startswith(fams): ec[name] = curve
+                if isinstance(fams[0],tuple):
+                    fams = fams[0]
+                    sub  = self.split_name(name)['Subsection']
+                    inst = self.split_name(name)['Instance']
+                    if sub.endswith(fams[0]) and device.startswith(fams[1]) and inst.endswith(fams[2]): ec[name] = curve
+                else:
+                    if device.startswith(fams): ec[name] = curve
         return ec
 
 

@@ -365,7 +365,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         accelerator              = self._accelerator
         magnet_names             = self.device_names.get_magnet_names(accelerator)
         family_mapping           = self.model_module.family_mapping
-        excitation_curve_mapping = self.device_names.get_excitation_curve_mapping(accelerator)
+        excit_curv_polarity_map  = self.device_names.get_excitation_curve_mapping(accelerator)
         pulse_curve_mapping      = self.device_names.get_pulse_curve_mapping(accelerator)
         _, ps2magnet             = self.device_names.get_magnet2power_supply_mapping(accelerator)
         self._magnet2delay, self._delay2magnet     = self.device_names.get_magnet_delay_mapping(accelerator)
@@ -374,7 +374,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._magnets = dict()
         self._pulsed_magnets = dict()
         for magnet_name in magnet_names.keys():
-            excitation_curve = excitation_curve_mapping[magnet_name]
+            excitation_curve, polarity = excit_curv_polarity_map[magnet_name]
             try:
                 exc_curve_filename = os.path.join(self._excitation_curves_dir, excitation_curve)
             except:
@@ -386,29 +386,29 @@ class AcceleratorModel(area_structure.AreaStructure):
 
             if family_type == 'dipole':
                 if self.prefix == 'BO':
-                    m = magnet.BoosterDipoleMagnet(accelerator, indices, exc_curve_filename)
+                    m = magnet.BoosterDipoleMagnet(accelerator, indices, exc_curve_filename, polarity)
                 else:
-                    m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+                    m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type  == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
                 try:
                     pulse_curve_filename = os.path.join(self._pulse_curves_dir, pulse_curve)
                 except:
                     pulse_curve_filename = os.path.join(self._pulse_curves_dir, 'not_found')
-                m = magnet.PulsedMagnet(accelerator, indices, exc_curve_filename, pulse_curve_filename)
+                m = magnet.PulsedMagnet(accelerator, indices, exc_curve_filename, polarity, pulse_curve_filename)
                 self._pulsed_magnets[magnet_name] = m
             elif family_type == 'quadrupole':
-                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type == 'sextupole':
-                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
-                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
-                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type == 'skew_quadrupole':
-                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.SkewMagnet(accelerator, indices, exc_curve_filename, polarity)
             elif family_type in ('solenoid','magnetic_lens'):
-                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename)
+                m = magnet.NormalMagnet(accelerator, indices, exc_curve_filename, polarity)
             else:
                 m = None
 

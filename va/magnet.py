@@ -8,7 +8,7 @@ import pyaccel
 
 class Magnet(object):
 
-    def __init__(self, accelerator, indices, exc_curve_filename):
+    def __init__(self, accelerator, indices, exc_curve_filename,polarity):
         """Magnet with power supplies
 
         Reads current from power supplies and sets Accelerator elements fields
@@ -24,7 +24,7 @@ class Magnet(object):
             self._indices = indices
         self._nr_segs = len(self._indices)
 
-        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename)
+        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity)
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
         total_length = 0.0
@@ -163,9 +163,9 @@ class Magnet(object):
 
 class BoosterDipoleMagnet(Magnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename):
+    def __init__(self, accelerator, indices, exc_curve_filename,polarity):
         self._polynom = 'polynom_b'
-        super().__init__(accelerator, indices, exc_curve_filename)
+        super().__init__(accelerator, indices, exc_curve_filename, polarity)
         e0 = mathphys.constants.electron_rest_energy*mathphys.constants._joule_2_eV
         self._light_speed = mathphys.constants.light_speed
         self._electron_rest_energy_ev = e0
@@ -201,22 +201,22 @@ class BoosterDipoleMagnet(Magnet):
 
 class NormalMagnet(Magnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename):
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity):
         self._polynom = 'polynom_b'
-        super().__init__(accelerator, indices, exc_curve_filename)
+        super().__init__(accelerator, indices, exc_curve_filename, polarity)
 
 
 class SkewMagnet(Magnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename):
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity):
         self._polynom = 'polynom_a'
-        super().__init__(accelerator, indices, exc_curve_filename)
+        super().__init__(accelerator, indices, exc_curve_filename, polarity)
 
 
 class PulsedMagnet(NormalMagnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, pulse_curve_filename):
-        super().__init__(accelerator, indices, exc_curve_filename)
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity, pulse_curve_filename):
+        super().__init__(accelerator, indices, exc_curve_filename, polarity)
         self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename)
         self._light_speed = mathphys.constants.light_speed
         self.length_to_inj_point = pyaccel.lattice.find_spos(self._accelerator, self._indices[0])

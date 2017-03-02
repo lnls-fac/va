@@ -8,7 +8,7 @@ _inj_names = {
     'TI': ['Cycle',]
 }
 ##### Excitation Curves #######
-_excitation_curves_mapping = dict()
+_excitation_curves_mapping = tuple()
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= dict()
 

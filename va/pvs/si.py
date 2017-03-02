@@ -1,4 +1,4 @@
-from sirius import si as model
+from models import si as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'SI'
@@ -37,29 +37,30 @@ _glob_names = {# These Family names can be any name
 }
 _inj_names = dict()
 ##### Excitation Curves #######
-_excitation_curves_mapping = {
-    ('B1',)                     : 'sima-b1.txt',
-    ('B2',)                     : 'sima-b2.txt',
-    ('BC',)                     : 'sima-bc.txt',
-    ('QD',)                     : 'sima-q14.txt',
-    ('QFA','Q1','Q2','Q3','Q4') : 'sima-q20.txt',
-    ('QFB','QFP')               : 'sima-q30.txt',
-    ('QS',)                     : 'sima-qs.txt',
-    ('SF',)                     : 'sima-sf.txt',
-    ('SD',)                     : 'sima-sd.txt',
-    ('CH',)                     : 'sima-ch.txt',
-    ('CV',)                     : 'sima-cv.txt',
-    ('FCH',)                    : 'sima-ch.txt',
-    ('FCV',)                    : 'sima-cv.txt',
-    ('InjDpK',)                 : 'sipm-injdpk.txt',
-    ('InjNLK',)                 : 'sipm-injnlk.txt',
-    ('VPing',)                  : 'sipm-injdpk.txt',
-}
+_excitation_curves_mapping = (
+    (('B1',)                     , ('si-dipole-b1.txt',1)),
+    (('B2',)                     , ('si-dipole-b2.txt',1)),
+    (('BC',)                     , ('si-dipole-bc.txt',1)),
+    (('QD',)                     , ('si-quadrupole-q14.txt',1)),
+    (('QFA','Q1','Q2','Q3','Q4') , ('si-quadrupole-q20.txt',1)),
+    (('QFB','QFP')               , ('si-quadrupole-q30.txt',1)),
+    (('QS',)                     , ('si-sextupole-s15-qs.txt',1)),
+    (('SF',)                     , ('si-sextupole-s15.txt',-1)),
+    (('SD',)                     , ('si-sextupole-s15.txt',1)),
+    (('CH',)                     , ('si-sextupole-s15-ch.txt',1)),
+    (('CV',)                     , ('si-sextupole-s15-cv.txt',1)),
+    ((('C2','CV','2'),)          , ('bo-corrector-cv.txt',1)),
+    (('FCH',)                    , ('si-corrector-fch.txt',1)),
+    (('FCV',)                    , ('si-corrector-fcv.txt',1)),
+    (('InjDpK',)                 , ('si-kicker-injdpk.txt',1)),
+    (('InjNLK',)                 , ('si-kicker-injnlk.txt',1)),
+    (('VPing',)                  , ('si-kicker-vping.txt',1)),
+)
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'VPing' :'sipm-injdpk-pulse.txt',
-    'InjDpK':'sipm-injdpk-pulse.txt',
-    'InjNLK':'sipm-injnlk-pulse.txt',
+    'VPing' :'si-kicker-vping.txt',
+    'InjDpK':'si-kicker-injdpk.txt',
+    'InjNLK':'si-kicker-injnlk.txt',
 }
 
 device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,

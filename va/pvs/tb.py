@@ -1,11 +1,11 @@
-from sirius import tb as model
+from models import tb as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'TB'
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'PS': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
-           'QD2B','QF3','QD3','QF4','QD4','B'],
+           'QD2B','QF3','QD3','QF4','QD4'],
     'MA': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
            'QD2B','QF3','QD3','QF4','QD4','B'],
     'TI': ['InjS'],
@@ -14,22 +14,23 @@ _el_names = { # All these Family names must be defined in family_data dictionary
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
     'DI': ['BPM'],
-    # 'PS': ['B'],
+    'PS': ['B'],
     'MA': ['B']
 }
 _glob_names = dict() # These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
-_excitation_curves_mapping = {
-    ('B',)  : 'tbma-b.txt',
-    ('Q',)  : 'tbma-q.txt',
-    ('CH',) : 'tbma-ch.txt',
-    ('CV',) : 'tbma-cv.txt',
-    ('InjS',)  : 'tbpm-injs.txt',
-}
+_excitation_curves_mapping = (
+    (('B',)            , ('tb-dipole-b.txt',1)),
+    ((('01','B',''),)  , ('tb-dipole-b.txt',-1)),
+    (('Q',)            , ('tb-quadrupole-q.txt',1)),
+    (('CH',)           , ('tb-corrector-ch.txt',1)),
+    (('CV',)           , ('tb-corrector-cv.txt',1)),
+    (('InjS',)         , ('tb-septum-injs.txt',1)),
+)
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'InjS':'tbpm-sep-pulse.txt' # INJECTION SEPTUM
+    'InjS':'tb-septum-injs.txt' # INJECTION SEPTUM
 }
 
 device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,

@@ -1,4 +1,4 @@
-from sirius import li as model
+from models import li as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'LI'
@@ -24,15 +24,15 @@ _fam_names = { # All these Family names must be defined in family_data dictionar
 _glob_names = dict() # These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
-_excitation_curves_mapping = {
-    ('QD','QF3'): 'lima-q.txt',
-    ('QF',):      'lima-famqf.txt',
-    ('CH',):      'lima-ch.txt',
-    ('CV',):      'lima-cv.txt',
-    ('Spect',):   'lima-spect.txt',
-    ('Slnd',):    'lima-slnd.txt',
-    ('Lens',):    'lima-lens.txt',
-}
+_excitation_curves_mapping = (
+    (('QD','QF3')  , ('li-quadrupole-qd.txt',1)),
+    (('QF1','QF2') , ('li-quadrupole-qf.txt',1)),
+    (('CH',)       , ('li-corrector-ch.txt',1)),
+    (('CV',)       , ('li-corrector-cv.txt',1)),
+    (('Spect',)    , ('li-dipole-spect.txt',1)),
+    (('Slnd',)     , ('li-solenoid-slnd.txt',1)),
+    (('Lens',)     , ('li-lens.txt',1)),
+)
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= dict()
 
