@@ -1,5 +1,5 @@
-
-import models as _models
+import siriuspy as _siriuspy
+import pymodels as _pymodels
 from .pvs import As as _pvs_As
 from .pvs import li as _pvs_li
 from .pvs import tb as _pvs_tb
@@ -76,12 +76,12 @@ class LiModel(accelerators_model.LinacModel):
 
     # Injection parameters
     _downstream_accelerator_prefix = 'TB'
-    _delta_rx, _delta_angle        = 0.0, 0.0 #_models.coordinate_system.parameters(prefix)
+    _delta_rx, _delta_angle        = 0.0, 0.0 #_pymodels.coordinate_system.parameters(prefix)
     _emittance                     = model_module.accelerator_data['emittance']
     _energy_spread                 = model_module.accelerator_data['energy_spread']
     _global_coupling               = model_module.accelerator_data['global_coupling']
-    _pulse_curves_dir              = model_module.accelerator_data['dirs']['pulse_curves']
-    _excitation_curves_dir         = model_module.accelerator_data['dirs']['excitation_curves']
+    _pulse_curves_dir              = _siriuspy.envars.folder_pulse_curves
+    _excitation_curves_dir         = _siriuspy.envars.folder_excitation_data
     _twiss_at_match                = model_module.accelerator_data['twiss_at_match'].make_dict()
     _frequency                     = model_module.frequency
     _single_bunch_charge           = model_module.single_bunch_charge
@@ -100,11 +100,11 @@ class TbModel(accelerators_model.TLineModel):
     database = pv_module.get_database()
 
     # Injection parameters
-    _pulse_curves_dir              = model_module.accelerator_data['dirs']['pulse_curves']
-    _excitation_curves_dir         = model_module.accelerator_data['dirs']['excitation_curves']
+    _pulse_curves_dir              = _siriuspy.envars.folder_pulse_curves
+    _excitation_curves_dir         = _siriuspy.envars.folder_excitation_data
     nr_bunches = LiModel.nr_bunches
     _downstream_accelerator_prefix = 'BO'
-    _delta_rx, _delta_angle = _models.coordinate_system.parameters(prefix)
+    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
 
 
 class BoModel(accelerators_model.BoosterModel):
@@ -120,9 +120,9 @@ class BoModel(accelerators_model.BoosterModel):
     _downstream_accelerator_prefix = 'TS'
     _global_coupling               = model_module.accelerator_data['global_coupling']
     _pressure_profile              = model_module.accelerator_data['pressure_profile']
-    _pulse_curves_dir              = model_module.accelerator_data['dirs']['pulse_curves']
-    _excitation_curves_dir         = model_module.accelerator_data['dirs']['excitation_curves']
-    _delta_rx, _delta_angle = _models.coordinate_system.parameters(prefix)
+    _pulse_curves_dir              = _siriuspy.envars.folder_pulse_curves
+    _excitation_curves_dir         = _siriuspy.envars.folder_excitation_data
+    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
     _injection_point_label  = 'InjS'
     _extraction_point_label = 'EjeSF'
     _ramp_interval          = 0.23
@@ -137,11 +137,11 @@ class TsModel(accelerators_model.TLineModel):
     database = pv_module.get_database()
 
     # Injection parameters
-    _pulse_curves_dir              = model_module.accelerator_data['dirs']['pulse_curves']
-    _excitation_curves_dir         = model_module.accelerator_data['dirs']['excitation_curves']
+    _pulse_curves_dir              = _siriuspy.envars.folder_pulse_curves
+    _excitation_curves_dir         = _siriuspy.envars.folder_excitation_data
     nr_bunches = BoModel.nr_bunches
     _downstream_accelerator_prefix = 'SI'
-    _delta_rx, _delta_angle = _models.coordinate_system.parameters(prefix)
+    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
 
 
 class SiModel(accelerators_model.StorageRingModel):
@@ -156,7 +156,7 @@ class SiModel(accelerators_model.StorageRingModel):
     nr_bunches = model_module.harmonic_number
     _global_coupling               = model_module.accelerator_data['global_coupling']
     _pressure_profile              = model_module.accelerator_data['pressure_profile']
-    _pulse_curves_dir              = model_module.accelerator_data['dirs']['pulse_curves']
-    _excitation_curves_dir         = model_module.accelerator_data['dirs']['excitation_curves']
-    _delta_rx, _delta_angle = _models.coordinate_system.parameters(prefix)
+    _pulse_curves_dir              = _siriuspy.envars.folder_pulse_curves
+    _excitation_curves_dir         = _siriuspy.envars.folder_excitation_data
+    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
     _injection_point_label  = 'InjSF'

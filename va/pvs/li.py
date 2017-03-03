@@ -1,4 +1,4 @@
-from models import li as model
+from pymodels import li as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'LI'

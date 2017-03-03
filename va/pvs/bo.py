@@ -1,4 +1,4 @@
-from models import bo as model
+from pymodels import bo as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'BO'

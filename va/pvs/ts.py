@@ -1,4 +1,4 @@
-from models import ts as model
+from pymodels import ts as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'TS'

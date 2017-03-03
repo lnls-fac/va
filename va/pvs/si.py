@@ -1,4 +1,4 @@
-from models import si as model
+from pymodels import si as model
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'SI'
