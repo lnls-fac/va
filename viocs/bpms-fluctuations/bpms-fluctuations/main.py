@@ -17,7 +17,7 @@ __version__ = _pvs.__version__
 class App:
     NOISELVL = 100e-9
     PVS_PREFIX = ''
-    VA_PREFIX = 'VA2-'
+    VA_PREFIX = 'VAF-'
     pvs_database = _pvs.pvs_database
 
     def __init__(self,driver):
@@ -25,14 +25,9 @@ class App:
         self._my_pvs = dict()
         for pv_name in self.pvs_database.keys():
             if pv_name == 'Version': continue
-            print(pv_name)
             pv = _epics.PV(self.VA_PREFIX + pv_name)
-            value = pv.get()
             # pv.add_callback(self._onChanges)
             self._my_pvs[pv_name] = pv
-            self._driver.setParam(pv_name,value)
-        self._driver.updatePVs()
-        print(len(self._my_pvs),len(self.pvs_database))
 
     @property
     def driver(self):
@@ -54,7 +49,7 @@ class App:
         return None
 
     def write(self,reason,value):
-        return False # False: no write implemented.
+        return False
 
     def _add_noise(self,pv_name, value):
         if value is None: return
