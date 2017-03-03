@@ -2,11 +2,11 @@
 
 import sys
 import va.server
-
+import siriuspy
 
 if len(sys.argv) > 1:
     prefix = sys.argv[1]
 else:
-    prefix = "VA-"
-
+    prefix = siriuspy.envars.vaca_prefix
+    
 va.server.run(prefix)
