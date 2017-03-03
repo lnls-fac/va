@@ -76,6 +76,7 @@ class FamilyPowerSupply(PowerSupply):
             n = 0
             for m in magnets:
                 total_current += m.get_current_from_field()
+                if ps_name == 'TB-Fam:PS-B': print(total_current)
                 n += 1
             self.current_sp = total_current/n
         else:

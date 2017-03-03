@@ -183,14 +183,16 @@ class DeviceNames:
 
         ec = dict()
         for fams, curve in self.excitation_curves_mapping:
-            for name in magnets:
-                device = self.split_name(name)['Device']
-                if isinstance(fams[0],tuple):
-                    fams = fams[0]
+            if isinstance(fams[0],tuple):
+                for name in magnets:
+                    device = self.split_name(name)['Device']
                     sub  = self.split_name(name)['Subsection']
                     inst = self.split_name(name)['Instance']
-                    if sub.endswith(fams[0]) and device.startswith(fams[1]) and inst.endswith(fams[2]): ec[name] = curve
-                else:
+                    if sub.endswith(fams[0][0]) and device.startswith(fams[0][1]) and inst.endswith(fams[0][2]):
+                        ec[name] = curve
+            else:
+                for name in magnets:
+                    device = self.split_name(name)['Device']
                     if device.startswith(fams): ec[name] = curve
         return ec
 
