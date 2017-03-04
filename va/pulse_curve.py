@@ -1,13 +1,22 @@
 
 import numpy as _numpy
+import os as _os
+import siriuspy as _siriuspy
+
 
 _HEADER_CHAR = '#'
 
 
 class PulseCurve:
 
-    def __init__(self, magnet):
-        self._load_pulse_curve(magnet)
+    def __init__(self, fname, method='filename'):
+
+        if method == 'filename':
+            _pulse_curves_dir = _os.path.join(_siriuspy.envars.folder_lnls_sirius_csconstants, 'magnets', 'pulse-curve-data')
+            filename = _os.path.join(_pulse_curves_dir, fname)
+            self._load_pulse_curve(filename)
+        elif method == 'filename_web':
+            self._load_pulse_curve_web(filename)
 
     @property
     def rise_time(self):

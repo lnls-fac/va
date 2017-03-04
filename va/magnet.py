@@ -5,7 +5,6 @@ import va.excitation_curve
 import va.pulse_curve
 import pyaccel
 
-
 class Magnet(object):
 
     def __init__(self, accelerator, indices, exc_curve_filename,polarity):
@@ -24,7 +23,9 @@ class Magnet(object):
             self._indices = indices
         self._nr_segs = len(self._indices)
 
-        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity)
+        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity, method='filename_web')
+        #self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity, method='filename')
+        
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
         total_length = 0.0
@@ -163,7 +164,7 @@ class Magnet(object):
 
 class BoosterDipoleMagnet(Magnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename,polarity):
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity):
         self._polynom = 'polynom_b'
         super().__init__(accelerator, indices, exc_curve_filename, polarity)
         e0 = mathphys.constants.electron_rest_energy*mathphys.constants._joule_2_eV

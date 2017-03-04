@@ -1,19 +1,29 @@
 
 import numpy as _numpy
-
-
-_HEADER_CHAR = '#'
+import siriuspy as _siriuspy
+import os as _os
 
 
 class ExcitationCurve:
 
-    def __init__(self, magnet, polarity): # generalise: pass magnet name
+    def __init__(self, fname, polarity, method='filename'): # generalise: pass label name
         """Conversion between current and field
 
         Keyword argument:
-        magnet -- magnet excitation curve file name
+        fname -- magnet excitation curve file name
         """
-        self._load_excitation_curve(magnet,polarity)
+
+        if method == 'filename':
+            _excitation_curves_dir = _os.path.join(_siriuspy.envars.folder_lnls_sirius_csconstants, 'magnets', 'excitation-data')
+            filename = _os.path.join(_excitation_curves_dir, fname)
+            with open(filename, encoding='latin-1') as f:
+                lines = f.readlines()
+            self._load_excitation_curve(lines,polarity)
+
+        elif method == 'filename_web':
+            text = _siriuspy.web.magnets_excitation_data_read(fname)
+            lines = text.split('\n')
+            self._load_excitation_curve(lines,polarity)
 
 
     @property
@@ -79,31 +89,31 @@ class ExcitationCurve:
     def _interpolate_main_field(self, field, field_array, current_array):
         return _numpy.interp(field, field_array, current_array)
 
-    def _load_excitation_curve(self, file_name, polarity):
-        # first parse the header to get the main harmonics and the harmonics:
-        with open(file_name, encoding='latin-1') as f:
-            lines = [line[1:].strip() for line in f if line.startswith(_HEADER_CHAR)]
+    def _load_excitation_curve(self, lines, polarity):
 
+        # first parse the header to get the main harmonics and the harmonics:
         for line in lines:
-             words = line.lower().split()
-             if 'main_harmonic' in words:
-                 self._main_harmonic = int(words[1])
-                 if len(words) <= 2:
-                     self._curve_type = 'normal' # default
-                 elif words[2] in ('normal', 'skew'):
-                     self._curve_type = words[2]
-                 else:
-                     raise ValueError("invalid curve type: '" + words[2] + "'")
-             elif 'harmonics' in words:
-                 self._harmonics = [int(n) for n in words[1:]]
-                 self._highest_harmonic = max(self._harmonics)
+            if not line.strip().startswith('#'):
+                continue
+            words = line[1:].strip().lower().split()
+            if 'main_harmonic' in words:
+                self._main_harmonic = int(words[1])
+                if len(words) <= 2:
+                    self._curve_type = 'normal' # default
+                elif words[2] in ('normal', 'skew'):
+                    self._curve_type = words[2]
+                else:
+                    raise ValueError("invalid curve type: '" + words[2] + "'")
+            elif 'harmonics' in words:
+                self._harmonics = [int(n) for n in words[1:]]
+                self._highest_harmonic = max(self._harmonics)
 
         if not hasattr(self, '_main_harmonic'): raise AttributeError('missing main_harmonic')
         if not hasattr(self, '_harmonics'):     raise AttributeError('missing harmonics')
         self._main_harmonic_index = self._harmonics.index(self._main_harmonic)
 
         # Now load the curve
-        data = _numpy.loadtxt(file_name)
+        data = _numpy.loadtxt(lines)
         current = data[:, 0] # current
         fields = polarity*data[:, 1:] # integrated fields (normal and skew)
 
