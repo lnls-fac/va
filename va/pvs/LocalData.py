@@ -215,12 +215,13 @@ class RecordNames:
         if 'DI' in self.device_names.disciplines:
             self._init_di_record_names()
         else:
-            self.di = []
+            self.di_ro = []
+            self.di_rw = []
         if 'PS' in self.device_names.disciplines:
             self._init_ps_record_names()
         else:
-            self.ps = []
-            self.ps_rb = []
+            self.ps_ro = []
+            self.ps_rw = []
         if 'AP' in self.device_names.disciplines:
             self._init_ap_record_names()
         else:
@@ -250,10 +251,19 @@ class RecordNames:
             elif device == 'DCCT':
                 _record_names[device_name + ':Current-Mon'] = _device_names[device_name]
                 _record_names[device_name + ':BbBCurrent-Mon'] = _device_names[device_name]
+                _record_names[device_name + ':HwFlt-Mon'] = _device_names[device_name]
+                _record_names[device_name + ':CurrThold'] = _device_names[device_name]
             else:
                 _record_names[device_name] = _device_names[device_name]
         self.all_record_names.update(_record_names)
-        self.di = list(_record_names.keys())
+        #self.di_ro = list(_record_names.keys())
+        self.di_ro = []
+        self.di_rw = []
+        for rec in _record_names.keys():
+            if rec.endswith(('CurrThold')):
+                self.di_rw.append(rec)
+            else:
+                self.di_ro.append(rec)
 
     def _init_ps_record_names(self):
         _device_names = self.device_names.get_device_names(self.family_data, 'PS')
@@ -270,13 +280,13 @@ class RecordNames:
             _record_names[device_name + ':CtrlMode-Mon'] = _device_names[device_name]
             _record_names[device_name + ':Reset-Cmd'] = _device_names[device_name]
         self.all_record_names.update(_record_names)
-        self.ps_rb = []
-        self.ps    = []
+        self.ps_ro = []
+        self.ps_rw    = []
         for rec in _record_names.keys():
             if rec.endswith(('-RB','-Sts','-Mon')):
-                self.ps_rb.append(rec)
+                self.ps_ro.append(rec)
             else:
-                self.ps.append(rec)
+                self.ps_rw.append(rec)
 
     def _init_ap_record_names(self):
         _record_names = self.device_names.get_device_names(self.family_data, 'AP')
@@ -318,7 +328,7 @@ class RecordNames:
 
     def _init_database(self):
         self.database = {}
-        for p in self.di:
+        for p in self.di_ro:
             if any([substring in p for substring in ('BbBCurrent',)]):
                 self.database[p] = {'type' : 'float', 'unit':'mA', 'count': self.model.harmonic_number}
             elif 'BPM' in p:
@@ -328,7 +338,10 @@ class RecordNames:
                     self.database[p] = {'type' : 'float', 'unit':'m', 'count': 1}
             else:
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.ps:
+        for p in self.di_rw:
+            if p.endswith('CurrThold'):
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        for p in self.ps_rw:
             if p.endswith('-SP'):
                 self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
             elif p.endswith('PwrState-Sel'):
@@ -341,7 +354,7 @@ class RecordNames:
                 self.database[p] = {'type' : 'int'}
             else:
                 raise Exception('PS PV type not recognized!')
-        for p in self.ps_rb:
+        for p in self.ps_ro:
             if p.endswith('PwrState-Sts'):
                 self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
             elif p.endswith('OpMode-Sts'):
@@ -366,10 +379,10 @@ class RecordNames:
 
     def _init_dynamical_pvs(self):
         self.dynamical_pvs = []
-        for pv in self.di:
+        for pv in self.di_ro:
             if 'Current' in pv:
                 self.dynamical_pvs.append(pv)
-                self.di.remove(pv)
+                self.di_ro.remove(pv)
         for pv in self.ap:
             if 'CurrLT' in pv:
                 self.dynamical_pvs.append(pv)
@@ -382,10 +395,10 @@ class RecordNames:
         return self.database
 
     def get_read_only_pvs(self):
-        return self.di + self.ap + self.ps_rb
+        return self.di_ro + self.ap + self.ps_ro
 
     def get_read_write_pvs(self):
-        return self.ps + self.fk + self.rf + self.ti
+        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti
 
     def get_dynamical_pvs(self):
         return self.dynamical_pvs

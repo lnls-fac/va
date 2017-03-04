@@ -30,6 +30,7 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         self._injection_parameters = None
+        self._dcct = {}
         super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
@@ -98,6 +99,18 @@ class AcceleratorModel(area_structure.AreaStructure):
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                     return orbit_unit*self._orbit[2,idx]
                 return None
+            elif Property == 'HwFlt-Mon':
+                try:
+                    dcct = self._dcct[Device_name]
+                except:
+                    dcct = self._dcct[Device_name] = {'HwFlt':0, 'CurrThold':0.0}
+                return dcct['HwFlt']
+            elif Property == 'CurrThold':
+                try:
+                    dcct = self._dcct[Device_name]
+                except:
+                    dcct = self._dcct[Device_name] = {'HwFlt':0, 'CurrThold':0.0}
+                return dcct['CurrThold']
             elif Property == 'Freq1-Mon':
                 return self._get_tune_component(Plane.horizontal)
             elif Property == 'Freq2-Mon':
@@ -198,9 +211,26 @@ class AcceleratorModel(area_structure.AreaStructure):
     def _set_pv(self, pv_name, value):
         name_parts = self.device_names.split_name(pv_name)
         if self._set_pv_magnets(pv_name, value, name_parts): return
+        if self._set_pv_di(pv_name, value, name_parts): return
         if self._set_pv_rf(pv_name, value, name_parts): return
         if self._set_pv_fake(pv_name, value, name_parts): return
         if self._set_pv_timing(pv_name, value, name_parts): return
+
+    def _set_pv_di(self, pv_name, value, name_parts):
+        Discipline = name_parts['Discipline']
+        Property   = name_parts['Property']
+        Device_name= name_parts['Device_name']
+        Property   = name_parts['Property']
+        if Discipline == 'DI':
+            if Property == 'CurrThold':
+                prev_value = self._dcct[Device_name]['CurrThold']
+                if value != prev_value:
+                    if value < 0:
+                        self._send_queue.put(('s', (pv_name, prev_value)))
+                    else:
+                        self._dcct[Device_name]['CurrThold'] = value
+                    return True
+        return False
 
     def _set_pv_rf(self, pv_name, value, name_parts):
         Discipline = name_parts['Discipline']
