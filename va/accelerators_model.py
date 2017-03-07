@@ -264,6 +264,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if value != prev_value:
                     try:
                         ps.current_sp = value
+                        self._send_queue.put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
@@ -274,6 +275,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if value != prev_value:
                     try:
                         ps.pwr_state = value
+                        self._send_queue.put(('s', (pv_name.replace('PwrState-Sel','Current-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')

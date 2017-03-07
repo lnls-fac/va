@@ -12,7 +12,7 @@ class PowerSupply(object):
         self._model = model
         self._ps_name = ps_name
         self._magnets = magnets
-        self._pwr_state = 1
+        self._pwr_state = 1  # [On]
         self.ctrl_mode = 0
         self._current_rb = 0
         self._current_sp = 0
@@ -49,8 +49,9 @@ class PowerSupply(object):
     @current_sp.setter
     def current_sp(self, value):
         if self.ctrl_mode == 1 or self.op_mode: return # CtrlState: Local
-        self._current_rb_setter(value)
         self._current_sp = value
+        if self._pwr_state:
+            self._current_rb_setter(value)
 
     @pwr_state.setter
     def pwr_state(self, value):
@@ -65,6 +66,7 @@ class PowerSupply(object):
     def op_mode(self, value):
         if self.ctrl_mode == 1: return # ctrl_mode: Local
         self._op_mode = value
+
 
 class FamilyPowerSupply(PowerSupply):
 
@@ -110,8 +112,9 @@ class FamilyPowerSupply(PowerSupply):
                 for m in ps._magnets: m.renormalize_magnet()
 
         else:
-            self._current_rb_setter(value)
             self._current_sp = value
+            if self._pwr_state:
+                self._current_rb_setter(value)
 
 
 class IndividualPowerSupply(PowerSupply):
