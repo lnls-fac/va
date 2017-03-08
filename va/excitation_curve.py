@@ -21,7 +21,7 @@ class ExcitationCurve:
             self._load_excitation_curve(lines,polarity)
 
         elif method == 'filename_web':
-            text = _siriuspy.web.magnets_excitation_data_read(fname)
+            text = _siriuspy.macapp_web.magnets_excitation_data_read(fname)
             lines = text.split('\n')
             self._load_excitation_curve(lines,polarity)
 
