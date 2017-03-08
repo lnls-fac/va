@@ -59,6 +59,7 @@ _excitation_curves_mapping = (
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
+    'HPing' :'si-kicker-hping.txt',
     'VPing' :'si-kicker-vping.txt',
     'InjDpK':'si-kicker-injdpk.txt',
     'InjNLK':'si-kicker-injnlk.txt',
@@ -71,6 +72,7 @@ device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_n
 accelerator = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 # build record names
+
 record_names = RecordNames(device_names, model, family_data)
 
 # --- Module API ---

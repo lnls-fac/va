@@ -83,7 +83,6 @@ class DeviceNames:
         _dict.update(self.get_device_names(accelerator, 'pm'))
         return _dict
 
-
     ####### Power Supplies ########
     def get_magnet2power_supply_mapping(self, accelerator):
         """Get mapping from power supply to magnet names and inverse mapping
@@ -125,7 +124,6 @@ class DeviceNames:
                 inverse_mapping[v].add(key)
 
         return mapping, inverse_mapping
-
 
     ####### Pulsed Magnets #########
     def _get_pulsed_magnet_mapping(self, accelerator,delay_or_enbl):
@@ -171,7 +169,6 @@ class DeviceNames:
             mapping[pm] = self.pulse_curve_mapping[dev]
 
         return mapping
-
 
     ####### Excitation Curves #########
     def get_excitation_curve_mapping(self,accelerator):
