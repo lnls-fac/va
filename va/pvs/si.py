@@ -54,6 +54,7 @@ _excitation_curves_mapping = (
     (('FCV',)                    , ('si-corrector-fcv.txt',1)),
     (('InjDpK',)                 , ('si-kicker-injdpk.txt',1)),
     (('InjNLK',)                 , ('si-kicker-injnlk.txt',1)),
+    (('HPing',)                  , ('si-kicker-hping.txt',1)),
     (('VPing',)                  , ('si-kicker-vping.txt',1)),
 )
 ##### Pulsed Magnets #######
