@@ -11,10 +11,9 @@ class AreaStructureProcess(multiprocessing.Process):
 
         Keyword arguments: see start_and_run_area_structure
         """
-        send_queue = multiprocessing.Queue()
-        recv_queue = multiprocessing.Queue()
-        self.send_queue = send_queue
-        self.recv_queue = recv_queue
+        my_queue = multiprocessing.Queue()
+        self.others_queue = dict()
+        self.my_queue = my_queue
         self.area_structure = area_structure
         self.area_structure_prefix = area_structure.prefix
 
@@ -25,11 +24,15 @@ class AreaStructureProcess(multiprocessing.Process):
                 'interval': interval,
                 'stop_event': stop_event,
                 # Queues are supposed to be exchanged
-                'send_queue': recv_queue,
-                'recv_queue': send_queue,
+                'others_queue': self.others_queue,
+                'my_queue': my_queue,
                 'finalisation': finalisation,
             }
         )
+    def set_others_queue(self,queues):
+        for pr, q in queues.items():
+            if pr == self.area_structure_prefix: continue
+            self.others_queue[pr] = q
 
 
 def start_and_run_area_structure(area_structure, interval, stop_event, finalisation, **kwargs):
@@ -47,16 +50,16 @@ def start_and_run_area_structure(area_structure, interval, stop_event, finalisat
         utils.process_and_wait_interval(As.process, interval)
     else:
         finalisation.wait()
-        As.empty_queues()
+        As.empty_my_queue()
         finalisation.wait()
         As.finalise()
 
 
 class AreaStructure:
 
-    def __init__(self, send_queue, recv_queue, log_func=utils.log, **kwargs):
-        self._send_queue = send_queue
-        self._recv_queue = recv_queue
+    def __init__(self, others_queue, my_queue, log_func=utils.log, **kwargs):
+        self._others_queue = others_queue
+        self._my_queue = my_queue
         self._log = log_func
         self._state_changed = False
 
@@ -66,8 +69,8 @@ class AreaStructure:
         self._update_pvs()
 
     def _process_requests(self):
-        while not self._recv_queue.empty():
-            request = self._recv_queue.get()
+        while not self._my_queue.empty():
+            request = self._my_queue.get()
             self._process_request(request)
 
     def _process_request(self, request):
@@ -90,24 +93,20 @@ class AreaStructure:
         pvs = self.pv_module.get_dynamical_pvs()
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
-            self._send_queue.put(('s', (pv, self._get_pv(pv))))
+            self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))
         self._state_changed = False
 
-    def empty_queues(self):
-        while not self._send_queue.empty():
-            self._send_queue.get()
-        while not self._recv_queue.empty():
-            self._recv_queue.get()
+    def empty_my_queue(self):
+        while not self._my_queue.empty():
+            self._my_queue.get()
 
     def finalise(self):
-        self._send_queue.close()
-        self._send_queue.join_thread()
-        self._recv_queue.close()
-        self._recv_queue.join_thread()
+        self._my_queue.close()
+        self._my_queue.join_thread()
         utils.log('exit', 'area_structure ' + self.prefix)
 
     def _send_parameters_to_other_area_structure(self, prefix, _dict):
-        self._send_queue.put(('p', (prefix, _dict)))
+        self._others_queue[prefix].put(('p', _dict))
 
     def _get_parameters_from_other_area_structure(self, _dict):
         if 'pulsed_magnet_parameters' in _dict.keys():
@@ -129,4 +128,4 @@ class AreaStructure:
         for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)
             sp_pv_list.append((pv,value))
-        self._send_queue.put(('sp', sp_pv_list ))
+        self._others_queue['driver'].put(('sp', sp_pv_list ))

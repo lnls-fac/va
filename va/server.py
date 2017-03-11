@@ -37,16 +37,18 @@ def run(prefix):
     num_parties = len(area_structures) + 1 # number of parties for barrier
     finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
 
-    processes = create_area_structure_processes(area_structures, stop_event, finalisation_barrier)
-    start_area_structure_processes(processes)
-    start_driver_thread(processes, stop_event, start_event, finalisation_barrier)
+    processes, driver_thread = create_and_start_processes_and_threads(
+                                area_structures,
+                                start_event,
+                                stop_event,
+                                finalisation_barrier)
 
     wait_for_initialisation()
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
     print_stop_event_message()
-    join_processes(processes)
+    join_processes(processes,driver_thread)
 
 
 def set_sigint_handler(handler):
@@ -89,30 +91,30 @@ def get_pv_names(area_structures):
     return pv_names
 
 
-def create_area_structure_processes(area_structures, stop_event, finalisation_barrier):
+def create_and_start_processes_and_threads(area_structures, start_event, stop_event, finalisation_barrier):
     processes = []
+    all_queues = dict()
     for As in area_structures:
         Asp = area_structure.AreaStructureProcess(As, WAIT_TIMEOUT, stop_event,
             finalisation_barrier)
+        all_queues[Asp.area_structure_prefix] = Asp.my_queue
         processes.append(Asp)
 
-    return processes
-
-
-def start_area_structure_processes(processes):
-    for p in processes:
-        p.start()
-
-
-def start_driver_thread(processes, stop_event, start_event, finalisation_barrier):
-    pcas_driver = driver.PCASDriver(processes, start_event, stop_event, WAIT_TIMEOUT)
     driver_thread = driver.DriverThread(
-        pcas_driver,
+        processes,
         WAIT_TIMEOUT,
+        start_event,
         stop_event,
         finalisation_barrier
     )
+    all_queues['driver'] = driver_thread.my_queue
+    #Start processes and threads
+    for proc in processes:
+        proc.set_others_queue(all_queues)
+        proc.start()
     driver_thread.start()
+
+    return processes, driver_thread
 
 
 def wait_for_initialisation():
@@ -132,10 +134,11 @@ def print_stop_event_message():
     utils.log('exit', 'stop_event was set', 'red')
 
 
-def join_processes(processes):
+def join_processes(processes,driver_thread):
     utils.log('join', 'joining processes...')
     for process in processes:
         process.join(JOIN_TIMEOUT)
+    driver_thread.join(JOIN_TIMEOUT)
     utils.log('join', 'done')
 
 

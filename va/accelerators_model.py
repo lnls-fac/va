@@ -226,7 +226,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 prev_value = self._dcct[Device_name]['CurrThold']
                 if value != prev_value:
                     if value < 0:
-                        self._send_queue.put(('s', (pv_name, prev_value)))
+                        self._others_queue['driver'].put(('s', (pv_name, prev_value)))
                     else:
                         self._dcct[Device_name]['CurrThold'] = value
                     return True
@@ -264,7 +264,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if value != prev_value:
                     try:
                         ps.current_sp = value
-                        self._send_queue.put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
@@ -275,7 +275,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if value != prev_value:
                     try:
                         ps.pwr_state = value
-                        self._send_queue.put(('s', (pv_name.replace('PwrState-Sel','Current-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','Current-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
@@ -318,7 +318,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         elif 'SaveFlatfile' in pv_name:
             fname = 'flatfile_' + self.model_module.lattice_version + '.txt'
             pyaccel.lattice.write_flat_file(self._accelerator, fname)
-            self._send_queue.put(('s', (pv_name, 0)))
+            self._others_queue['driver'].put(('s', (pv_name, 0)))
             return True
         return None
 
@@ -485,7 +485,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         return sorted_magnets
 
     def _send_initialisation_sign(self):
-        self._send_queue.put(('i', self.prefix))
+        self._others_queue['driver'].put(('i', self.prefix))
 
 
 class LinacModel(AcceleratorModel):
@@ -628,7 +628,7 @@ class LinacModel(AcceleratorModel):
 
     def _update_delay_pvs_in_epics_memory(self):
         pv_name = self.device_names.join_name('TI','EGun','01',proper='Delay')
-        self._send_queue.put(('s', (pv_name, self._egun_delay)))
+        self._others_queue['driver'].put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self, **kwargs):
 
@@ -638,10 +638,11 @@ class LinacModel(AcceleratorModel):
             else:
                 charge = [self._multi_bunch_charge/self.nr_bunches]*self.nr_bunches
         else:
+            self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
             self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(0.0))
             self._log(message1 = 'cycle', message2 = 'Stoping injection')
             return
-
+        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
@@ -739,7 +740,7 @@ class TLineModel(AcceleratorModel):
         for magnet_name, magnet in self._pulsed_magnets.items():
             pv_name = self._magnet2delay[magnet_name]
             value = magnet.delay
-            self._send_queue.put(('s', (pv_name, value)))
+            self._others_queue['driver'].put(('s', (pv_name, value)))
 
     def _calc_transport_efficiency(self):
         if self._injection_parameters is None: return
@@ -863,11 +864,11 @@ class BoosterModel(AcceleratorModel):
         self._accelerator  = self.model_module.create_accelerator()
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         if not hasattr(self, '_injection_point_label'):
-            self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
+            self._others_queue['driver'].put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
         else:
             injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)[0]
             if not injection_point:
-                self._send_queue.put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
+                self._others_queue['driver'].put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
             else:
                 self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
 
@@ -958,7 +959,7 @@ class BoosterModel(AcceleratorModel):
         for magnet_name, magnet in self._pulsed_magnets.items():
             pv_name = self._magnet2delay[magnet_name]
             value = magnet.delay
-            self._send_queue.put(('s', (pv_name, value)))
+            self._others_queue['driver'].put(('s', (pv_name, value)))
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
@@ -1216,11 +1217,11 @@ class StorageRingModel(AcceleratorModel):
         # Shift accelerator to start in the injection point
         self._accelerator  = self.model_module.create_accelerator()
         if not hasattr(self, '_injection_point_label'):
-            self._send_queue.put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
+            self._others_queue['driver'].put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))
         else:
             injection_point    = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', self._injection_point_label)[0]
             if not injection_point:
-                self._send_queue.put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
+                self._others_queue['driver'].put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
             else:
                 self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
 
@@ -1283,7 +1284,7 @@ class StorageRingModel(AcceleratorModel):
         for magnet_name in nominal_delays.keys():
             nominal_delays[magnet_name] -= min_delay
 
-        self._send_queue.put(('p', ('LI', {'update_delays' : nominal_delays})))
+        self._others_queue['LI'].put(('p', {'update_delays' : nominal_delays}))
 
     def _update_pulsed_magnets_delays(self, delays):
         for magnet_name, delay in delays.items():
@@ -1296,7 +1297,7 @@ class StorageRingModel(AcceleratorModel):
         for magnet_name, magnet in self._pulsed_magnets.items():
             pv_name = self._magnet2delay[magnet_name]
             value = magnet.delay
-            self._send_queue.put(('s', (pv_name, value)))
+            self._others_queue['driver'].put(('s', (pv_name, value)))
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
