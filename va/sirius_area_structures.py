@@ -61,7 +61,7 @@ class ASModel(area_structure.AreaStructure):
         self._injection_bunch += self._injection_bunch_increment
         self._master_delay = self._injection_bunch*self._bunch_separation
         pv_name = self.device_names.join_name('TI','Cycle','Inj',proper='InjBun')
-        self._send_queue.put(('s',(pv_name,self._injection_bunch)))
+        self._others_queue['driver'].put(('s',(pv_name,self._injection_bunch)))
         self._send_parameters_to_other_area_structure(prefix = self._first_accelerator_prefix,
                                                       _dict  = _dict)
 

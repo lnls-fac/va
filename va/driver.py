@@ -1,6 +1,7 @@
 
 import queue
 import threading
+import multiprocessing
 from pcaspy import Driver
 from . import utils
 
@@ -10,7 +11,7 @@ PREFIX_LEN = utils.PREFIX_LEN
 
 class DriverThread(threading.Thread):
 
-    def __init__(self, driver, interval, stop_event, finalisation):
+    def __init__(self, processes, interval,start_event, stop_event, finalisation):
         """Driver processing management
 
         Keyword arguments:
@@ -19,13 +20,21 @@ class DriverThread(threading.Thread):
         stop_event -- event to stop processing
         finalisation -- barrier to wait before finalisation
         """
-        self._driver = driver
+        self.my_queue = multiprocessing.Queue()
         self._interval = interval
         self._stop_event = stop_event
         self._finalisation = finalisation
-        super().__init__(target=self._main)
+        super().__init__(
+            target=self._main,
+            kwargs={'processes':processes,
+                    'stop_event':stop_event,
+                    'start_event':start_event,
+                    'interval':interval,
+                    'my_queue':self.my_queue
+                    })
 
-    def _main(self):
+    def _main(self,**kwargs):
+        self._driver = PCASDriver(**kwargs)
         while not self._stop_event.is_set():
             utils.process_and_wait_interval(
                 self._driver.process,
@@ -33,17 +42,19 @@ class DriverThread(threading.Thread):
             )
         else:
             self._finalisation.wait()
+            self._driver.empty_my_queue()
             self._finalisation.wait()
             self._driver.finalise()
 
 
 class PCASDriver(Driver):
 
-    def  __init__(self, processes, start_event, stop_event, interval):
+    def  __init__(self, processes, start_event, stop_event, interval,my_queue):
         super().__init__()
         self._interval = interval
         self._start_event = start_event
-        self._queue = queue.Queue()
+        self._internal_queue = queue.Queue()
+        self._my_queue = my_queue
         self._stop_event = stop_event
         self._processes = dict()
         self._processes_initialisation = dict()
@@ -57,17 +68,15 @@ class PCASDriver(Driver):
         self.updatePVs()
 
     def _process_writes(self):
-        size = self._queue.qsize()
+        size = self._internal_queue.qsize()
         for i in range(size):
-            process, reason, value = self._queue.get()
-            process.send_queue.put(('s', (reason, value)))
+            process, reason, value = self._internal_queue.get()
+            process.my_queue.put(('s', (reason, value)))
 
     def _process_requests(self):
-        for process in self._processes.values():
-            recv_queue = process.recv_queue
-            while not recv_queue.empty():
-                request = recv_queue.get()
-                self._process_request(request)
+        while not self._my_queue.empty():
+            request = self._my_queue.get()
+            self._process_request(request)
 
     def _process_request(self, request):
         cmd, data = request
@@ -101,7 +110,7 @@ class PCASDriver(Driver):
     def _send_to_area_structure(self, cmd, prefix, args):
         try:
             process = self._processes[prefix]
-            process.send_queue.put((cmd, args))
+            process.my_queue.put((cmd, args))
         except:
             utils.log('!pref', prefix, c='red', a=['bold'])
 
@@ -112,12 +121,14 @@ class PCASDriver(Driver):
             if all(self._processes_initialisation.values()):
                 self._start_event.set()
 
+    def empty_my_queue(self):
+        while not self._my_queue.empty():
+            self._my_queue.get()
+
     def finalise(self):
-        for p in self._processes.values():
-            p.send_queue.close()
-            p.send_queue.join_thread()
-            p.recv_queue.close()
-            p.recv_queue.join_thread()
+        self._my_queue.close()
+        self._my_queue.join_thread()
+        utils.log('exit', 'driver ')
 
     def read(self, reason):
         utils.log('read', reason, c='yellow')
@@ -136,7 +147,7 @@ class PCASDriver(Driver):
             if self._is_process_pv_writable(process, reason):
                 self.setParam(reason, value)
                 # self.pvDB[reason].flag = False # avoid double camonitor update
-                self._queue.put((process, reason, value))
+                self._internal_queue.put((process, reason, value))
                 msg = reason + ' ' + str(value)
                 utils.log('write', msg, c='yellow', a=['bold'])
                 return True
