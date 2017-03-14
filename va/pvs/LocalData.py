@@ -198,13 +198,13 @@ class RecordNames:
 
     def __init__(self, device_names, model=None, family_data = None):
         self.family_data = family_data
+        self.database = dict()
         self.model = model
         self.device_names = device_names
         self.build_data()
 
     def build_data(self):
         self._init_record_names()
-        self._init_database()
         self._init_dynamical_pvs()
 
     def _init_record_names(self):
@@ -236,22 +236,46 @@ class RecordNames:
     def _init_di_record_names(self):
         _device_names = self.device_names.get_device_names(self.family_data, 'DI')
         _record_names = {}
-        for device_name in _device_names.keys():
-            device = self.device_names.split_name(device_name)['Device']
+        for dev_name in _device_names.keys():
+            device = self.device_names.split_name(dev_name)['Device']
+            subsec = self.device_names.split_name(dev_name)['Subsection']
             if device == 'BPM':
-                _record_names[device_name + ':PosX-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':PosY-Mon'] = _device_names[device_name]
+                p1 = dev_name + ':PosX-Mon'
+                _record_names[p1] = _device_names[dev_name]
+                p2 = dev_name + ':PosY-Mon'
+                _record_names[p2] = _device_names[dev_name]
+                if subsec == self.device_names.pvnaming_fam:
+                    self.database[p1] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
+                    self.database[p2] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
+                else:
+                    self.database[p1] = {'type' : 'float', 'value': 0.0}
+                    self.database[p2] = {'type' : 'float', 'value': 0.0}
             elif 'TuneP' in device:
-                _record_names[device_name + ':Freq1-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':Freq2-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':Freq3-Mon'] = _device_names[device_name]
+                p = dev_name + ':Freq1-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
+                p = dev_name + ':Freq2-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
+                p = dev_name + ':Freq3-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
             elif device == 'DCCT':
-                _record_names[device_name + ':Current-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':BbBCurrent-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':HwFlt-Mon'] = _device_names[device_name]
-                _record_names[device_name + ':CurrThold'] = _device_names[device_name]
+                p = dev_name + ':Current-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
+                p = dev_name + ':BbBCurrent-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'unit':'mA', 'count': self.model.harmonic_number}
+                p = dev_name + ':HwFlt-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
+                p = dev_name + ':CurrThold'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
             else:
-                _record_names[device_name] = _device_names[device_name]
+                _record_names[dev_name] = _device_names[dev_name]
+                self.database[dev_name] = {'type' : 'float', 'value': 0.0}
         self.all_record_names.update(_record_names)
         #self.di_ro = list(_record_names.keys())
         self.di_ro = []
@@ -268,14 +292,30 @@ class RecordNames:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
         _record_names = {}
         for device_name in _device_names.keys():
-            _record_names[device_name + ':Current-SP'] = _device_names[device_name]
-            _record_names[device_name + ':Current-RB'] = _device_names[device_name]
-            _record_names[device_name + ':PwrState-Sel'] = _device_names[device_name]
-            _record_names[device_name + ':PwrState-Sts'] = _device_names[device_name]
-            _record_names[device_name + ':OpMode-Sel'] = _device_names[device_name]
-            _record_names[device_name + ':OpMode-Sts'] = _device_names[device_name]
-            _record_names[device_name + ':CtrlMode-Mon'] = _device_names[device_name]
-            _record_names[device_name + ':Reset-Cmd'] = _device_names[device_name]
+            p = device_name + ':Current-SP'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            p = device_name + ':Current-RB'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            p = device_name + ':PwrState-Sel'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            p = device_name + ':PwrState-Sts'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            p = device_name + ':OpMode-Sel'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            p = device_name + ':OpMode-Sts'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            p = device_name + ':CtrlMode-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
+            p = device_name + ':Reset-Cmd'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int'}
         self.all_record_names.update(_record_names)
         self.ps_ro = []
         self.ps_rw    = []
@@ -287,6 +327,8 @@ class RecordNames:
 
     def _init_ap_record_names(self):
         _record_names = self.device_names.get_device_names(self.family_data, 'AP')
+        for p in _record_names.keys():
+            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.ap = list(_record_names.keys())
 
@@ -296,10 +338,15 @@ class RecordNames:
         for device_name in _device_names.keys():
             device = self.device_names.split_name(device_name)['Device']
             if device.endswith('Cav'):
-                _record_names[device_name + ':Freq'] = _device_names[device_name]
-                _record_names[device_name + ':Volt'] = _device_names[device_name]
+                p = device_name + ':Freq'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                p = device_name + ':Volt'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
             else:
                 _record_names[device_name] = _device_names[device_name]
+                self.database[device_name] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         self.all_record_names.update(_record_names)
         self.rf = list(_record_names.keys())
 
@@ -307,72 +354,64 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
-            if 'Cycle' in device_name:
-                _record_names[device_name + ':Start-Cmd']   = _device_names[device_name]
-                _record_names[device_name + ':InjBun']      = _device_names[device_name]
-                _record_names[device_name + ':InjBunIncr']  = _device_names[device_name]
+            _parts = self.device_names.split_name(device_name)
+            if 'EVG' in _parts['Device']:
+                p = device_name + ':SinglePulse-Cmd'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'int'}
+                p = device_name + ':InjStop-Cmd'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'int'}
+                p = device_name + ':InjStart-Cmd'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'int'}
+                p = device_name + ':InjCyclic'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+                p = device_name + ':Continuous'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+                p = device_name + ':BucketList'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'int', 'count': 864, 'value':0}
+                p = device_name + ':RepRate'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                for i in range(8):
+                    clck = ':Clck{0:d}'.format(i)
+                    p = device_name + clck + 'Freq'
+                    _record_names[p] = _device_names[device_name]
+                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                    p = device_name + clck + 'State'
+                    _record_names[p] = _device_names[device_name]
+                    self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
+                for evnt in ['Linac','InjBO','InjSI','RmpBO','RampSI','DigLI','DigTB','DigBO','DigTS','DigSI']:
+                    p = device_name + ':' + evnt + 'Delay'
+                    _record_names[p] = _device_names[device_name]
+                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                    p = device_name + ':' + evnt + 'Mode'
+                    _record_names[p] = _device_names[device_name]
+                    self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Cont','Inj','Sgl'), 'value':1}
+                    p = device_name + ':' + evnt + 'DelayType'
+                    _record_names[p] = _device_names[device_name]
+                    self.database[p] = {'type' : 'enum', 'enums':('Fix','Incr'), 'value':1}
             else:
-                _record_names[device_name + ':Enbl']  = _device_names[device_name]
-                _record_names[device_name + ':Delay'] = _device_names[device_name]
+                p = device_name + ':Enbl'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
+                p = device_name + ':Delay'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         self.all_record_names.update(_record_names)
         self.ti = list(_record_names.keys())
 
     def _init_fk_record_names(self):
-        _record_names = {} # get_fake_record_names(self.family_data)
+        _record_names = dict() # get_fake_record_names(self.family_data)
+        for p in _record_names.keys():
+            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.fk = []
         self.fk_pos  = []
-
-    def _init_database(self):
-        self.database = {}
-        for p in self.di_ro:
-            if any([substring in p for substring in ('BbBCurrent',)]):
-                self.database[p] = {'type' : 'float', 'unit':'mA', 'count': self.model.harmonic_number}
-            elif 'BPM' in p:
-                if self.device_names.pvnaming_fam in p:
-                    self.database[p] = {'type' : 'float', 'unit':'m', 'count': len(self.all_record_names[p]['BPM'])}
-                else:
-                    self.database[p] = {'type' : 'float', 'unit':'m', 'count': 1}
-            else:
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.di_rw:
-            if p.endswith('CurrThold'):
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.ps_rw:
-            if p.endswith('-SP'):
-                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-            elif p.endswith('PwrState-Sel'):
-                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
-            elif p.endswith('OpMode-Sel'):
-                self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
-            elif p.endswith('CtrlMode-Mon'):
-                self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
-            elif p.endswith('Reset-Cmd'):
-                self.database[p] = {'type' : 'int'}
-            else:
-                raise Exception('PS PV type not recognized!')
-        for p in self.ps_ro:
-            if p.endswith('PwrState-Sts'):
-                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
-            elif p.endswith('OpMode-Sts'):
-                self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
-            elif p.endswith('CtrlMode-Mon'):
-                self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
-            else:
-                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-        for p in self.ap:
-            if any([substring in p for substring in ('BbBCurrLT',)]):
-                self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}
-            else:
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.ti:
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.rf:
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-        for p in self.fk:
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
-        for p in self.fk_pos:
-            self.database[p] = {'type' : 'float', 'count': len(self.all_record_names[p]['pos'])}
 
     def _init_dynamical_pvs(self):
         self.dynamical_pvs = []

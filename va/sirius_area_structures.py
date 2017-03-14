@@ -6,6 +6,7 @@ from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
 from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
+from . import timing_system as _timing_system
 from . import accelerators_model
 from . import area_structure
 
@@ -13,7 +14,7 @@ from . import area_structure
 class ASModel(area_structure.AreaStructure):
     _first_accelerator_prefix = 'LI'
     _bunch_separation  = 6*(1/_pvs_li.model.frequency)
-    _injection_bunch_increment = int(_pvs_li.model.frequency*_pvs_li.model.multi_bunch_pulse_duration/6)
+    _rf_frequency      = _pvs_li.model.frequency/6
 
     pv_module = _pvs_As
     device_names = pv_module.device_names
@@ -22,48 +23,89 @@ class ASModel(area_structure.AreaStructure):
 
 
     def __init__(self, **kwargs):
-        self._injection_bunch = 0
-        self._master_delay = 0.0
         super().__init__(**kwargs)
+        self.evg = _timing_system.EVG(self._rf_frequency,['Linac','InjBO','InjSI','RmpBO','RampSI',
+                                                       'DigLI','DigTB','DigBO','DigTS','DigSI'])
         self._init_sp_pv_values()
 
     def _get_pv(self, pv_name):
         name_parts = self.device_names.split_name(pv_name)
-        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'Cycle':
-            if name_parts['Property'] == 'Start-Cmd'    : return 1
-            elif name_parts['Property'] == 'InjBun'     : return self._injection_bunch
-            elif name_parts['Property'] == 'InjBunIncr' : return self._injection_bunch_increment
+        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'EVG':
+            prop = name_parts['Property']
+            if prop in ('InjStart-Cmd','InjStop-Cmd','SinglePulse-Cmd'):
+                return 1
+            elif prop == 'InjCyclic':
+                return self.evg.cyclic_injection
+            elif prop == 'Continuous':
+                return self.evg.continuous
+            elif prop == 'BucketList':
+                return self.evg.bucket_list
+            elif prop == 'RepRate':
+                return self.evg.repetition_rate
+            elif prop.endswith('Freq'):
+                return self.evg.clocks[prop.rstrip('Freq')].frequency
+            elif prop.endswith('State') and prop.startswith('Clck'):
+                return self.evg.clocks[prop.rstrip('State')].state
+            elif prop.endswith('Delay'):
+                return self.evg.events[prop.rstrip('Delay')].delay
+            elif prop.endswith('Mode'):
+                return self.evg.events[prop.rstrip('Mode')].mode
+            elif prop.endswith('DelayType'):
+                return self.evg.events[prop.rstrip('DelayType')].delay_type
         return None
 
     def _set_pv(self,pv_name, value):
         name_parts = self.device_names.split_name(pv_name)
-        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'Cycle':
-            if name_parts['Property'] == 'Start-Cmd':
-                self._injection_cycle()
-            elif name_parts['Property'] == 'InjBun':
-                self._injection_bunch = int(value)
-                self._master_delay = self._injection_bunch * self._bunch_separation
-            elif name_parts['Property'] == 'InjBunIncr':
-                self._injection_bunch_increment = int(value)
+        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'EVG':
+            prop = name_parts['Property']
+            if prop == 'InjStart-Cmd':
+                self.evg.start_injection(self._injection_cycle)
+            elif prop == 'InjStop-Cmd':
+                self.evg.stop_injection()
+            elif prop == 'SinglePulse-Cmd':
+                self.evg.single_pulse(self._single_pulse_synchronism)
+            elif prop == 'InjCyclic':
+                self.evg.cyclic_injection = value
+            elif prop == 'Continuous':
+                self.evg.continuous = value
+            elif prop == 'BucketList':
+                self.evg.bucket_list = value
+            elif prop.endswith('Freq'):
+                self.evg.clocks[prop.rstrip('Freq')].frequency = value
+            elif prop.endswith('State') and prop.startswith('Clck'):
+                self.evg.clocks[prop.rstrip('State')].state = value
+            elif prop.endswith('Delay'):
+                self.evg.events[prop.rstrip('Delay')].delay = value
+            elif prop.endswith('State'):
+                self.evg.events[prop.rstrip('Mode')].mode = value
+            elif prop.endswith('DelayType'):
+                self.evg.events[prop.rstrip('DelayType')].delay_type = value
             else: return False
         else: return False
         return True
 
-    def _injection_cycle(self):
+    def _single_pulse_synchronism(self,events):
+        self._log(message1 = 'cycle', message2 = '--')
+        self._log(message1 = 'cycle', message2='Sending Synchronism Events in Single Mode.')
+        self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
+        _dict = {'single_cycle' : {'events': events}}
+        for acc in ('LI','TB','BO','TS','SI'):
+            self._send_parameters_to_other_area_structure(
+                            prefix = acc,
+                            _dict  = _dict)
 
+    def _injection_cycle(self,injection_bunch,events):
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Starting injection')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
-
-        _dict = {'injection_cycle' : {'master_delay': self._master_delay,
+        master_delay = injection_bunch * self._bunch_separation
+        _dict = {'injection_cycle' : {'events': events,
+                                      'master_delay':master_delay,
+                                      'injection_bunch': injection_bunch,
                                       'bunch_separation': self._bunch_separation}}
-        # Shift the injection bunch for next injection:
-        self._injection_bunch += self._injection_bunch_increment
-        self._master_delay = self._injection_bunch*self._bunch_separation
-        pv_name = self.device_names.join_name('TI','Cycle','Inj',proper='InjBun')
-        self._others_queue['driver'].put(('s',(pv_name,self._injection_bunch)))
-        self._send_parameters_to_other_area_structure(prefix = self._first_accelerator_prefix,
-                                                      _dict  = _dict)
+        self._send_parameters_to_other_area_structure(
+                            prefix = self._first_accelerator_prefix,
+                            _dict  = _dict)
 
 
 class LiModel(accelerators_model.LinacModel):
