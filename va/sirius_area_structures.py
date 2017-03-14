@@ -95,7 +95,6 @@ class ASModel(area_structure.AreaStructure):
                             _dict  = _dict)
 
     def _injection_cycle(self,injection_bunch,events):
-        print('inj_cycle')
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Starting injection')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
