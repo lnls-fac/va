@@ -90,9 +90,7 @@ class ASModel(area_structure.AreaStructure):
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
         _dict = {'single_cycle' : {'events': events}}
         for acc in ('LI','TB','BO','TS','SI'):
-            self._send_parameters_to_other_area_structure(
-                            prefix = acc,
-                            _dict  = _dict)
+            self._send_parameters_to_other_area_structure(prefix = acc, _dict  = _dict)
 
     def _injection_cycle(self,injection_bunch,events):
         self._log(message1 = 'cycle', message2 = '--')
