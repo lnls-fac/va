@@ -121,6 +121,7 @@ class EVG:
 
     def start_injection(self,callback):
         self._injecting = True
+        raise Exception('some error occurred.')
         _threading.Thread(target=self._injection, kwargs={'callback':callback}).start()
 
     def stop_injection(self):

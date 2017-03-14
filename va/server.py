@@ -112,6 +112,7 @@ def create_and_start_processes_and_threads(area_structures, start_event, stop_ev
     for proc in processes:
         proc.set_others_queue(all_queues)
         proc.start()
+        time.sleep(0.2)
     driver_thread.start()
 
     return processes, driver_thread

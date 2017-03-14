@@ -2,6 +2,7 @@
 import queue
 import threading
 import multiprocessing
+import prctl
 from pcaspy import Driver
 from . import utils
 
@@ -31,16 +32,21 @@ class DriverThread(threading.Thread):
                     'start_event':start_event,
                     'interval':interval,
                     'my_queue':self.my_queue
-                    })
+                    },
+            name = 'Thread-Driver'
+            )
 
     def _main(self,**kwargs):
         self._driver = PCASDriver(**kwargs)
-        while not self._stop_event.is_set():
-            utils.process_and_wait_interval(
-                self._driver.process,
-                self._interval
-            )
-        else:
+        prctl.set_name(self.name)
+        try:
+            while not self._stop_event.is_set():
+                utils.process_and_wait_interval(self._driver.process,self._interval)
+        except Exception as ex:
+            utils.log('error', str(ex), 'red')
+            stop_event.set()
+        finally:
+            self._driver.close_others_queues()
             self._finalisation.wait()
             self._driver.empty_my_queue()
             self._finalisation.wait()
@@ -121,6 +127,10 @@ class PCASDriver(Driver):
         if not self._start_event.is_set():
             if all(self._processes_initialisation.values()):
                 self._start_event.set()
+
+    def close_others_queues(self):
+        for p in self._processes.values():
+            p.my_queue.close()
 
     def empty_my_queue(self):
         while not self._my_queue.empty():
