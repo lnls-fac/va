@@ -2,6 +2,8 @@
 import math
 from . import magnet
 
+# These classes should be deprecated!
+# Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
 
 class PowerSupply(object):
 
