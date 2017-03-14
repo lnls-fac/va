@@ -5,7 +5,7 @@ _el_names   = dict() # All these Family names must be defined in family_data dic
 _fam_names  = dict() # All these Family names must be defined in family_data dictionary
 _glob_names = dict() # These Family names can be any name
 _inj_names = {
-    'TI': ['Cycle',]
+    'TI': ['EVG',]
 }
 ##### Excitation Curves #######
 _excitation_curves_mapping = tuple()

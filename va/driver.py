@@ -105,6 +105,7 @@ class PCASDriver(Driver):
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
+            if value is None: print(pv_name)
             self.setParam(pv_name, value)
 
     def _send_to_area_structure(self, cmd, prefix, args):
