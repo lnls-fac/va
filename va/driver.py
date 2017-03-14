@@ -2,7 +2,7 @@
 import queue
 import threading
 import multiprocessing
-import prctl
+# import prctl #Used in debugging
 from pcaspy import Driver
 from . import utils
 
