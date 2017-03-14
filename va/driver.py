@@ -38,7 +38,7 @@ class DriverThread(threading.Thread):
 
     def _main(self,**kwargs):
         self._driver = PCASDriver(**kwargs)
-        prctl.set_name(self.name)
+        # prctl.set_name(self.name) # For debug
         try:
             while not self._stop_event.is_set():
                 utils.process_and_wait_interval(self._driver.process,self._interval)
