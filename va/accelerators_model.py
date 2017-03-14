@@ -648,7 +648,7 @@ class LinacModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        charge_time = [kwargs['master_delay'] + self._egun_delay + i*kwargs['bunch_separation'] for i in range(len(charge))]
+        charge_time = [(kwargs['injection_bunch']+ i)*kwargs['bunch_separation'] + self._egun_delay for i in range(len(charge))]
 
         if calc_injection_eff:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0

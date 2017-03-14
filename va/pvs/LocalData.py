@@ -373,6 +373,7 @@ class RecordNames:
                 self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
                 p = device_name + ':BucketList'
                 _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'int', 'count': 864, 'value':0}
                 p = device_name + ':RepRate'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}

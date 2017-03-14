@@ -3,10 +3,11 @@ from .LocalData import DeviceNames, RecordNames
 _section = 'AS'
 _el_names   = dict() # All these Family names must be defined in family_data dictionary
 _fam_names  = dict() # All these Family names must be defined in family_data dictionary
-_glob_names = dict() # These Family names can be any name
-_inj_names = {
-    'TI': ['EVG',]
+_glob_names = { # These Family names can be any name
+        'TI': ['EVG',]
 }
+_inj_names = dict()
+
 ##### Excitation Curves #######
 _excitation_curves_mapping = tuple()
 ##### Pulsed Magnets #######

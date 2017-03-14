@@ -59,11 +59,11 @@ class ASModel(area_structure.AreaStructure):
         if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'EVG':
             prop = name_parts['Property']
             if prop == 'InjStart-Cmd':
-                self.evg.start_injection(self.injection_cycle)
+                self.evg.start_injection(self._injection_cycle)
             elif prop == 'InjStop-Cmd':
                 self.evg.stop_injection()
             elif prop == 'SinglePulse-Cmd':
-                self.evg.single_pulse(self.single_pulse_synchronism)
+                self.evg.single_pulse(self._single_pulse_synchronism)
             elif prop == 'InjCyclic':
                 self.evg.cyclic_injection = value
             elif prop == 'Continuous':
@@ -84,7 +84,7 @@ class ASModel(area_structure.AreaStructure):
         else: return False
         return True
 
-    def single_pulse_synchronism(self,events):
+    def _single_pulse_synchronism(self,events):
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Sending Synchronism Events in Single Mode.')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
@@ -95,10 +95,13 @@ class ASModel(area_structure.AreaStructure):
                             _dict  = _dict)
 
     def _injection_cycle(self,injection_bunch,events):
+        print('inj_cycle')
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Starting injection')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
+        master_delay = injection_bunch * self._bunch_separation
         _dict = {'injection_cycle' : {'events': events,
+                                      'master_delay':master_delay,
                                       'injection_bunch': injection_bunch,
                                       'bunch_separation': self._bunch_separation}}
         self._send_parameters_to_other_area_structure(
