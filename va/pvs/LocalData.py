@@ -343,9 +343,20 @@ class RecordNames:
                 self.ps_rw.append(rec)
 
     def _init_ap_record_names(self):
-        _record_names = self.device_names.get_device_names(self.family_data, 'AP')
-        for p in _record_names.keys():
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+        _record_names = dict()
+        _device_names = self.device_names.get_device_names(self.family_data, 'AP')
+        for dev_name in _device_names.keys():
+            device = self.device_names.split_name(dev_name)['Device']
+            if device == 'CurrLT':
+                p = dev_name + ':CurrLT-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'value': 0.0}
+                p = dev_name + ':BbBCurrLT-Mon'
+                _record_names[p] = _device_names[dev_name]
+                self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}
+            else:
+                _record_names[dev_name] = _device_names[dev_name]
+                self.database[dev_name] = {'type' : 'float', 'count': 1, 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.ap = list(_record_names.keys())
 

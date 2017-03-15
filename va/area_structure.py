@@ -2,6 +2,7 @@
 import multiprocessing
 import time
 from . import utils
+# import prctl #Used in debugging
 
 
 class AreaStructureProcess(multiprocessing.Process):
@@ -18,7 +19,7 @@ class AreaStructureProcess(multiprocessing.Process):
         self.area_structure_prefix = area_structure.prefix
 
         super().__init__(
-            target=start_and_run_area_structure,
+            target=self.start_and_run_area_structure,
             kwargs={
                 'area_structure': area_structure,
                 'interval': interval,
@@ -27,32 +28,41 @@ class AreaStructureProcess(multiprocessing.Process):
                 'others_queue': self.others_queue,
                 'my_queue': my_queue,
                 'finalisation': finalisation,
-            }
-        )
+                },
+            name = 'Thread-' + area_structure.prefix
+            )
+
     def set_others_queue(self,queues):
         for pr, q in queues.items():
             if pr == self.area_structure_prefix: continue
             self.others_queue[pr] = q
 
 
-def start_and_run_area_structure(area_structure, interval, stop_event, finalisation, **kwargs):
-    """Start periodic processing of area_structure
+    def start_and_run_area_structure(self,area_structure, interval, stop_event, finalisation, **kwargs):
+        """Start periodic processing of area_structure
 
-    Keyword arguments:
-    area_structure -- area_structure class
-    interval -- processing interval [s]
-    stop_event -- event to stop processing
-    finalisation -- barrier to wait before finalisation
-    **kwargs -- extra arguments to area_structure __init__
-    """
-    As = area_structure(**kwargs)
-    while not stop_event.is_set():
-        utils.process_and_wait_interval(As.process, interval)
-    else:
-        finalisation.wait()
-        As.empty_my_queue()
-        finalisation.wait()
-        As.finalise()
+        Keyword arguments:
+        area_structure -- area_structure class
+        interval -- processing interval [s]
+        stop_event -- event to stop processing
+        finalisation -- barrier to wait before finalisation
+        **kwargs -- extra arguments to area_structure __init__
+        """
+        As = area_structure(**kwargs)
+        # prctl.set_name(self.name) # For debug
+        try:
+            while not stop_event.is_set():
+                utils.process_and_wait_interval(As.process, interval)
+        except Exception as ex:
+            utils.log('error', str(ex), 'red')
+            stop_event.set()
+        finally:
+            As.close_others_queues()
+            finalisation.wait()
+            As.empty_my_queue()
+            finalisation.wait()
+            As.finalise()
+
 
 
 class AreaStructure:
@@ -69,7 +79,8 @@ class AreaStructure:
         self._update_pvs()
 
     def _process_requests(self):
-        while not self._my_queue.empty():
+        size = self._my_queue.qsize()
+        for _ in range(size):
             request = self._my_queue.get()
             self._process_request(request)
 
@@ -95,6 +106,10 @@ class AreaStructure:
         for pv in pvs:
             self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))
         self._state_changed = False
+
+    def close_others_queues(self):
+        for q in self._others_queue.values():
+            q.close()
 
     def empty_my_queue(self):
         while not self._my_queue.empty():
