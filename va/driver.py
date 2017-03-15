@@ -2,6 +2,7 @@
 import queue
 import threading
 import multiprocessing
+import time
 # import prctl #Used in debugging
 from pcaspy import Driver
 from . import utils
@@ -80,7 +81,8 @@ class PCASDriver(Driver):
             process.my_queue.put(('s', (reason, value)))
 
     def _process_requests(self):
-        while not self._my_queue.empty():
+        size = self._my_queue.qsize()
+        for _ in range(size):
             request = self._my_queue.get()
             self._process_request(request)
 
@@ -88,8 +90,6 @@ class PCASDriver(Driver):
         cmd, data = request
         if cmd == 's': # set PV value in EPICS memory DB
             self._set_parameter_in_memory(data)
-        elif cmd == 'p': # pass to area_structure
-            self._pass_to_area_structure(data)
         elif cmd == 'sp': # initialise setpoints
             self._set_sp_parameters_in_memory(data)
         elif cmd == 'a': # anomalous condition signed by area_structure
@@ -102,24 +102,14 @@ class PCASDriver(Driver):
 
     def _set_parameter_in_memory(self, data):
         pv_name, value = data
+        # if 'PS' in pv_name: print(pv_name,':  ',value)
         self.setParam(pv_name, value)
-
-    def _pass_to_area_structure(self, data):
-        prefix, args_dict = data
-        self._send_to_area_structure('p', prefix, args_dict)
 
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             if value is None: print(pv_name)
             self.setParam(pv_name, value)
-
-    def _send_to_area_structure(self, cmd, prefix, args):
-        try:
-            process = self._processes[prefix]
-            process.my_queue.put((cmd, args))
-        except:
-            utils.log('!pref', prefix, c='red', a=['bold'])
 
     def _initialisation_sign_received(self, data):
         prefix = data

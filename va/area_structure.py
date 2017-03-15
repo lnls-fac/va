@@ -79,7 +79,8 @@ class AreaStructure:
         self._update_pvs()
 
     def _process_requests(self):
-        while not self._my_queue.empty():
+        size = self._my_queue.qsize()
+        for _ in range(size):
             request = self._my_queue.get()
             self._process_request(request)
 

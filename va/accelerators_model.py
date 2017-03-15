@@ -67,9 +67,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
         elif Discipline == 'AP' and Property == 'BbBCurrLT-Mon':
-            return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
+            return [lifetime for lifetime in self._beam_charge.lifetime]
+            # return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
         elif Discipline == 'AP' and Property == 'CurrLT-Mon':
-            return self._beam_charge.total_lifetime / _u.hour
+            return self._beam_charge.total_lifetime
+            # return self._beam_charge.total_lifetime / _u.hour
         else:
             return None
 
