@@ -6,7 +6,7 @@ import os as _os
 
 class ExcitationCurve:
 
-    def __init__(self, fname, polarity, method='filename'): # generalise: pass label name
+    def __init__(self, fname, polarity=1, method='filename'): # generalise: pass label name
         """Conversion between current and field
 
         Keyword argument:

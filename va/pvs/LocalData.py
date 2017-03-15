@@ -286,15 +286,32 @@ class RecordNames:
             else:
                 self.di_ro.append(rec)
 
+    def _build_ps_limits(self):
+        excdict = self.device_names.get_excitation_curve_mapping(self.family_data)
+        curr_lims = {}
+        for device_name,(filename,polarity) in excdict.items():
+            excdata = siriuspy.magnet.ExcitationData(filename_web = filename)
+            lims = [polarity*item for item in excdata.currents]
+            curr_lims[device_name] = (min(lims),max(lims))
+        return curr_lims
+
     def _init_ps_record_names(self):
         _device_names = self.device_names.get_device_names(self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
         _record_names = {}
+        curr_lims = self._build_ps_limits()
         for device_name in _device_names.keys():
             p = device_name + ':Current-SP'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            
+            _parts = self.device_names.split_name(device_name)
+            _device_name_ma = device_name.replace('PS','MA').replace('PU','PM')
+            if _parts['Subsection'] == 'Fam' and _device_name_ma in curr_lims:
+                lims = curr_lims[_device_name_ma]
+                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0, 'low':lims[0], 'high':lims[1]}
+            else:
+                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
             p = device_name + ':Current-RB'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}

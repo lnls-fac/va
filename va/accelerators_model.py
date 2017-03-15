@@ -30,7 +30,7 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         self._injection_parameters = None
-        self._dcct = {}
+        self._dcct = {} # encapsulate DCCTs data structures within private methods, just as for magnets and ps...
         super().__init__(**kwargs)
         self._reset('start', self.model_module.lattice_version)
         self._init_magnets_and_power_supplies()
@@ -262,13 +262,21 @@ class AcceleratorModel(area_structure.AreaStructure):
             if Property.endswith('-SP'):
                 prev_value = ps.current_sp
                 if value != prev_value:
-                    try:
-                        ps.current_sp = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                    db = self.database[pv_name]
+                    if 'low' in db and (value < db['low'] or value > db['high']): # It would be cleaner if this were implemented inside PS object!
+                        utils.log(message1 = 'psLim', message2 = pv_name, c='red')
+                        if value < db['low']:
+                            svalue = db['low']
+                        else:
+                            svalue = db['high']
+                    else:
+                        svalue = value
+                    ps.current_sp = svalue
+                    if svalue != prev_value:
+                        pv_name_rb = pv_name.replace('-SP','-RB')
+                        self._others_queue['driver'].put(('s', (pv_name, ps.current_sp))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
                 return True
             if Property.endswith('PwrState-Sel'):
                 prev_value = ps.pwr_state
