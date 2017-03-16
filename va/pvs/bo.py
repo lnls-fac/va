@@ -25,7 +25,7 @@ _inj_names = dict()
 _excitation_curves_mapping = (
     (('B',)    , ('bo-dipole-b.txt',1)),
     (('QF',)   , ('bo-quadrupole-qf.txt',1)),
-    (('QD',)   , ('bo-quadrupole-qd.txt',-1)),
+    (('QD',)   , ('bo-quadrupole-qd.txt',1)),
     (('QS',)   , ('bo-quadrupole-qs.txt',1)),
     (('SF',)   , ('bo-sextupole-sf.txt',1)),
     (('SD',)   , ('bo-sextupole-sd.txt',1)),
