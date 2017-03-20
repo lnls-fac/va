@@ -12,7 +12,7 @@ class PulseCurve:
     def __init__(self, fname, method='filename'):
 
         if method == 'filename':
-            _pulse_curves_dir = _os.path.join(_siriuspy.envars.folder_lnls_sirius_csconstants, 'magnets', 'pulse-curve-data')
+            _pulse_curves_dir = _os.path.join(_siriuspy.envars.folder_lnls_sirius_csconstants, 'magnet', 'pulse-curve-data')
             filename = _os.path.join(_pulse_curves_dir, fname)
             self._load_pulse_curve(filename)
         elif method == 'filename_web':

@@ -1,5 +1,5 @@
 import siriuspy
-import siriuspy.dev_types as _dev_types
+#import siriuspy.dev_types as _dev_types
 
 class DeviceNames:
     pvnaming_glob = 'Glob'
