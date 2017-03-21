@@ -1,4 +1,7 @@
+
+import copy as _copy
 import siriuspy
+
 #import siriuspy.dev_types as _dev_types
 
 class DeviceNames:
@@ -202,9 +205,9 @@ class RecordNames:
         self.database = dict()
         self.model = model
         self.device_names = device_names
-        self.build_data()
+        self._build_data()
 
-    def build_data(self):
+    def _build_data(self):
         self._init_record_names()
         self._init_dynamical_pvs()
 
@@ -460,19 +463,19 @@ class RecordNames:
                 self.ap.remove(pv)
 
     def get_all_record_names(self):
-        return self.all_record_names
+        return _copy.deepcopy(self.all_record_names)
 
     def get_database(self):
-        return self.database
+        return _copy.deepcopy(self.database)
 
     def get_read_only_pvs(self):
-        return self.di_ro + self.ap + self.ps_ro
+        return self.di_ro + self.ap + self.ps_ro # a copy!
 
     def get_read_write_pvs(self):
-        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti
+        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti # a copy!
 
     def get_dynamical_pvs(self):
-        return self.dynamical_pvs
+        return _copy.deepcopy(self.dynamical_pvs)
 
     def get_constant_pvs(self):
-        return self.fk_pos
+        return _copy.deepcopy(self.fk_pos)
