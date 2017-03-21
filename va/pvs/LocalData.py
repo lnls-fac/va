@@ -2,8 +2,6 @@
 import copy as _copy
 import siriuspy
 
-#import siriuspy.dev_types as _dev_types
-
 class DeviceNames:
     pvnaming_glob = 'Glob'
     pvnaming_fam  = 'Fam'
@@ -25,11 +23,11 @@ class DeviceNames:
         self.get_family_data = get_family_data
 
     def split_name(self, name):
-        return siriuspy.naming_system.split_name(name)
+        return siriuspy.namesys.split_name(name)
 
     def join_name(self, discipline, device, subsection,
         instance=None, proper=None, field=None):
-        return siriuspy.naming_system.join_name(self.section, discipline, device, subsection,
+        return siriuspy.namesys.join_name(self.section, discipline, device, subsection,
         instance, proper, field)
 
     ##### Device Names ######
