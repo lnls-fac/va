@@ -393,12 +393,9 @@ class RecordNames:
                 p = device_name + ':InjStop-Cmd'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'int'}
-                p = device_name + ':InjState-Sel'
+                p = device_name + ':InjStart-Cmd'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
-                p = device_name + ':InjState-Sel'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+                self.database[p] = {'type' : 'int'}
                 p = device_name + ':InjCyclic'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
