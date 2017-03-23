@@ -45,7 +45,7 @@ class DriverThread(threading.Thread):
                 utils.process_and_wait_interval(self._driver.process,self._interval)
         except Exception as ex:
             utils.log('error', str(ex), 'red')
-            stop_event.set()
+            self.stop_event.set()
         finally:
             self._driver.close_others_queues()
             self._finalisation.wait()
@@ -102,7 +102,6 @@ class PCASDriver(Driver):
 
     def _set_parameter_in_memory(self, data):
         pv_name, value = data
-        # if 'PS' in pv_name: print(pv_name,':  ',value)
         self.setParam(pv_name, value)
 
     def _set_sp_parameters_in_memory(self, data):
