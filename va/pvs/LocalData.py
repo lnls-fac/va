@@ -1,7 +1,6 @@
 
 import copy as _copy
 import siriuspy
-
 #import siriuspy.dev_types as _dev_types
 
 class DeviceNames:
@@ -305,10 +304,6 @@ class RecordNames:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
         _record_names = {}
         curr_lims = self._build_ps_limits()
-
-        ## This should be changed!
-        #ps_database = _dev_types.get_device_database(_dev_types.dev_ps_magnet)
-
         for device_name in _device_names.keys():
             p = device_name + ':Current-SP'
             _record_names[p] = _device_names[device_name]
@@ -320,7 +315,6 @@ class RecordNames:
                 self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0, 'low':lims[0], 'high':lims[1]}
             else:
                 self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-
             p = device_name + ':Current-RB'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
@@ -342,7 +336,6 @@ class RecordNames:
             p = device_name + ':Reset-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int'}
-
         self.all_record_names.update(_record_names)
         self.ps_ro = []
         self.ps_rw    = []
@@ -400,9 +393,12 @@ class RecordNames:
                 p = device_name + ':InjStop-Cmd'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'int'}
-                p = device_name + ':InjStart-Cmd'
+                p = device_name + ':InjState-Sel'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'int'}
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+                p = device_name + ':InjState-Sel'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
                 p = device_name + ':InjCyclic'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
