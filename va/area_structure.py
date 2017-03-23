@@ -64,7 +64,6 @@ class AreaStructureProcess(multiprocessing.Process):
             As.finalise()
 
 
-
 class AreaStructure:
 
     def __init__(self, others_queue, my_queue, log_func=utils.log, **kwargs):
