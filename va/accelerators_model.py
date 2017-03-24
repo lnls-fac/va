@@ -39,95 +39,89 @@ class AcceleratorModel(area_structure.AreaStructure):
     # --- methods implementing response of model to get requests
 
     def _get_pv(self, pv_name):
-        name_parts = self.device_names.split_name(pv_name)
-        value = self._get_pv_dynamic(pv_name, name_parts)
+        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        value = self._get_pv_dynamic(pv_name, parts)
         if value is None:
-            value = self._get_pv_fake(pv_name, name_parts)
+            value = self._get_pv_fake(pv_name, parts)
         if value is None:
-            value = self._get_pv_static(pv_name, name_parts)
+            value = self._get_pv_static(pv_name, parts)
         if value is None:
-            value = self._get_pv_timing(pv_name, name_parts)
+            value = self._get_pv_timing(pv_name, parts)
         if value is None:
-            value = self._get_pv_not_implemented(pv_name, name_parts)
+            value = self._get_pv_not_implemented(pv_name, parts)
         if value is None:
             raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
 
-    def _get_pv_dynamic(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        Property   = name_parts['Property']
-        if Discipline == 'DI' and Property == 'BbBCurrent-Mon':
+    def _get_pv_dynamic(self, pv_name, parts):
+        if parts.discipline == 'DI' and parts.propty == 'BbBCurrent-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
-        elif Discipline == 'DI' and Property == 'Current-Mon':
+        elif parts.discipline == 'DI' and parts.propty == 'Current-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
-        elif Discipline == 'AP' and Property == 'BbBCurrLT-Mon':
+        elif parts.discipline == 'AP' and parts.propty == 'BbBCurrLT-Mon':
             return [lifetime for lifetime in self._beam_charge.lifetime]
             # return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
-        elif Discipline == 'AP' and Property == 'CurrLT-Mon':
+        elif parts.discipline == 'AP' and parts.propty == 'CurrLT-Mon':
             return self._beam_charge.total_lifetime
             # return self._beam_charge.total_lifetime / _u.hour
         else:
             return None
 
-    def _get_pv_static(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Device_name= name_parts['Device_name']
-        Property   = name_parts['Property']
-        if Discipline in ('PS','PU'):
-            if Discipline == 'PS': dev = self._power_supplies[Device_name]
-            elif Discipline == 'PU': dev = self._pulsed_power_supplies[Device_name]
-            if Property.endswith('-SP'): return dev.current_sp
-            if Property.endswith('-RB'): return dev.current_rb
-            if Property.endswith('PwrState-Sel'): return dev.pwr_state
-            if Property.endswith('PwrState-Sts'): return dev.pwr_state
-            if Property.endswith('OpMode-Sel'): return dev.op_mode
-            if Property.endswith('OpMode-Sts'): return dev.op_mode
-            if Property.endswith('CtrlMode-Mon'): return dev.ctrl_mode
-            if Property.endswith('Reset-Cmd'): return 0
-        elif Discipline == 'DI':
-            if Device == 'BPM':
+    def _get_pv_static(self, pv_name, parts):
+        if parts.discipline in ('PS','PU'):
+            if parts.discipline == 'PS': dev = self._power_supplies[parts.dev_name]
+            elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
+            if parts.propty.endswith('-SP'): return dev.current_sp
+            if parts.propty.endswith('-RB'): return dev.current_rb
+            if parts.propty.endswith('PwrState-Sel'): return dev.pwr_state
+            if parts.propty.endswith('PwrState-Sts'): return dev.pwr_state
+            if parts.propty.endswith('OpMode-Sel'): return dev.op_mode
+            if parts.propty.endswith('OpMode-Sts'): return dev.op_mode
+            if parts.propty.endswith('CtrlMode-Mon'): return dev.ctrl_mode
+            if parts.propty.endswith('Reset-Cmd'): return 0
+        elif parts.discipline == 'DI':
+            if parts.dev_type == 'BPM':
                 idx = self._get_elements_indices(pv_name)
-                if Property == 'PosX-Mon':
+                if parts.propty == 'PosX-Mon':
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                     return orbit_unit*self._orbit[0,idx]
-                elif Property == 'PosY-Mon':
+                elif parts.propty == 'PosY-Mon':
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                     return orbit_unit*self._orbit[2,idx]
                 return None
-            elif Property == 'HwFlt-Mon':
+            elif parts.propty == 'HwFlt-Mon':
                 try:
-                    dcct = self._dcct[Device_name]
+                    dcct = self._dcct[parts.dev_name]
                 except:
-                    dcct = self._dcct[Device_name] = {'HwFlt':0, 'CurrThold':0.0}
+                    dcct = self._dcct[parts.dev_name] = {'HwFlt':0, 'CurrThold':0.0}
                 return dcct['HwFlt']
-            elif Property == 'CurrThold':
+            elif parts.propty == 'CurrThold':
                 try:
-                    dcct = self._dcct[Device_name]
+                    dcct = self._dcct[parts.dev_name]
                 except:
-                    dcct = self._dcct[Device_name] = {'HwFlt':0, 'CurrThold':0.0}
+                    dcct = self._dcct[parts.dev_name] = {'HwFlt':0, 'CurrThold':0.0}
                 return dcct['CurrThold']
-            elif Property == 'Freq1-Mon':
+            elif parts.propty == 'Freq1-Mon':
                 return self._get_tune_component(Plane.horizontal)
-            elif Property == 'Freq2-Mon':
+            elif parts.propty == 'Freq2-Mon':
                 return self._get_tune_component(Plane.vertical)
-            elif Property == 'Freq3-Mon':
+            elif parts.propty == 'Freq3-Mon':
                 return self._get_tune_component(Plane.longitudinal)
             return None
-        elif Discipline == 'RF':
-            if Property == 'Freq':
+        elif parts.discipline == 'RF':
+            if parts.propty == 'Freq':
                 return pyaccel.optics.get_rf_frequency(self._accelerator)
-            elif Property == 'Volt':
+            elif parts.propty == 'Volt':
                 idx = self._get_elements_indices(pv_name)
                 return self._accelerator[idx[0]].voltage
             return None
-        elif Discipline == 'AP':
+        elif parts.discipline == 'AP':
             return UNDEF_VALUE
             if 'Chrom' in pv_name:
                 return UNDEF_VALUE
@@ -140,9 +134,8 @@ class AcceleratorModel(area_structure.AreaStructure):
             return None
         return None
 
-    def _get_pv_fake(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        if Discipline != 'FK': return None
+    def _get_pv_fake(self, pv_name, parts):
+        if parts.discipline != 'FK': return None
         if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -170,15 +163,12 @@ class AcceleratorModel(area_structure.AreaStructure):
         else:
             return None
 
-    def _get_pv_timing(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if Discipline == 'TI':
-            if Property == 'Enbl' and pv_name in self._enabled2magnet.keys():
+    def _get_pv_timing(self, pv_name, parts):
+        if parts.discipline == 'TI':
+            if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].enabled
-            elif Property == 'Delay' and pv_name in self._delay2magnet.keys():
+            elif parts.propty == 'Delay' and pv_name in self._delay2magnet.keys():
                 magnet_name = self._delay2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].delay
             else:
@@ -186,66 +176,56 @@ class AcceleratorModel(area_structure.AreaStructure):
         else:
             return None
 
-    def _get_pv_not_implemented(self, pv_name, name_parts):
-        Section    = name_parts['Section']
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if Section == 'LI':
-            if Device.startswith(('AccStr','ICT','Bun','Scrn','SHB')):
+    def _get_pv_not_implemented(self, pv_name, parts):
+        if parts.section == 'LI':
+            if parts.dev_type.startswith(('AccStr','ICT','Bun','Scrn','SHB')):
                 return 1
             if pv_name.endswith('-Cmd'):
                 return 1
-        if Section == 'BO':
-            if Device.startswith(('GSL','STDMOE','TuneS','Scrn',)):
+        if parts.section == 'BO':
+            if parts.dev_type.startswith(('GSL','STDMOE','TuneS','Scrn',)):
                 return 1
-        if Section == 'SI':
-            if Device.startswith(('BPME','GSL','BbBP','HBbBS','VBbBS','VTuneS',
+        if parts.section == 'SI':
+            if parts.dev_type.startswith(('BPME','GSL','BbBP','HBbBS','VBbBS','VTuneS',
                                   'HTuneS','HScrap','VScrap')):
                 return 1
-        elif Section.startswith('T'):
-            if Device.startswith(('ICT','FCT','Scrn','HSlit','VSlit')):
+        elif parts.section.startswith('T'):
+            if parts.dev_type.startswith(('ICT','FCT','Scrn','HSlit','VSlit')):
                 return 1
 
 
   # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
-        name_parts = self.device_names.split_name(pv_name)
-        if self._set_pv_magnets(pv_name, value, name_parts): return
-        if self._set_pv_di(pv_name, value, name_parts): return
-        if self._set_pv_rf(pv_name, value, name_parts): return
-        if self._set_pv_fake(pv_name, value, name_parts): return
-        if self._set_pv_timing(pv_name, value, name_parts): return
+        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        if self._set_pv_magnets(pv_name, value, parts): return
+        if self._set_pv_di(pv_name, value, parts): return
+        if self._set_pv_rf(pv_name, value, parts): return
+        if self._set_pv_fake(pv_name, value, parts): return
+        if self._set_pv_timing(pv_name, value, parts): return
 
-    def _set_pv_di(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        Property   = name_parts['Property']
-        Device_name= name_parts['Device_name']
-        Property   = name_parts['Property']
-        if Discipline == 'DI':
-            if Property == 'CurrThold':
-                prev_value = self._dcct[Device_name]['CurrThold']
+    def _set_pv_di(self, pv_name, value, parts):
+        if parts.discipline == 'DI':
+            if parts.propty == 'CurrThold':
+                prev_value = self._dcct[parts.dev_name]['CurrThold']
                 if value != prev_value:
                     if value < 0:
                         self._others_queue['driver'].put(('s', (pv_name, prev_value)))
                     else:
-                        self._dcct[Device_name]['CurrThold'] = value
+                        self._dcct[parts.dev_name]['CurrThold'] = value
                     return True
         return False
 
-    def _set_pv_rf(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        Property   = name_parts['Property']
-        if not Discipline == 'RF': return None
-        if Property == 'Volt':
+    def _set_pv_rf(self, pv_name, value, parts):
+        if not parts.discipline == 'RF': return None
+        if parts.propty == 'Volt':
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].voltage
             if value != prev_value:
                 self._accelerator[idx[0]].voltage = value
                 self._state_deprecated = True
             return True
-        elif Property == 'Freq':
+        elif parts.propty == 'Freq':
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].frequency
             if value != prev_value:
@@ -254,14 +234,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             return True
         return False
 
-    def _set_pv_magnets(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        Device_name= name_parts['Device_name']
-        Property   = name_parts['Property']
-        if Discipline in ('PS','PU'):
-            if Discipline == 'PS':   ps = self._power_supplies[Device_name]
-            elif Discipline == 'PU': ps = self._pulsed_power_supplies[Device_name]
-            if Property.endswith('-SP'):
+    def _set_pv_magnets(self, pv_name, value, parts):
+        if parts.discipline in ('PS','PU'):
+            if parts.discipline == 'PS':   ps = self._power_supplies[parts.dev_name]
+            elif parts.discipline == 'PU': ps = self._pulsed_power_supplies[parts.dev_name]
+            if parts.propty.endswith('-SP'):
                 prev_value = ps.current_sp
                 if value != prev_value:
                     db = self.database[pv_name]
@@ -280,7 +257,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                         self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                 return True
-            if Property.endswith('PwrState-Sel'):
+            if parts.propty.endswith('PwrState-Sel'):
                 prev_value = ps.pwr_state
                 if value != prev_value:
                     try:
@@ -291,7 +268,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
                         return False
-            if Property.endswith('OpMode-Sel'):
+            if parts.propty.endswith('OpMode-Sel'):
                 prev_value = ps.op_mode
                 if value != prev_value:
                     try:
@@ -303,9 +280,8 @@ class AcceleratorModel(area_structure.AreaStructure):
                         return False
         return False
 
-    def _set_pv_fake(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        if Discipline != 'FK': return None
+    def _set_pv_fake(self, pv_name, value, parts):
+        if parts.discipline != 'FK': return None
         if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -334,16 +310,14 @@ class AcceleratorModel(area_structure.AreaStructure):
             return True
         return None
 
-    def _set_pv_timing(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        Property   = name_parts['Property']
-        if not Discipline == 'TI': return False
-        if Property == 'Enbl' and pv_name in self._enabled2magnet.keys():
+    def _set_pv_timing(self, pv_name, value, parts):
+        if not parts.discipline == 'TI': return False
+        if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
             magnet_name = self._enabled2magnet[pv_name]
             self._pulsed_magnets[magnet_name].enabled = value
             self._state_deprecated = True
             return True
-        elif Property == 'Delay' and pv_name in self._delay2magnet.keys():
+        elif parts.propty == 'Delay' and pv_name in self._delay2magnet.keys():
             magnet_name = self._delay2magnet[pv_name]
             self._pulsed_magnets[magnet_name].delay = value
             self._state_deprecated = True
@@ -370,8 +344,8 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
-        Device_name = self.device_names.split_name(pv_name)['Device_name']
-        data = self._all_pvs[Device_name]
+        parts = _siriuspy.namesys.SiriusPVName(dev_name)
+        data = self._all_pvs[parts.dev_type]
         indices = []
         for key in data.keys():
             idx = mathphys.utils.flatten(data[key]) if flat else data[key]
@@ -509,24 +483,20 @@ class LinacModel(AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_fake(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        if Discipline == 'FK' and 'Mode' in pv_name:
+    def _get_pv_fake(self, pv_name, parts):
+        if parts.discipline == 'FK' and 'Mode' in pv_name:
             return self._single_bunch_mode
-        return super()._get_pv_fake(pv_name, name_parts)
+        return super()._get_pv_fake(pv_name, parts)
 
 
-    def _get_pv_timing(self, pv_name, name_parts):
-        value = super()._get_pv_timing(pv_name, name_parts)
+    def _get_pv_timing(self, pv_name, parts):
+        value = super()._get_pv_timing(pv_name, parts)
         if value is not None: return value
 
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if not Discipline == 'TI': return None
-        if Device == 'EGun':
-            if Property == 'Enbl': return self._egun_enabled
-            elif Property =='Delay':
+        if not parts.discipline == 'TI': return None
+        if parts.dev_type == 'EGun':
+            if parts.propty == 'Enbl': return self._egun_enabled
+            elif parts.propty =='Delay':
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
@@ -536,26 +506,20 @@ class LinacModel(AcceleratorModel):
 
     # --- methods implementing response of model to set requests
 
-    def _set_pv_fake(self, pv_name, value, name_parts):
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if Discipline == 'FK' and 'Mode' in pv_name:
+    def _set_pv_fake(self, pv_name, value, parts):
+        if parts.discipline == 'FK' and 'Mode' in pv_name:
             self._single_bunch_mode = value
             return True
-        return super()._set_pv_fake(pv_name, value, name_parts)
+        return super()._set_pv_fake(pv_name, value, parts)
 
 
-    def _set_pv_timing(self, pv_name, value, name_parts):
-        if super()._set_pv_timing(pv_name, value, name_parts): return
+    def _set_pv_timing(self, pv_name, value, parts):
+        if super()._set_pv_timing(pv_name, value, parts): return
 
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if not Discipline == 'TI': return False
-        if Device == 'EGun':
-            if Property == 'Enbl': self._egun_enabled = value
-            elif Property == 'Delay': self._egun_delay = value
+        if not parts.discipline == 'TI': return False
+        if parts.dev_type == 'EGun':
+            if parts.propty == 'Enbl': self._egun_enabled = value
+            elif parts.propty == 'Delay': self._egun_delay = value
             else: return False
             return True
         return False
@@ -804,12 +768,11 @@ class BoosterModel(AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_timing(self, pv_name, name_parts):
-        value = super()._get_pv_timing(pv_name, name_parts)
+    def _get_pv_timing(self, pv_name, parts):
+        value = super()._get_pv_timing(pv_name, parts)
         if value is not None: return value
 
-        Discipline = name_parts['Discipline']
-        if Discipline == 'TI':
+        if parts.discipline == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 return self._rampps_enabled
             elif 'RampPS:Delay' in pv_name:
@@ -821,11 +784,10 @@ class BoosterModel(AcceleratorModel):
 
     # --- methods implementing response of model to set requests
 
-    def _set_pv_timing(self, pv_name, value, name_parts):
-        if super()._set_pv_timing(pv_name, value, name_parts): return
+    def _set_pv_timing(self, pv_name, value, parts):
+        if super()._set_pv_timing(pv_name, value, parts): return
 
-        Discipline = name_parts['Discipline']
-        if Discipline == 'TI':
+        if parts.discipline == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 self._rampps_enabled = value
                 return True
@@ -1186,22 +1148,19 @@ class StorageRingModel(AcceleratorModel):
 
     # --- methods implementing response of model to get requests
 
-    def _get_pv_static(self, pv_name, name_parts):
-        Discipline = name_parts['Discipline']
-        Device     = name_parts['Device']
-        Property   = name_parts['Property']
-        if Discipline == 'DI' and Device == 'BPM':
+    def _get_pv_static(self, pv_name, parts):
+        if parts.discipline == 'DI' and parts.dev_type == 'BPM':
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
-            if Property == 'PosX-Mon':
+            if parts.propty == 'PosX-Mon':
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[0,idx]
-            elif Property == 'PosY-Mon':
+            elif parts.propty == 'PosY-Mon':
                 if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
                 return orbit_unit*self._orbit[2,idx]
             return None
         else:
-            return super()._get_pv_static(pv_name, name_parts)
+            return super()._get_pv_static(pv_name, parts)
 
     # --- methods that help updating the model state
 
