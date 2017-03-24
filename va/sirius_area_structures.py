@@ -26,7 +26,7 @@ class ASModel(area_structure.AreaStructure):
         super().__init__(**kwargs)
         self._uuid = _uuid.uuid4()
         self.evg = _siriuspy.timesys.EVGIOC(self._rf_frequency,
-                                            {self._uuid, self._callback},
+                                            callbacks = {self._uuid: self._callback},
                                             prefix = self.prefix + '-Glob:TI-EVG:')
         self.evg.add_injection_callback(self.uuid,self._injection_cycle)
         self.evg.add_single_callback(self.uuid,self._single_pulse_synchronism)
