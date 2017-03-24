@@ -1,4 +1,4 @@
-
+import uuid as _uuid
 import multiprocessing
 import time
 from . import utils
@@ -67,6 +67,7 @@ class AreaStructureProcess(multiprocessing.Process):
 class AreaStructure:
 
     def __init__(self, others_queue, my_queue, log_func=utils.log, **kwargs):
+        self._uuid = _uuid.uuid4()
         self._others_queue = others_queue
         self._my_queue = my_queue
         self._log = log_func
