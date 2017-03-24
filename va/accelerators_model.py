@@ -345,7 +345,7 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
-        parts = _siriuspy.namesys.SiriusPVName(dev_name)
+        parts = _siriuspy.namesys.SiriusPVName(pv_name)
         data = self._all_pvs[parts.dev_type]
         indices = []
         for key in data.keys():
