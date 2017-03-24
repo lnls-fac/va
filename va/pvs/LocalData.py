@@ -1,7 +1,6 @@
 
 import copy as _copy
 import siriuspy as _siriuspy
-#import siriuspy.dev_types as _dev_types
 
 class DeviceNames:
     pvnaming_glob = 'Glob'
@@ -26,7 +25,7 @@ class DeviceNames:
     def join_name(self, discipline, device, subsection,
         instance=None, proper=None, field=None):
         return _siriuspy.namesys.join_name(self.section, discipline, device, subsection,
-        instance, proper, field)
+                                           instance, proper, field)
 
     ##### Device Names ######
     def get_device_names(self, accelerator=None, discipline = None):
