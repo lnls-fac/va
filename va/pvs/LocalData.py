@@ -23,9 +23,6 @@ class DeviceNames:
         ##### Family Data Function ######
         self.get_family_data = get_family_data
 
-    def split_name(self, name):
-        return siriuspy.naming_system.split_name(name)
-
     def join_name(self, discipline, device, subsection,
         instance=None, proper=None, field=None):
         return siriuspy.naming_system.join_name(self.section, discipline, device, subsection,
@@ -105,13 +102,13 @@ class DeviceNames:
 
             #Use this mapping to see if the power supply is attached to the same element
             for ps_name, ps_prop in self.get_device_names(accelerator,power).items():
-                ps = self.split_name(ps_name)['Device']
+                ps = _siriuspy.namesys.SiriusPVName(ps_name).dev_type
                 idx = list(ps_prop.values())[0]
                 idx = [idx[0]] if self.pvnaming_fam not in ps_name else [i[0] for i in idx] # if Fam then indices are list of lists
                 for i in idx:
                     mag_names = mag_ind_dict[i]
                     for mag_name in mag_names:
-                        m = self.split_name(mag_name)['Device']
+                        m = _siriuspy.namesys.SiriusPVName(mag_name).dev_type
                         if (m not in ps) and (ps not in m):
                             continue  # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
                         if mapping.get(mag_name) is None:
@@ -134,8 +131,9 @@ class DeviceNames:
         tis_dev = set(self.get_device_names(accelerator, 'TI').keys())
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            dev = self.split_name(pm)['Device']
-            ins = self.split_name(pm)['Instance']
+            parts = _siriuspy.namesys.SiriusPVName(pm)
+            dev = parts.dev_type
+            ins = parts.instance
             dev += '-'+ins if ins else ins
             ti = [i for i in tis_dev if dev in i][0]
             mapping[pm] = ti + delay_or_enbl
@@ -168,7 +166,7 @@ class DeviceNames:
         mapping = {}
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            dev = self.split_name(pm)['Device']
+            dev = _siriuspy.namesys.SiriusPVName(pm).dev_type
             mapping[pm] = self.pulse_curve_mapping[dev]
 
         return mapping
@@ -185,15 +183,16 @@ class DeviceNames:
         for fams, curve in self.excitation_curves_mapping:
             if isinstance(fams[0],tuple):
                 for name in magnets:
-                    device = self.split_name(name)['Device']
-                    sub  = self.split_name(name)['Subsection']
-                    inst = self.split_name(name)['Instance']
+                    parts = _siriuspy.namesys.SiriusPVName(name)
+                    device = parts.dev_type
+                    sub    = parts.subsection
+                    inst   = parts.instance
                     if sub.endswith(fams[0][0]) and device.startswith(fams[0][1]) and inst.endswith(fams[0][2]):
                         ec[name] = curve
             else:
                 for name in magnets:
-                    device = self.split_name(name)['Device']
-                    if device.startswith(fams): ec[name] = curve
+                    parts = _siriuspy.namesys.SiriusPVName(name)
+                    if parts.dev_type.startswith(fams): ec[name] = curve
         return ec
 
 
@@ -240,20 +239,19 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'DI')
         _record_names = {}
         for dev_name in _device_names.keys():
-            device = self.device_names.split_name(dev_name)['Device']
-            subsec = self.device_names.split_name(dev_name)['Subsection']
-            if device == 'BPM':
+            parts = _siriuspy.namesys.SiriusPVName(dev_name)
+            if parts.dev_type== 'BPM':
                 p1 = dev_name + ':PosX-Mon'
                 _record_names[p1] = _device_names[dev_name]
                 p2 = dev_name + ':PosY-Mon'
                 _record_names[p2] = _device_names[dev_name]
-                if subsec == self.device_names.pvnaming_fam:
+                if parts.subsection == self.device_names.pvnaming_fam:
                     self.database[p1] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
                     self.database[p2] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
                 else:
                     self.database[p1] = {'type' : 'float', 'value': 0.0}
                     self.database[p2] = {'type' : 'float', 'value': 0.0}
-            elif 'TuneP' in device:
+            elif 'TuneP' in parts.dev_type:
                 p = dev_name + ':Freq1-Mon'
                 _record_names[p] = _device_names[dev_name]
                 self.database[p] = {'type' : 'float', 'value': 0.0}
@@ -263,7 +261,7 @@ class RecordNames:
                 p = dev_name + ':Freq3-Mon'
                 _record_names[p] = _device_names[dev_name]
                 self.database[p] = {'type' : 'float', 'value': 0.0}
-            elif device == 'DCCT':
+            elif parts.dev_type== 'DCCT':
                 p = dev_name + ':Current-Mon'
                 _record_names[p] = _device_names[dev_name]
                 self.database[p] = {'type' : 'float', 'value': 0.0}
@@ -308,9 +306,9 @@ class RecordNames:
             p = device_name + ':Current-SP'
             _record_names[p] = _device_names[device_name]
 
-            _parts = self.device_names.split_name(device_name)
+            parts = _siriuspy.namesys.SiriusPVName(device_name)
             _device_name_ma = device_name.replace('PS','MA').replace('PU','PM')
-            if _parts['Subsection'] == 'Fam' and _device_name_ma in curr_lims:
+            if parts.subsection == 'Fam' and _device_name_ma in curr_lims:
                 lims = curr_lims[_device_name_ma]
                 self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0, 'low':lims[0], 'high':lims[1]}
             else:
@@ -349,8 +347,8 @@ class RecordNames:
         _record_names = dict()
         _device_names = self.device_names.get_device_names(self.family_data, 'AP')
         for dev_name in _device_names.keys():
-            device = self.device_names.split_name(dev_name)['Device']
-            if device == 'CurrLT':
+            parts = _siriuspy.namesys.SiriusPVName(dev_name)
+            if parts.dev_type== 'CurrLT':
                 p = dev_name + ':CurrLT-Mon'
                 _record_names[p] = _device_names[dev_name]
                 self.database[p] = {'type' : 'float', 'value': 0.0}
@@ -367,8 +365,8 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'RF')
         _record_names = {}
         for device_name in _device_names.keys():
-            device = self.device_names.split_name(device_name)['Device']
-            if device.endswith('Cav'):
+            parts = _siriuspy.naming_system.SiriusPVName(device_name)
+            if parts.dev_type.endswith('Cav'):
                 p = device_name + ':Freq'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
@@ -385,9 +383,9 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
-            _parts = _siriuspy.naming_system.SiriusPVName(device_name)
-            if 'EVG' == _parts.device:
-                db = siriuspy.timesys.EVG.get_database(prefix = _parts.device_slot + ':')
+            parts = _siriuspy.naming_system.SiriusPVName(device_name)
+            if 'EVG' == parts.dev_type:
+                db = siriuspy.timesys.EVG.get_database(prefix = parts.dev_slot + ':')
                 for p in db.keys():
                     _record_names[p] = _device_names[device_name]
             else:
