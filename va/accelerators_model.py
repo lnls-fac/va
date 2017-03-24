@@ -5,6 +5,7 @@ import math
 import numpy
 import mathphys
 import pyaccel
+import siriuspy as _siriuspy
 from . import area_structure
 from . import magnet
 from . import power_supply
