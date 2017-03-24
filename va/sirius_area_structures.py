@@ -28,6 +28,8 @@ class ASModel(area_structure.AreaStructure):
         self.evg = _siriuspy.timesys.EVGIOC(self._rf_frequency,
                                             {self._uuid, self._callback},
                                             prefix = self.prefix + '-Glob:TI-EVG:')
+        self.evg.add_injection_callback(self.uuid,self._injection_cycle)
+        self.evg.add_single_callback(self.uuid,self._single_pulse_synchronism)
         self._init_sp_pv_values()
 
     def _callback(self, propty, value, **kwargs):

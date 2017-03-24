@@ -1,6 +1,6 @@
 
 import copy as _copy
-import siriuspy
+import siriuspy as _siriuspy
 #import siriuspy.dev_types as _dev_types
 
 class DeviceNames:
@@ -25,7 +25,7 @@ class DeviceNames:
 
     def join_name(self, discipline, device, subsection,
         instance=None, proper=None, field=None):
-        return siriuspy.naming_system.join_name(self.section, discipline, device, subsection,
+        return _siriuspy.namesys.join_name(self.section, discipline, device, subsection,
         instance, proper, field)
 
     ##### Device Names ######
@@ -133,7 +133,7 @@ class DeviceNames:
         for pm in pms_dev:
             parts = _siriuspy.namesys.SiriusPVName(pm)
             dev = parts.dev_type
-            ins = parts.instance
+            ins = parts.dev_instance
             dev += '-'+ins if ins else ins
             ti = [i for i in tis_dev if dev in i][0]
             mapping[pm] = ti + delay_or_enbl
@@ -186,7 +186,7 @@ class DeviceNames:
                     parts = _siriuspy.namesys.SiriusPVName(name)
                     device = parts.dev_type
                     sub    = parts.subsection
-                    inst   = parts.instance
+                    inst   = parts.dev_instance
                     if sub.endswith(fams[0][0]) and device.startswith(fams[0][1]) and inst.endswith(fams[0][2]):
                         ec[name] = curve
             else:
@@ -291,7 +291,7 @@ class RecordNames:
         excdict = self.device_names.get_excitation_curve_mapping(self.family_data)
         curr_lims = {}
         for device_name,(filename,polarity) in excdict.items():
-            excdata = siriuspy.magnet.ExcitationData(filename_web = filename)
+            excdata = _siriuspy.magnet.ExcitationData(filename_web = filename)
             lims = [polarity*item for item in excdata.currents]
             curr_lims[device_name] = (min(lims),max(lims))
         return curr_lims
@@ -365,7 +365,7 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'RF')
         _record_names = {}
         for device_name in _device_names.keys():
-            parts = _siriuspy.naming_system.SiriusPVName(device_name)
+            parts = _siriuspy.namesys.SiriusPVName(device_name)
             if parts.dev_type.endswith('Cav'):
                 p = device_name + ':Freq'
                 _record_names[p] = _device_names[device_name]
@@ -383,9 +383,9 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
-            parts = _siriuspy.naming_system.SiriusPVName(device_name)
+            parts = _siriuspy.namesys.SiriusPVName(device_name)
             if 'EVG' == parts.dev_type:
-                db = siriuspy.timesys.EVG.get_database(prefix = parts.dev_slot + ':')
+                db = _siriuspy.timesys.EVGIOC.get_database(prefix = parts.dev_name + ':')
                 for p in db.keys():
                     _record_names[p] = _device_names[device_name]
             else:
