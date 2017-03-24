@@ -1,3 +1,4 @@
+import uuid as _uuid
 import siriuspy as _siriuspy
 import pymodels as _pymodels
 from .pvs import As as _pvs_As
@@ -23,21 +24,25 @@ class ASModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.evg = _siriuspy.timesys.EVG(self._rf_frequency,['Linac','InjBO','InjSI','RmpBO','RampSI',
-                                                       'DigLI','DigTB','DigBO','DigTS','DigSI'])
+        self._uuid = _uuid.uuid4()
+        self.evg = _siriuspy.timesys.EVGIOC(self._rf_frequency,
+                                            {self._uuid, self._callback},
+                                            prefix = self.prefix + '-Glob:TI-EVG:')
         self._init_sp_pv_values()
 
+    def _callback(self, propty, value, **kwargs):
+        self._others_queue['driver'].put(('s', (propty, value)))
+
     def _get_pv(self, pv_name):
-        parts = _siriuspy.naming_system.SiriusPVName(pv_name)
+        parts = _siriuspy.namesys.SiriusPVName(pv_name)
         if parts.discipline == 'TI' and parts.device == 'EVG':
-            prop = name_parts['Property']
-            return self.evg.get_property_from_pv_name(parts.property)
+            return self.evg.get_propty(parts.property)
         return None
 
     def _set_pv(self,pv_name, value):
-        parts = _siriuspy.naming_system.SiriusPVName(pv_name)
-        if parts['Discipline'] == 'TI' and parts['Device']== 'EVG':
-            return self.evg.set_property_from_pv_name(parts.property, value)
+        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        if parts.discipline == 'TI' and parts.dev_type == 'EVG':
+            return self.evg.set_propty(parts.property, value)
         else: return False
         return True
 
