@@ -385,68 +385,11 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
-            _parts = self.device_names.split_name(device_name)
-            if 'EVG' in _parts['Device']:
-                p = device_name + ':SingleState-Cmd'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':0}
-                p = device_name + ':InjectionState-Sel'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                p = device_name + ':InjectionState-Sts'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                p = device_name + ':InjCyclic'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
-                p = device_name + ':ContinuousState-Sel'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                p = device_name + ':ContinuousState-Sts'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                p = device_name + ':BucketList'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'int', 'count': 864, 'value':0}
-                p = device_name + ':RepRate-SP'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                p = device_name + ':RepRate-RB'
-                _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                for i in range(8):
-                    clck = ':Clck{0:d}'.format(i)
-                    p = device_name + clck + 'Freq-SP'
+            _parts = _siriuspy.naming_system.SiriusPVName(device_name)
+            if 'EVG' == _parts.device:
+                db = siriuspy.timesys.EVG.get_database(prefix = _parts.device_slot + ':')
+                for p in db.keys():
                     _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                    p = device_name + clck + 'Freq-RB'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                    p = device_name + clck + 'State-Sel'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                    p = device_name + clck + 'State-Sts'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                for evnt in ['Linac','InjBO','InjSI','RmpBO','RampSI','DigLI','DigTB','DigBO','DigTS','DigSI']:
-                    p = device_name + ':' + evnt + 'Delay-SP'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                    p = device_name + ':' + evnt + 'Delay-RB'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                    p = device_name + ':' + evnt + 'Mode-Sel'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Disabled','Continuous','Injection','Single'), 'value':1}
-                    p = device_name + ':' + evnt + 'Mode-Sts'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Disabled','Continuous','Injection','Single'), 'value':1}
-                    p = device_name + ':' + evnt + 'DelayType-Sel'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Fixed','Incr'), 'value':1}
-                    p = device_name + ':' + evnt + 'DelayType-Sts'
-                    _record_names[p] = _device_names[device_name]
-                    self.database[p] = {'type' : 'enum', 'enums':('Fixed','Incr'), 'value':1}
             else:
                 p = device_name + ':Enbl'
                 _record_names[p] = _device_names[device_name]

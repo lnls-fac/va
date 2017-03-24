@@ -6,7 +6,6 @@ from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
 from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
-from . import timing_system as _timing_system
 from . import accelerators_model
 from . import area_structure
 
@@ -24,63 +23,21 @@ class ASModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.evg = _timing_system.EVG(self._rf_frequency,['Linac','InjBO','InjSI','RmpBO','RampSI',
+        self.evg = _siriuspy.timesys.EVG(self._rf_frequency,['Linac','InjBO','InjSI','RmpBO','RampSI',
                                                        'DigLI','DigTB','DigBO','DigTS','DigSI'])
         self._init_sp_pv_values()
 
     def _get_pv(self, pv_name):
-        name_parts = self.device_names.split_name(pv_name)
-        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'EVG':
+        parts = _siriuspy.naming_system.SiriusPVName(pv_name)
+        if parts.discipline == 'TI' and parts.device == 'EVG':
             prop = name_parts['Property']
-            if prop in ('InjStart-Cmd','InjStop-Cmd','SinglePulse-Cmd'):
-                return 1
-            elif prop == 'InjCyclic':
-                return self.evg.cyclic_injection
-            elif prop == 'Continuous':
-                return self.evg.continuous
-            elif prop == 'BucketList':
-                return self.evg.bucket_list
-            elif prop == 'RepRate':
-                return self.evg.repetition_rate
-            elif prop.endswith('Freq'):
-                return self.evg.clocks[prop.rstrip('Freq')].frequency
-            elif prop.endswith('State') and prop.startswith('Clck'):
-                return self.evg.clocks[prop.rstrip('State')].state
-            elif prop.endswith('Delay'):
-                return self.evg.events[prop.rstrip('Delay')].delay
-            elif prop.endswith('Mode'):
-                return self.evg.events[prop.rstrip('Mode')].mode
-            elif prop.endswith('DelayType'):
-                return self.evg.events[prop.rstrip('DelayType')].delay_type
+            return self.evg.get_property_from_pv_name(parts.property)
         return None
 
     def _set_pv(self,pv_name, value):
-        name_parts = self.device_names.split_name(pv_name)
-        if name_parts['Discipline'] == 'TI' and name_parts['Device']== 'EVG':
-            prop = name_parts['Property']
-            if prop == 'InjStart-Cmd':
-                self.evg.start_injection(self._injection_cycle)
-            elif prop == 'InjStop-Cmd':
-                self.evg.stop_injection()
-            elif prop == 'SinglePulse-Cmd':
-                self.evg.single_pulse(self._single_pulse_synchronism)
-            elif prop == 'InjCyclic':
-                self.evg.cyclic_injection = value
-            elif prop == 'Continuous':
-                self.evg.continuous = value
-            elif prop == 'BucketList':
-                self.evg.bucket_list = value
-            elif prop.endswith('Freq'):
-                self.evg.clocks[prop.rstrip('Freq')].frequency = value
-            elif prop.endswith('State') and prop.startswith('Clck'):
-                self.evg.clocks[prop.rstrip('State')].state = value
-            elif prop.endswith('Delay'):
-                self.evg.events[prop.rstrip('Delay')].delay = value
-            elif prop.endswith('State'):
-                self.evg.events[prop.rstrip('Mode')].mode = value
-            elif prop.endswith('DelayType'):
-                self.evg.events[prop.rstrip('DelayType')].delay_type = value
-            else: return False
+        parts = _siriuspy.naming_system.SiriusPVName(pv_name)
+        if parts['Discipline'] == 'TI' and parts['Device']== 'EVG':
+            return self.evg.set_property_from_pv_name(parts.property, value)
         else: return False
         return True
 
