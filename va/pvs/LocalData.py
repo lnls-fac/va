@@ -385,6 +385,7 @@ class RecordNames:
             parts = _siriuspy.namesys.SiriusPVName(device_name)
             if 'EVG' == parts.dev_type:
                 db = _siriuspy.timesys.EVGIOC.get_database(prefix = parts.dev_name + ':')
+                self.database.update(db)
                 for p in db.keys():
                     _record_names[p] = _device_names[device_name]
             else:

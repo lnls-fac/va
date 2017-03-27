@@ -35,14 +35,14 @@ class ASModel(area_structure.AreaStructure):
 
     def _get_pv(self, pv_name):
         parts = _siriuspy.namesys.SiriusPVName(pv_name)
-        if parts.discipline == 'TI' and parts.device == 'EVG':
-            return self.evg.get_propty(parts.property)
+        if parts.discipline == 'TI' and parts.dev_type == 'EVG':
+            return self.evg.get_propty(parts.propty)
         return None
 
     def _set_pv(self,pv_name, value):
         parts = _siriuspy.namesys.SiriusPVName(pv_name)
         if parts.discipline == 'TI' and parts.dev_type == 'EVG':
-            return self.evg.set_propty(parts.property, value)
+            return self.evg.set_propty(parts.propty, value)
         else: return False
         return True
 
