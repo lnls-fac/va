@@ -388,6 +388,11 @@ class RecordNames:
                 self.database.update(db)
                 for p in db.keys():
                     _record_names[p] = _device_names[device_name]
+            elif 'EVR' == parts.dev_type:
+                db = siriuspy.timesys.EVRIOC.get_database(prefix = parts.dev_name + ':')
+                self.database.update(db)
+                for p in db.keys():
+                    _record_names[p] = _device_names[device_name]
             else:
                 p = device_name + ':Enbl'
                 _record_names[p] = _device_names[device_name]
