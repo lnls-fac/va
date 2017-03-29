@@ -335,7 +335,7 @@ class RecordNames:
             self.database[p] = {'type' : 'int'}
         self.all_record_names.update(_record_names)
         self.ps_ro = []
-        self.ps_rw    = []
+        self.ps_rw = []
         for rec in _record_names.keys():
             if rec.endswith(('-RB','-Sts','-Mon')):
                 self.ps_ro.append(rec)
@@ -396,7 +396,13 @@ class RecordNames:
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         self.all_record_names.update(_record_names)
-        self.ti = list(_record_names.keys())
+        self.ti_ro = []
+        self.ti_rw = []
+        for rec_name in _record_names.keys():
+            if rec_name.endswith(('-RB','-Sts','-Mon')):
+                self.ti_ro.append(rec_name)
+            else:
+                self.ti_rw.append(rec_name)
 
     def _init_fk_record_names(self):
         _record_names = dict() # get_fake_record_names(self.family_data)
@@ -424,10 +430,10 @@ class RecordNames:
         return _copy.deepcopy(self.database)
 
     def get_read_only_pvs(self):
-        return self.di_ro + self.ap + self.ps_ro # a copy!
+        return self.di_ro + self.ap + self.ps_ro + self.ti_ro # a copy!
 
     def get_read_write_pvs(self):
-        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti # a copy!
+        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti_rw # a copy!
 
     def get_dynamical_pvs(self):
         return _copy.deepcopy(self.dynamical_pvs)
