@@ -245,10 +245,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     db = self.database[pv_name]
                     if 'low' in db and (value < db['low'] or value > db['high']): # It would be cleaner if this were implemented inside PS object!
                         utils.log(message1 = 'psLim', message2 = pv_name, c='red')
-                        if value < db['low']:
-                            svalue = db['low']
-                        else:
-                            svalue = db['high']
+                        svalue = db['low'] if value < db['low'] else db['high']
                     else:
                         svalue = value
                     ps.current_sp = svalue
