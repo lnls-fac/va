@@ -50,9 +50,9 @@ class PowerSupply(object):
 
     @current_sp.setter
     def current_sp(self, value):
-        if self.ctrl_mode == 1 or self.op_mode: return # CtrlState: Local
+        if self.ctrl_mode == 1: return # CtrlState: Local
         self._current_sp = value
-        if self._pwr_state:
+        if self._pwr_state and self.op_mode == 0:
             self._current_rb_setter(value)
 
     @pwr_state.setter
@@ -91,16 +91,16 @@ class FamilyPowerSupply(PowerSupply):
 
     @current_sp.setter
     def current_sp(self, value):
-        if self.ctrl_mode == 1 or self.op_mode: return # CtrlState: Local
+        if self.ctrl_mode == 1: return # CtrlState: Local
         if isinstance(list(self._magnets)[0], magnet.BoosterDipoleMagnet):
             all_power_supplies = self._model._power_supplies.values()
             booster_bend_ps = []
             for ps in all_power_supplies:
                 if isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
                     booster_bend_ps.append(ps)
-                    self._current_rb_setter(value)
                     self._current_sp = value
-
+                    if self._pwr_state and self.op_mode == 0:
+                        self._current_rb_setter(value)
 
             # Change the accelerator energy
             change_energy = True
@@ -115,7 +115,7 @@ class FamilyPowerSupply(PowerSupply):
 
         else:
             self._current_sp = value
-            if self._pwr_state:
+            if self._pwr_state and self.op_mode == 0:
                 self._current_rb_setter(value)
 
 
