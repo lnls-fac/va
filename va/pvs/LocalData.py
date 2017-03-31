@@ -385,7 +385,7 @@ class RecordNames:
             parts = _siriuspy.namesys.SiriusPVName(device_name)
             if parts.dev_type == 'Timing':
                 ioc = _siriuspy.timesys.sirius_timesys.TimingSimulation
-                db = ioc.get_database(prefix = self.device_names.section+'-')
+                db = ioc.get_database()
                 self.database.update(db)
                 devs = _device_names[device_name]
                 _record_names.update({p:devs for p in db.keys()})
