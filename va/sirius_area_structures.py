@@ -23,43 +23,47 @@ class ASModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.evg = _siriuspy.timesys.EVGIOC(self._rf_frequency,
-                                            callbacks = {self._uuid: self._callback},
-                                            prefix = self.prefix + '-Glob:TI-EVG:')
-        self.evg.add_injection_callback(self._uuid,self._injection_cycle)
-        self.evg.add_single_callback(self._uuid,self._single_pulse_synchronism)
+        self._init_timing_devices()
         self._init_sp_pv_values()
+
+
+    def _init_timing_devices(self):
+        self._timing = _siriuspy.timesys.sirius_timesys.TimingSimulation(
+                                            self._rf_frequency,
+                                            callback={self._uuid:self._callback}  )
+        self._timing.add_injection_callback(self._uuid,self._injection_cycle)
+        self._timing.add_single_callback(self._uuid,self._single_pulse_synchronism)
 
     def _callback(self, propty, value, **kwargs):
         self._others_queue['driver'].put(('s', (propty, value)))
 
     def _get_pv(self, pv_name):
         parts = _siriuspy.namesys.SiriusPVName(pv_name)
-        if parts.discipline == 'TI' and parts.dev_type == 'EVG':
-            return self.evg.get_propty(pv_name)
+        if parts.discipline == 'TI':
+            return self._timing.get_propty(pv_name)
         return None
 
     def _set_pv(self,pv_name, value):
         parts = _siriuspy.namesys.SiriusPVName(pv_name)
-        if parts.discipline == 'TI' and parts.dev_type == 'EVG':
-            return self.evg.set_propty(pv_name, value)
+        if parts.discipline == 'TI':
+            return self._timing.set_propty(pv_name, value)
         else: return False
         return True
 
-    def _single_pulse_synchronism(self,events):
+    def _single_pulse_synchronism(self,triggers):
         self._log(message1 = 'cycle', message2 = '--')
-        self._log(message1 = 'cycle', message2='Sending Synchronism Events in Single Mode.')
+        self._log(message1 = 'cycle', message2='Sending Synchronism Triggers from Events in Single Mode.')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
-        _dict = {'single_cycle' : {'events': events}}
+        _dict = {'single_cycle' : {'triggers': triggers}}
         for acc in ('LI','TB','BO','TS','SI'):
             self._send_parameters_to_other_area_structure(prefix = acc, _dict  = _dict)
 
-    def _injection_cycle(self,injection_bunch,events):
+    def _injection_cycle(self,injection_bunch,triggers):
         self._log(message1 = 'cycle', message2 = '--')
         self._log(message1 = 'cycle', message2='Starting injection')
         self._log(message1 = 'cycle', message2 = '-- ' + self.prefix + ' --')
         master_delay = injection_bunch * self._bunch_separation
-        _dict = {'injection_cycle' : {'events': events,
+        _dict = {'injection_cycle' : {'triggers': triggers,
                                       'master_delay':master_delay,
                                       'injection_bunch': injection_bunch,
                                       'bunch_separation': self._bunch_separation}}

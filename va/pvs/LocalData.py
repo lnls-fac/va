@@ -383,16 +383,12 @@ class RecordNames:
         _record_names = {}
         for device_name in _device_names.keys():
             parts = _siriuspy.namesys.SiriusPVName(device_name)
-            if 'EVG' == parts.dev_type:
-                db = _siriuspy.timesys.EVGIOC.get_database(prefix = parts.dev_name + ':')
+            if parts.dev_type == 'Timing':
+                ioc = _siriuspy.timesys.sirius_timesys.TimingSimulation
+                db = ioc.get_database(prefix = self.device_names.section+'-')
                 self.database.update(db)
-                for p in db.keys():
-                    _record_names[p] = _device_names[device_name]
-            elif 'EVR' == parts.dev_type:
-                db = siriuspy.timesys.EVRIOC.get_database(prefix = parts.dev_name + ':')
-                self.database.update(db)
-                for p in db.keys():
-                    _record_names[p] = _device_names[device_name]
+                devs = _device_names[device_name]
+                _record_names.update({p:devs for p in db.keys()})
             else:
                 p = device_name + ':Enbl'
                 _record_names[p] = _device_names[device_name]

@@ -4,7 +4,7 @@ _section = 'AS'
 _el_names   = dict() # All these Family names must be defined in family_data dictionary
 _fam_names  = dict() # All these Family names must be defined in family_data dictionary
 _glob_names = { # These Family names can be any name
-        'TI': ['EVG',]
+        'TI': ['Timing',]
 }
 _inj_names = dict()
 
