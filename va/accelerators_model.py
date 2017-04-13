@@ -718,7 +718,7 @@ class TLineModel(AcceleratorModel):
 
     def _calc_transport_efficiency(self):
         if self._injection_parameters is None: return
-        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
         _dict = {}
         _dict.update(self._injection_parameters)
         _dict.update(self._get_vacuum_chamber())
@@ -1005,7 +1005,7 @@ class BoosterModel(AcceleratorModel):
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
 
-        self._log('calc', 'injection efficiency  for  ' + self.model_module.lattice_version)
+        self._log('calc', 'injection efficiency for  ' + self.model_module.lattice_version)
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._injection_efficiency = None
@@ -1028,7 +1028,7 @@ class BoosterModel(AcceleratorModel):
             if 'InjK' in ps_name: ps.pwr_state = 0
 
     def _calc_ejection_efficiency(self):
-        self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'ejection efficiency for ' + self.model_module.lattice_version)
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._ejection_efficiency = None
@@ -1346,7 +1346,7 @@ class StorageRingModel(AcceleratorModel):
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
-            self._log('calc', 'nlk injection efficiency  for ' + self.model_module.lattice_version)
+            self._log('calc', 'nlk injection efficiency for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
                 if 'InjNLK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
@@ -1356,7 +1356,7 @@ class StorageRingModel(AcceleratorModel):
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
-            self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
+            self._log('calc', 'on axis injection efficiency for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
                 if 'InjDpK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
