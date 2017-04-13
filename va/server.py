@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import siriuspy as _siriuspy
-_siriuspy.util.set_ioc_ca_port_number('vaca')
+#import siriuspy as _siriuspy
+#_siriuspy.util.set_ioc_ca_port_number('vaca')
 
 
 import time
