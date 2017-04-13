@@ -564,7 +564,7 @@ class LinacModel(AcceleratorModel):
             'global_coupling': self._global_coupling,
             'init_twiss': self._twiss_at_match}
 
-        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
         _dict = {}
         _dict.update(inj_params)
         _dict.update(self._get_vacuum_chamber())
