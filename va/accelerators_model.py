@@ -78,14 +78,15 @@ class AcceleratorModel(area_structure.AreaStructure):
         if parts.discipline in ('PS','PU'):
             if parts.discipline == 'PS': dev = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('-SP'): return dev.current_sp
-            if parts.propty.endswith('-RB'): return dev.current_rb
+            if parts.propty.endswith('Current-SP'): return dev.current_sp
+            if parts.propty.endswith('Current-RB'): return dev.current_rb
             if parts.propty.endswith('PwrState-Sel'): return dev.pwr_state
             if parts.propty.endswith('PwrState-Sts'): return dev.pwr_state
             if parts.propty.endswith('OpMode-Sel'): return dev.op_mode
             if parts.propty.endswith('OpMode-Sts'): return dev.op_mode
             if parts.propty.endswith('CtrlMode-Mon'): return dev.ctrl_mode
             if parts.propty.endswith('Reset-Cmd'): return 0
+            if parts.propty.endswith('Interlock-SP'): return 0
         elif parts.discipline == 'DI':
             if parts.dev_type == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -239,7 +240,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         if parts.discipline in ('PS','PU'):
             if parts.discipline == 'PS':   ps = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': ps = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('-SP'):
+            if parts.propty.endswith('Current-SP'):
                 prev_value = ps.current_sp
                 if value != prev_value:
                     db = self.database[pv_name]
