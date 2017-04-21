@@ -334,6 +334,9 @@ class RecordNames:
             p = device_name + ':Reset-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int'}
+            p = device_name + ':Interlock-SP'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int', 'value':0}
         self.all_record_names.update(_record_names)
         self.ps_ro = []
         self.ps_rw = []
