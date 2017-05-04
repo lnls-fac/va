@@ -28,7 +28,7 @@ class ASModel(area_structure.AreaStructure):
 
 
     def _init_timing_devices(self):
-        self._timing = _siriuspy.timesys.sirius_timesys.TimingSimulation(
+        self._timing = _siriuspy.timesys.time_simul.time_simul.TimingSimulation(
                                             self._rf_frequency,
                                             callbacks={self._uuid:self._callback}  )
         self._timing.add_injection_callback(self._uuid,self._injection_cycle)
