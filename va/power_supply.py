@@ -1,9 +1,12 @@
 
 import math
 from . import magnet
+import siriuspy
+from siriuspy.pwrsupply.controller import _controller_wfmlabels
 
 # These classes should be deprecated!
 # Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
+
 
 class PowerSupply(object):
 
@@ -16,8 +19,14 @@ class PowerSupply(object):
         self._magnets = magnets
         self._pwr_state = 1  # [On]
         self.ctrl_mode = 0
-        self._current_rb = 0
         self._current_sp = 0
+        self._current_rb = self._current_sp
+        self._currentref = self._current_rb
+        self._current_load = self._currentref
+        self._wfmindex = 0
+        self._wfmlabels = [label for label in _controller_wfmlabels]
+        self._wfmslot = 0
+        self._waveform = siriuspy.pwrsupply.PSWaveForm.wfm_constant(self._wfmlabels[0])
         self._op_mode = 0
         self._interlock = 0
         for m in magnets:
@@ -28,23 +37,45 @@ class PowerSupply(object):
         return self._interlock
 
     @property
+    def current_sp(self):
+        return self._current_sp
+
+    @property
     def current_rb(self):
         return self._current_rb
 
     @property
-    def current_sp(self):
-        return self._current_sp
+    def current_load(self):
+        return self._current_load
+
+    @property
+    def currentref(self):
+        return self._currentref
 
     @property
     def pwr_state(self):
         return self._pwr_state
 
     @property
+    def wfmindex(self):
+        return self._wfmindex
+
+    @property
+    def wfmlabels(self):
+        return [label for label in self._wfmlabels]
+
+    @property
+    def wfmlabel(self):
+        return self._waveform.label
+
+    @property
     def op_mode(self):
         return self._op_mode
 
-    def _current_rb_setter(self, value): # called only from within this class
+    def _current_load_setter(self, value): # called only from within this class
         self._current_rb = value
+        self._currentref = self._current_rb
+        self._current_load = self._currentref
         for m in self._magnets:
             m.process()
 
@@ -53,16 +84,16 @@ class PowerSupply(object):
         if self.ctrl_mode == 1: return # CtrlState: Local
         self._current_sp = value
         if self._pwr_state and self.op_mode == 0:
-            self._current_rb_setter(value)
+            self._current_load_setter(value)
 
     @pwr_state.setter
     def pwr_state(self, value):
         if self.ctrl_mode == 1: return # ctrl_mode: Local
         self._pwr_state = value
         if value == 0:
-            self._current_rb_setter(0)
+            self._current_load_setter(0)
         else:
-            self._current_rb_setter(self._current_sp)
+            self._current_load_setter(self._current_sp)
 
     @op_mode.setter
     def op_mode(self, value):
@@ -100,7 +131,7 @@ class FamilyPowerSupply(PowerSupply):
                     booster_bend_ps.append(ps)
                     self._current_sp = value
                     if self._pwr_state and self.op_mode == 0:
-                        self._current_rb_setter(value)
+                        self._current_load_setter(value)
 
             # Change the accelerator energy
             change_energy = True
@@ -116,7 +147,7 @@ class FamilyPowerSupply(PowerSupply):
         else:
             self._current_sp = value
             if self._pwr_state and self.op_mode == 0:
-                self._current_rb_setter(value)
+                self._current_load_setter(value)
 
 
 class IndividualPowerSupply(PowerSupply):
@@ -131,7 +162,7 @@ class IndividualPowerSupply(PowerSupply):
             power_supplies = m._power_supplies.difference({self})
             ps_current = 0.0
             for ps in power_supplies:
-                ps_current += ps.current_rb
+                ps_current += ps.current_load
             self.current_sp = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
         else:
             self.current_sp = 0.0

@@ -1,6 +1,7 @@
 
 import copy as _copy
 import siriuspy as _siriuspy
+from siriuspy.pwrsupply.controller import _controller_wfmlabels
 
 class DeviceNames:
     pvnaming_glob = 'Glob'
@@ -316,6 +317,12 @@ class RecordNames:
             p = device_name + ':Current-RB'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            p = device_name + ':CurrentRef-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            p = device_name + ':Current-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
             p = device_name + ':PwrState-Sel'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
@@ -337,6 +344,19 @@ class RecordNames:
             p = device_name + ':Interlock-SP'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int', 'value':0}
+            p = device_name + ':WfmIndex-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int', 'value':0}
+            p = device_name + ':WfmLabels-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'str', 'count' : len(_controller_wfmlabels), 'value':[label for label in _controller_wfmlabels]}
+            p = device_name + ':WfmLabel-SP'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'str', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            p = device_name + ':WfmLabel-RB'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'str', 'count' : 1, 'value':_controller_wfmlabels[0]}
+
         self.all_record_names.update(_record_names)
         self.ps_ro = []
         self.ps_rw = []

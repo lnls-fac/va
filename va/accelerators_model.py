@@ -80,6 +80,8 @@ class AcceleratorModel(area_structure.AreaStructure):
             elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
             if parts.propty.endswith('Current-SP'): return dev.current_sp
             if parts.propty.endswith('Current-RB'): return dev.current_rb
+            if parts.propty.endswith('CurrentRef-Mon'): return dev.currentref
+            if parts.propty.endswith('Current-Mon'): return dev.current_load
             if parts.propty.endswith('PwrState-Sel'): return dev.pwr_state
             if parts.propty.endswith('PwrState-Sts'): return dev.pwr_state
             if parts.propty.endswith('OpMode-Sel'): return dev.op_mode
@@ -87,6 +89,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             if parts.propty.endswith('CtrlMode-Mon'): return dev.ctrl_mode
             if parts.propty.endswith('Reset-Cmd'): return 0
             if parts.propty.endswith('Interlock-SP'): return 0
+            if parts.propty.endswith('WfmIndex-Mon'): return dev.wfmindex
+            if parts.propty.endswith('WfmLabels-Mon'): return dev.wfmlabels
+            if parts.propty.endswith('WfmLabel-SP'): return dev.wfmlabel
+            if parts.propty.endswith('WfmLabel-RB'): return dev.wfmlabel
+
         elif parts.discipline == 'DI':
             if parts.dev_type == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -253,7 +260,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     if svalue != prev_value:
                         pv_name_rb = pv_name.replace('-SP','-RB')
                         self._others_queue['driver'].put(('s', (pv_name, ps.current_sp))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_mon))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                 return True
             if parts.propty.endswith('PwrState-Sel'):
@@ -262,7 +269,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     try:
                         ps.pwr_state = value
                         self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','PwrState-Sts'), value))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','Current-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','Current-Mon'), ps.current_mon))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
