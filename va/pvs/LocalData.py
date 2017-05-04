@@ -291,7 +291,8 @@ class RecordNames:
         curr_lims = {}
         for device_name,(filename,polarity) in excdict.items():
             excdata = _siriuspy.magnet.ExcitationData(filename_web = filename)
-            lims = [polarity*item for item in excdata.currents]
+            #lims = [polarity*item for item in excdata.currents]
+            lims = [item for item in excdata.currents]
             curr_lims[device_name] = (min(lims),max(lims))
         return curr_lims
 
@@ -333,6 +334,9 @@ class RecordNames:
             p = device_name + ':Reset-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int'}
+            p = device_name + ':Interlock-SP'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int', 'value':0}
         self.all_record_names.update(_record_names)
         self.ps_ro = []
         self.ps_rw = []

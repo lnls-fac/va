@@ -78,14 +78,15 @@ class AcceleratorModel(area_structure.AreaStructure):
         if parts.discipline in ('PS','PU'):
             if parts.discipline == 'PS': dev = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('-SP'): return dev.current_sp
-            if parts.propty.endswith('-RB'): return dev.current_rb
+            if parts.propty.endswith('Current-SP'): return dev.current_sp
+            if parts.propty.endswith('Current-RB'): return dev.current_rb
             if parts.propty.endswith('PwrState-Sel'): return dev.pwr_state
             if parts.propty.endswith('PwrState-Sts'): return dev.pwr_state
             if parts.propty.endswith('OpMode-Sel'): return dev.op_mode
             if parts.propty.endswith('OpMode-Sts'): return dev.op_mode
             if parts.propty.endswith('CtrlMode-Mon'): return dev.ctrl_mode
             if parts.propty.endswith('Reset-Cmd'): return 0
+            if parts.propty.endswith('Interlock-SP'): return 0
         elif parts.discipline == 'DI':
             if parts.dev_type == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -239,7 +240,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         if parts.discipline in ('PS','PU'):
             if parts.discipline == 'PS':   ps = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': ps = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('-SP'):
+            if parts.propty.endswith('Current-SP'):
                 prev_value = ps.current_sp
                 if value != prev_value:
                     db = self.database[pv_name]
@@ -564,7 +565,7 @@ class LinacModel(AcceleratorModel):
             'global_coupling': self._global_coupling,
             'init_twiss': self._twiss_at_match}
 
-        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
         _dict = {}
         _dict.update(inj_params)
         _dict.update(self._get_vacuum_chamber())
@@ -718,7 +719,7 @@ class TLineModel(AcceleratorModel):
 
     def _calc_transport_efficiency(self):
         if self._injection_parameters is None: return
-        self._log('calc', 'transport efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
         _dict = {}
         _dict.update(self._injection_parameters)
         _dict.update(self._get_vacuum_chamber())
@@ -1005,7 +1006,7 @@ class BoosterModel(AcceleratorModel):
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
 
-        self._log('calc', 'injection efficiency  for  ' + self.model_module.lattice_version)
+        self._log('calc', 'injection efficiency for  ' + self.model_module.lattice_version)
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._injection_efficiency = None
@@ -1028,7 +1029,7 @@ class BoosterModel(AcceleratorModel):
             if 'InjK' in ps_name: ps.pwr_state = 0
 
     def _calc_ejection_efficiency(self):
-        self._log('calc', 'ejection efficiency  for ' + self.model_module.lattice_version)
+        self._log('calc', 'ejection efficiency for ' + self.model_module.lattice_version)
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._ejection_efficiency = None
@@ -1346,7 +1347,7 @@ class StorageRingModel(AcceleratorModel):
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
-            self._log('calc', 'nlk injection efficiency  for ' + self.model_module.lattice_version)
+            self._log('calc', 'nlk injection efficiency for ' + self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
                 if 'InjNLK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
@@ -1356,7 +1357,7 @@ class StorageRingModel(AcceleratorModel):
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
-            self._log('calc', 'on axis injection efficiency  for '+self.model_module.lattice_version)
+            self._log('calc', 'on axis injection efficiency for '+self.model_module.lattice_version)
             for ps_name, ps in self._pulsed_power_supplies.items():
                 if 'InjDpK' in ps_name and ps.enabled: ps.pwr_state = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
