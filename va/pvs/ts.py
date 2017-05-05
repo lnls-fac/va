@@ -21,7 +21,7 @@ _glob_names = dict() # These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
 _excitation_curves_mapping = (
-    (('B',)    , ('ts-dipole-b.txt',1)),
+    (('B',)    , ('ts-dipole-b-fam.txt',1)),
     (('QF1',)  , ('si-quadrupole-q14-fam.txt',-1)),
     (('QD',)   , ('si-quadrupole-q14-fam.txt',1)),
     (('QF',)   , ('si-quadrupole-q20-fam.txt',1)),
