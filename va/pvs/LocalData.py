@@ -3,6 +3,8 @@ import copy as _copy
 import siriuspy as _siriuspy
 from siriuspy.pwrsupply.controller import _controller_wfmlabels
 
+_PSOpModeEnums = _siriuspy.csdevice.EnumTypes.enums('PSOpModeTyp')
+
 class DeviceNames:
     pvnaming_glob = 'Glob'
     pvnaming_fam  = 'Fam'
@@ -325,28 +327,28 @@ class RecordNames:
             self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
             p = device_name + ':PwrState-Sel'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
             p = device_name + ':PwrState-Sts'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value':1}
+            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
             p = device_name + ':OpMode-Sel'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value' : 0}
             p = device_name + ':OpMode-Sts'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('SlowRef','FastRef','WfmRef','SigGen'), 'value':0}
+            self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value': 0}
             p = device_name + ':CtrlMode-Mon'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value':0}
+            self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value': 0}
             p = device_name + ':Reset-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int'}
             p = device_name + ':Interlock-SP'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value':0}
+            self.database[p] = {'type' : 'int', 'value': 0}
             p = device_name + ':WfmIndex-Mon'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value':0}
+            self.database[p] = {'type' : 'int', 'value': 0}
             p = device_name + ':WfmLabels-Mon'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'string', 'count' : len(_controller_wfmlabels), 'value':[label for label in _controller_wfmlabels]}
@@ -356,6 +358,19 @@ class RecordNames:
             p = device_name + ':WfmLabel-RB'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'string', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            p = device_name + ':WfmLoad-Sel'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':_controller_wfmlabels, 'value' : 0}
+            p = device_name + ':WfmLoad-Sts'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'enum', 'enums':_controller_wfmlabels, 'value':0}
+            wfm = _siriuspy.pwrsupply.PSWaveForm.wfm_constant(_controller_wfmlabels[0])
+            p = device_name + ':WfmData-SP'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
+            p = device_name + ':WfmData-RB'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
 
         self.all_record_names.update(_record_names)
         self.ps_ro = []

@@ -68,13 +68,26 @@ class PowerSupply(object):
     def wfmlabel(self):
         return self._waveform.label
 
+    @property
+    def wfmdata(self):
+        return self._waveform.data
+
+    @wfmdata.setter
+    def wfmdata(self, value):
+        self._waveform.data = value
+
     @wfmlabel.setter
     def wfmlabel(self, value):
         self._waveform.label = value
 
     @property
-    def opmode(self):
-        return self._opmode
+    def wfmload(self):
+        return self._wfmslot
+
+    @wfmload.setter
+    def wfmload(self, value):
+        self._wfmslot = value
+        self._waveform = siriuspy.pwrsupply.PSWaveForm.wfm_constant(self._wfmlabels[0])
 
     def _current_load_setter(self, value): # called only from within this class
         self._current_rb = value
@@ -98,6 +111,10 @@ class PowerSupply(object):
             self._current_load_setter(0)
         else:
             self._current_load_setter(self._current_sp)
+
+    @property
+    def opmode(self):
+        return self._opmode
 
     @opmode.setter
     def opmode(self, value):
