@@ -2,6 +2,8 @@ import uuid as _uuid
 import multiprocessing
 import time
 from . import utils
+import traceback
+import sys
 # import prctl #Used in debugging
 
 
@@ -50,10 +52,16 @@ class AreaStructureProcess(multiprocessing.Process):
         """
         As = area_structure(**kwargs)
         # prctl.set_name(self.name) # For debug
+
         try:
             while not stop_event.is_set():
                 utils.process_and_wait_interval(As.process, interval)
         except Exception as ex:
+            exc_info = sys.exc_info()
+            print('--- traceback ---')
+            traceback.print_exception(*exc_info)
+            del exc_info
+            print('-----------------')
             utils.log('error', str(ex), 'red')
             stop_event.set()
         finally:

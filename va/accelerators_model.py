@@ -284,6 +284,17 @@ class AcceleratorModel(area_structure.AreaStructure):
                     except ValueError:
                         utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
                         return False
+            if parts.propty.endswith('WfmLabel-SP'):
+                prev_value = ps.wfmlabel
+                if value != prev_value:
+                    try:
+                        ps.wfmlabel = value
+                        self._others_queue['driver'].put(('s', (pv_name.replace('WfmLabel-SP','WfmLabel-RB'), value))) # It would be cleaner if this were implemented inside PS object!
+                        #self._state_deprecated = True
+                    except ValueError:
+                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
+                        return False
+
         return False
 
     def _set_pv_fake(self, pv_name, value, parts):

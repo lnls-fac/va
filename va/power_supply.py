@@ -3,6 +3,7 @@ import math
 from . import magnet
 import siriuspy
 from siriuspy.pwrsupply.controller import _controller_wfmlabels
+from siriuspy.pwrsupply.controller import ControllerSim as _ControllerSim
 
 # These classes should be deprecated!
 # Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
@@ -17,6 +18,7 @@ class PowerSupply(object):
         self._model = model
         self._ps_name = ps_name
         self._magnets = magnets
+        #self._controller = _ControllerSim(current_std=0.0)
         self._pwr_state = 1  # [On]
         self.ctrl_mode = 0
         self._current_sp = 0
@@ -67,6 +69,10 @@ class PowerSupply(object):
     @property
     def wfmlabel(self):
         return self._waveform.label
+
+    @wfmlabel.setter
+    def wfmlabel(self, value):
+        self._waveform.label = value
 
     @property
     def op_mode(self):

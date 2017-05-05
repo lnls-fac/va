@@ -349,13 +349,13 @@ class RecordNames:
             self.database[p] = {'type' : 'int', 'value':0}
             p = device_name + ':WfmLabels-Mon'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'str', 'count' : len(_controller_wfmlabels), 'value':[label for label in _controller_wfmlabels]}
+            self.database[p] = {'type' : 'string', 'count' : len(_controller_wfmlabels), 'value':[label for label in _controller_wfmlabels]}
             p = device_name + ':WfmLabel-SP'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'str', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_controller_wfmlabels[0]}
             p = device_name + ':WfmLabel-RB'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'str', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_controller_wfmlabels[0]}
 
         self.all_record_names.update(_record_names)
         self.ps_ro = []
