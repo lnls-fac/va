@@ -408,7 +408,7 @@ class RecordNames:
         for device_name in _device_names.keys():
             parts = _siriuspy.namesys.SiriusPVName(device_name)
             if parts.dev_type == 'Timing':
-                ioc = _siriuspy.timesys.sirius_timesys.TimingSimulation
+                ioc = _siriuspy.timesys.time_simul.TimingSimulation
                 db = ioc.get_database()
                 self.database.update(db)
                 devs = _device_names[device_name]
