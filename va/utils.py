@@ -31,17 +31,17 @@ def print_banner(prefix, li_pv_names=None,
     print(c(r"    _____(.oo)    ",'white') + " | " + c("Version {0}".format(va.__version__)))
     print(c(r"  //     ' ",'white')+c("@@     ",'magenta') + " | " + c("LNLS Accelerator Physics Group", attrs=['bold']))
     print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Documentation: https://github.com/lnls-fac/va"))
-    print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~  ",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
+    print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~~~",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
     print(c(r"    ^^   ^^       ",'white')     + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
-    print(r"              "+c("\|/ ",'green')  + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
+    print(r"              "+c(".o. ",'cyan')  + " | " + c("Number of BO pvs: {0}".format(len(bo_pv_names))))
     if li_pv_names is not None:
-        print(c(r"                  ",'white') + " | " + c("Number of LI pvs: {0}".format(len(li_pv_names))))
+        print(r"              "+c("\|/ ",'green')  + " | " + c("Number of LI pvs: {0}".format(len(li_pv_names))))
     if ti_pv_names is not None:
-        print(c(r"                  ",'white') + " | " + c("Number of TI pvs: {0}".format(len(ti_pv_names))))
+        print(r"      "+c(" .  ",'yellow')  + "         | " + c("Number of TI pvs: {0}".format(len(ti_pv_names))))
     if tb_pv_names is not None:
-        print(c(r"                  ",'white') + " | " + c("Number of TB pvs: {0}".format(len(tb_pv_names))))
+        print(r"      "+c(".o. ",'yellow')  + "         | " + c("Number of TB pvs: {0}".format(len(tb_pv_names))))
     if ts_pv_names is not None:
-        print(c(r"                  ",'white') + " | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
+        print(r"      "+c("\|/ ",'green')  + "         | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
     if as_pv_names is not None:
         print(c(r"                  ",'white') + " | " + c("Number of AS pvs: {0}".format(len(as_pv_names))))
     print(r"")
