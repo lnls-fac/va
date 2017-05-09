@@ -2,7 +2,7 @@
 import math
 from . import magnet
 import siriuspy
-from siriuspy.pwrsupply.controller import _controller_wfmlabels
+from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
 
 # These classes should be deprecated!
 # Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
@@ -24,7 +24,7 @@ class PowerSupply(object):
         self._currentref = self._current_rb
         self._current_load = self._currentref
         self._wfmindex = 0
-        self._wfmlabels = [label for label in _controller_wfmlabels]
+        self._wfmlabels = [label for label in _default_wfmlabels]
         self._wfmslot = 0
         self._waveform = siriuspy.pwrsupply.PSWaveForm.wfm_constant(self._wfmlabels[0])
         self._opmode = 0

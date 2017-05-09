@@ -1,7 +1,7 @@
 
 import copy as _copy
 import siriuspy as _siriuspy
-from siriuspy.pwrsupply.controller import _controller_wfmlabels
+from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
 
 _PSOpModeEnums = _siriuspy.csdevice.EnumTypes.enums('PSOpModeTyp')
 
@@ -351,20 +351,20 @@ class RecordNames:
             self.database[p] = {'type' : 'int', 'value': 0}
             p = device_name + ':WfmLabels-Mon'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : len(_controller_wfmlabels), 'value':[label for label in _controller_wfmlabels]}
+            self.database[p] = {'type' : 'string', 'count' : len(_default_wfmlabels), 'value':[label for label in _default_wfmlabels]}
             p = device_name + ':WfmLabel-SP'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
             p = device_name + ':WfmLabel-RB'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_controller_wfmlabels[0]}
+            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
             p = device_name + ':WfmLoad-Sel'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_controller_wfmlabels, 'value' : 0}
+            self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value' : 0}
             p = device_name + ':WfmLoad-Sts'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_controller_wfmlabels, 'value':0}
-            wfm = _siriuspy.pwrsupply.PSWaveForm.wfm_constant(_controller_wfmlabels[0])
+            self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value':0}
+            wfm = _siriuspy.pwrsupply.PSWaveForm.wfm_constant(_default_wfmlabels[0])
             p = device_name + ':WfmData-SP'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
