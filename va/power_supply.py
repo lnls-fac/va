@@ -1,5 +1,6 @@
 
 import math
+import numpy as _np
 from . import magnet
 import siriuspy
 from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
@@ -28,7 +29,9 @@ class PowerSupply(object):
         self._wfmslot = 0
         self._waveform = siriuspy.pwrsupply.PSWaveForm.wfm_constant(self._wfmlabels[0])
         self._opmode = 0
+        self._wfmramping = 0
         self._interlock = 0
+        self._wfmsave = 0
         for m in magnets:
             m.add_power_supply(self)
 
@@ -74,16 +77,28 @@ class PowerSupply(object):
 
     @wfmdata.setter
     def wfmdata(self, value):
-        self._waveform.data = value
+        self._waveform.data = _np.array(value)
 
     @wfmlabel.setter
     def wfmlabel(self, value):
         self._waveform.label = value
 
     @property
+    def wfmsave(self):
+        return self._wfmsave
+
+    @wfmsave.setter
+    def wfmsave(self, value):
+        self._wfmsave += 1
+
+    @property
     def wfmload(self):
         return self._wfmslot
 
+    @property
+    def wfmramping(self):
+        return self._wfmramping
+        
     @wfmload.setter
     def wfmload(self, value):
         self._wfmslot = value

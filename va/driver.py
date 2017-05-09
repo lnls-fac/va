@@ -3,6 +3,7 @@ import queue
 import threading
 import multiprocessing
 import time
+import numpy as _np
 # import prctl #Used in debugging
 from pcaspy import Driver
 from . import utils
@@ -148,7 +149,13 @@ class PCASDriver(Driver):
                 self.setParam(reason, value)
                 # self.pvDB[reason].flag = False # avoid double camonitor update
                 self._internal_queue.put((process, reason, value))
-                msg = reason + ' ' + str(value)
+                if type(value) in (list, tuple, _np.ndarray) and len(value) > 10:
+                    msg = reason + ' (' + str(len(value)) + ') ' \
+                                 + str(value[0])  + ' ' + str(value[1]) \
+                                 + ' ... ' \
+                                 + str(value[-2]) + ' ' + str(value[-1])
+                else:
+                    msg = reason + ' ' + str(value)
                 utils.log('write', msg, c='yellow', a=['bold'])
                 return True
             else:

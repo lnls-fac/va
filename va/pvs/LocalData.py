@@ -371,6 +371,13 @@ class RecordNames:
             p = device_name + ':WfmData-RB'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
+            p = device_name + ':WfmSave-Cmd'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int', 'value':0}
+            p = device_name + ':WfmRamping-Mon'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'int', 'value':0}
+
 
         self.all_record_names.update(_record_names)
         self.ps_ro = []
