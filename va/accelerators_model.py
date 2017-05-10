@@ -130,9 +130,9 @@ class AcceleratorModel(area_structure.AreaStructure):
                 return self._get_tune_component(Plane.longitudinal)
             return None
         elif parts.discipline == 'RF':
-            if parts.propty == 'Freq':
+            if parts.propty in ('Freq-SP','Freq-RB'):
                 return pyaccel.optics.get_rf_frequency(self._accelerator)
-            elif parts.propty == 'Volt':
+            elif parts.propty in ('Volt-SP', 'Volt-RB'):
                 idx = self._get_elements_indices(pv_name)
                 return self._accelerator[idx[0]].voltage
             return None
@@ -233,18 +233,20 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _set_pv_rf(self, pv_name, value, parts):
         if not parts.discipline == 'RF': return None
-        if parts.propty == 'Volt':
+        if parts.propty == 'Volt-SP':
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].voltage
             if value != prev_value:
                 self._accelerator[idx[0]].voltage = value
+                self._others_queue['driver'].put(('s', (pv_name.replace('Volt-SP','Volt-RB'), value))) # It would be cleaner if this were implemented inside PS object!
                 self._state_deprecated = True
             return True
-        elif parts.propty == 'Freq':
+        elif parts.propty == 'Freq-SP':
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].frequency
             if value != prev_value:
                 self._accelerator[idx[0]].frequency = value
+                self._others_queue['driver'].put(('s', (pv_name.replace('Freq-SP','Freq-RB'), value))) # It would be cleaner if this were implemented inside PS object!
                 self._state_deprecated = True
             return True
         return False
@@ -264,9 +266,10 @@ class AcceleratorModel(area_structure.AreaStructure):
                         svalue = value
                     ps.current_sp = svalue
                     if svalue != prev_value:
-                        pv_name_rb = pv_name.replace('-SP','-RB')
                         self._others_queue['driver'].put(('s', (pv_name, ps.current_sp))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_load))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('Current-SP','CurrentRef-Mon'), ps.currentref))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-Mon'), ps.current_load))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                 return True
             if parts.propty.endswith('PwrState-Sel'):
