@@ -411,11 +411,18 @@ class RecordNames:
         _record_names = {}
         for device_name in _device_names.keys():
             parts = _siriuspy.namesys.SiriusPVName(device_name)
-            if parts.dev_type.endswith('Cav'):
-                p = device_name + ':Freq'
+            #if parts.dev_type.endswith('Cav'):
+            if parts.dev_type in ('P5Cav','SRFCav'):
+                p = device_name + ':Freq-SP'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-                p = device_name + ':Volt'
+                p = device_name + ':Freq-RB'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                p = device_name + ':Volt-SP'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                p = device_name + ':Volt-RB'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
             else:
