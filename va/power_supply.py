@@ -3,13 +3,22 @@ import math
 import numpy as _np
 from . import magnet
 import siriuspy
+from siriuspy.pwrsupply import PowerSupply as _PowerSupply
 from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
 
 # These classes should be deprecated!
 # Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
 
 
-class PowerSupply(object):
+class PowerSupply(_PowerSupply):
+
+    def __init__(self, magnets, model, ps_name):
+        super().__init__(name_ps = ps_name, enum_keys=False)
+        for m in magnets:
+            m.add_power_supply(self)
+
+
+class PowerSupply2(object):
 
     def __init__(self, magnets, model, ps_name):
         """Gets and sets current [A]
@@ -98,7 +107,7 @@ class PowerSupply(object):
     @property
     def wfmramping(self):
         return self._wfmramping
-        
+
     @wfmload.setter
     def wfmload(self, value):
         self._wfmslot = value
