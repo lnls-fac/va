@@ -264,9 +264,10 @@ class AcceleratorModel(area_structure.AreaStructure):
                         svalue = value
                     ps.current_sp = svalue
                     if svalue != prev_value:
-                        pv_name_rb = pv_name.replace('-SP','-RB')
                         self._others_queue['driver'].put(('s', (pv_name, ps.current_sp))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name_rb, ps.current_load))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('Current-SP','CurrentRef-Mon'), ps.currentref))) # It would be cleaner if this were implemented inside PS object!
+                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-Mon'), ps.current_load))) # It would be cleaner if this were implemented inside PS object!
                         self._state_deprecated = True
                 return True
             if parts.propty.endswith('PwrState-Sel'):
