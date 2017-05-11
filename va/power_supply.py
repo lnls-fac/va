@@ -3,32 +3,23 @@ import math
 import numpy as _np
 from . import magnet
 import siriuspy
-from siriuspy.pwrsupply import PowerSupply as _PowerSupply
+from siriuspy.pwrsupply.model import PowerSupply as _PowerSupply
 from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
 
 # These classes should be deprecated!
 # Corresponding classes should be implemented in siriuspy and used! (X.R.R.)
 
+class PowerSupply(object):
 
-class PowerSupply(_PowerSupply):
-
-    def __init__(self, magnets, model, ps_name):
-        super().__init__(name_ps = ps_name, enum_keys=False)
-        for m in magnets:
-            m.add_power_supply(self)
-
-
-class PowerSupply2(object):
-
-    def __init__(self, magnets, model, ps_name):
+    def __init__(self, magnets, model, name_ps):
         """Gets and sets current [A]
         Connected magnets are processed after current is set.
         """
         self._model = model
-        self._ps_name = ps_name
+        self._name_ps = name_ps
         self._magnets = magnets
-        self._pwrstate = 1  # [On]
-        self.ctrl_mode = 0
+        self._pwrstate_sts = 1  # [On]
+        self.ctrlmode_sts = 0
         self._current_sp = 0
         self._current_rb = self._current_sp
         self._currentref = self._current_rb
@@ -65,8 +56,8 @@ class PowerSupply2(object):
         return self._currentref
 
     @property
-    def pwrstate(self):
-        return self._pwrstate
+    def pwrstate_sts(self):
+        return self._pwrstate_sts
 
     @property
     def wfmindex(self):
@@ -122,15 +113,15 @@ class PowerSupply2(object):
 
     @current_sp.setter
     def current_sp(self, value):
-        if self.ctrl_mode == 1: return # CtrlState: Local
+        if self.ctrlmode_sts == 1: return # CtrlState: Local
         self._current_sp = value
-        if self._pwrstate and self.opmode == 0:
+        if self._pwrstate_sts and self.opmode == 0:
             self._current_load_setter(value)
 
-    @pwrstate.setter
-    def pwrstate(self, value):
-        if self.ctrl_mode == 1: return # ctrl_mode: Local
-        self._pwrstate = value
+    @pwrstate_sts.setter
+    def pwrstate_sts(self, value):
+        if self.ctrlmode_sts == 1: return # ctrlmode_sts: Local
+        self._pwrstate_sts = value
         if value == 0:
             self._current_load_setter(0)
         else:
@@ -142,15 +133,15 @@ class PowerSupply2(object):
 
     @opmode.setter
     def opmode(self, value):
-        if self.ctrl_mode == 1: return # ctrl_mode: Local
+        if self.ctrlmode_sts == 1: return # ctrlmode_sts: Local
         self._opmode = value
 
 
 class FamilyPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, ps_name, current=None):
+    def __init__(self, magnets, model, name_ps, current=None):
         """Initialises current from average integrated field in magnets"""
-        super().__init__(magnets, model=model, ps_name=ps_name)
+        super().__init__(magnets, model=model, name_ps=name_ps)
         if (current is None) and (len(magnets) > 0):
             total_current = 0.0
             n = 0
@@ -167,7 +158,7 @@ class FamilyPowerSupply(PowerSupply):
 
     @current_sp.setter
     def current_sp(self, value):
-        if self.ctrl_mode == 1: return # CtrlState: Local
+        if self.ctrlmode_sts == 1: return # CtrlState: Local
         if isinstance(list(self._magnets)[0], magnet.BoosterDipoleMagnet):
             all_power_supplies = self._model._power_supplies.values()
             booster_bend_ps = []
@@ -175,7 +166,7 @@ class FamilyPowerSupply(PowerSupply):
                 if isinstance(list(ps._magnets)[0], magnet.BoosterDipoleMagnet):
                     booster_bend_ps.append(ps)
                     self._current_sp = value
-                    if self._pwrstate and self.opmode == 0:
+                    if self._pwrstate_sts and self.opmode == 0:
                         self._current_load_setter(value)
 
             # Change the accelerator energy
@@ -191,14 +182,14 @@ class FamilyPowerSupply(PowerSupply):
 
         else:
             self._current_sp = value
-            if self._pwrstate and self.opmode == 0:
+            if self._pwrstate_sts and self.opmode == 0:
                 self._current_load_setter(value)
 
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, ps_name, current=None):
-        super().__init__(magnets, model=model, ps_name=ps_name)
+    def __init__(self, magnets, model, name_ps, current=None):
+        super().__init__(magnets, model=model, name_ps=name_ps)
         if len(magnets) > 1:
             raise Exception('Individual Power Supply')
         elif (current is None) and (len(magnets) > 0):
@@ -215,8 +206,8 @@ class IndividualPowerSupply(PowerSupply):
 
 class PulsedMagnetPowerSupply(IndividualPowerSupply):
 
-    def __init__(self, magnets, model, ps_name, current=None):
-        super().__init__(magnets, model=model, ps_name=ps_name)
+    def __init__(self, magnets, model, name_ps, current=None):
+        super().__init__(magnets, model=model, name_ps=name_ps)
         if current is not None: self.current_sp = current
 
     @property
