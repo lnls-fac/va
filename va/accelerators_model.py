@@ -78,28 +78,8 @@ class AcceleratorModel(area_structure.AreaStructure):
         if parts.discipline in ('PS','PU'):
             if parts.discipline == 'PS': dev = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('Current-SP'): return dev.current_sp
-            if parts.propty.endswith('Current-RB'): return dev.current_rb
-            if parts.propty.endswith('CurrentRef-Mon'): return dev.currentref_mon
-            if parts.propty.endswith('Current-Mon'): return dev.current_mon
-            if parts.propty.endswith('PwrState-Sel'): return dev.pwrstate_sts
-            if parts.propty.endswith('PwrState-Sts'): return dev.pwrstate_sts
-            if parts.propty.endswith('OpMode-Sel'): return dev.opmode_sel
-            if parts.propty.endswith('OpMode-Sts'): return dev.opmode_sts
-            if parts.propty.endswith('CtrlMode-Mon'): return dev.ctrlmode_mon
-            if parts.propty.endswith('Reset-Cmd'): return 0
-            if parts.propty.endswith('Interlock-SP'): return 0
-            if parts.propty.endswith('WfmIndex-Mon'): return dev.wfmindex_mon
-            if parts.propty.endswith('WfmLabels-Mon'): return dev.wfmlabels_mon
-            if parts.propty.endswith('WfmLabel-SP'): return dev.wfmlabel_sp
-            if parts.propty.endswith('WfmLabel-RB'): return dev.wfmlabel_rb
-            if parts.propty.endswith('WfmData-SP'): return dev.wfmdata_sp
-            if parts.propty.endswith('WfmData-RB'): return dev.wfmdata_rb
-            if parts.propty.endswith('WfmSave-Cmd'): return dev.wfmsave_cmd
-            if parts.propty.endswith('WfmLoad-Sel'): return dev.wfmload_sel
-            if parts.propty.endswith('WfmLoad-Sts'): return dev.wfmload_sts
-            if parts.propty.endswith('WfmRamping-Mon'): return dev.wfmramping_mon
-
+            value = dev.get_pv(pv_name, parts)
+            if value is not None: return value
         elif parts.discipline == 'DI':
             if parts.dev_type == 'BPM':
                 idx = self._get_elements_indices(pv_name)
@@ -253,83 +233,14 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _set_pv_magnets(self, pv_name, value, parts):
         if parts.discipline in ('PS','PU'):
-            if parts.discipline == 'PS':   ps = self._power_supplies[parts.dev_name]
-            elif parts.discipline == 'PU': ps = self._pulsed_power_supplies[parts.dev_name]
-            if parts.propty.endswith('Current-SP'):
-                prev_value = ps.current_sp
-                if value != prev_value:
-                    db = self.database[pv_name]
-                    if 'low' in db and (value < db['low'] or value > db['high']): # It would be cleaner if this were implemented inside PS object!
-                        utils.log(message1 = 'psLim', message2 = pv_name, c='red')
-                        svalue = db['low'] if value < db['low'] else db['high']
-                    else:
-                        svalue = value
-                    ps.current_sp = svalue
-                    if svalue != prev_value:
-                        self._others_queue['driver'].put(('s', (pv_name, ps.current_sp))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-RB'), ps.current_rb))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name.replace('Current-SP','CurrentRef-Mon'), ps.currentref))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name.replace('-SP','-Mon'), ps.current_load))) # It would be cleaner if this were implemented inside PS object!
-                        self._state_deprecated = True
+            if parts.discipline == 'PS':   dev = self._power_supplies[parts.dev_name]
+            elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
+            deprecated_pvs = dev.set_pv(pv_name, value, parts)
+            if deprecated_pvs is not None:
+                for pvname,value in deprecated_pvs.items():
+                    self._others_queue['driver'].put(('s', (pvname, value)))
+                self._state_deprecated = True
                 return True
-            if parts.propty.endswith('PwrState-Sel'):
-                prev_value = ps.pwrstate_sts
-                if value != prev_value:
-                    try:
-                        ps.pwrstate_sel = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','PwrState-Sts'), value))) # It would be cleaner if this were implemented inside PS object!
-                        self._others_queue['driver'].put(('s', (pv_name.replace('PwrState-Sel','Current-Mon'), ps.current_load))) # It would be cleaner if this were implemented inside PS object!
-                        self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-            if parts.propty.endswith('OpMode-Sel'):
-                prev_value = ps.opmode
-                if value != prev_value:
-                    try:
-                        ps.opmode = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('OpMode-Sel','OpMode-Sts'), value))) # It would be cleaner if this were implemented inside PS object!
-                        #self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-            if parts.propty.endswith('WfmLabel-SP'):
-                prev_value = ps.wfmlabel
-                if value != prev_value:
-                    try:
-                        ps.wfmlabel = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('WfmLabel-SP','WfmLabel-RB'), value))) # It would be cleaner if this were implemented inside PS object!
-                        #self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-
-            if parts.propty.endswith('WfmData-SP'):
-                prev_value = ps.wfmdata
-                if (value != prev_value).any():
-                    try:
-                        ps.wfmdata = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('WfmData-SP','WfmData-RB'), value))) # It would be cleaner if this were implemented inside PS object!
-                        #self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-
-            if parts.propty.endswith('WfmLoad-Sel'):
-                prev_value = ps.wfmload
-                if value != prev_value:
-                    try:
-                        ps.wfmload = value
-                        self._others_queue['driver'].put(('s', (pv_name.replace('WfmLoad-Sel','WfmLoad-Sts'), value))) # It would be cleaner if this were implemented inside PS object!
-                        #self._state_deprecated = True
-                    except ValueError:
-                        utils.log(message1 = 'write', message2 = 'set_pv_magnets error', c='red')
-                        return False
-
-            if parts.propty.endswith('WfmSave-Cmd'):
-                ps.wfmsave = value
-                self._others_queue['driver'].put(('s', (pv_name, ps.wfmsave))) # It would be cleaner if this were implemented inside PS object!
-
         return False
 
     def _set_pv_fake(self, pv_name, value, parts):
@@ -493,6 +404,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     magnets.add(self._magnets[magnet_name])
             if self.device_names.pvnaming_fam in name_ps:
                 ps = power_supply.FamilyPowerSupply(magnets, model=self, name_ps=name_ps)
+                ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
                 self._power_supplies[name_ps] = ps
 
         # It is necessary to initalise all family power supplies before
@@ -504,9 +416,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             if not self.device_names.pvnaming_fam in name_ps:
                 if 'PU' in name_ps:
                     ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, name_ps=name_ps)
+                    ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
                     self._pulsed_power_supplies[name_ps] = ps
                 else:
                     ps = power_supply.IndividualPowerSupply(magnets, model=self, name_ps=name_ps)
+                    ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
                     self._power_supplies[name_ps] = ps
 
     def _get_sorted_pulsed_magnets(self):

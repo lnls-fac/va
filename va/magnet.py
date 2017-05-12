@@ -71,7 +71,7 @@ class Magnet(object):
                 else:
                     self._field_profile_b[:,n] = numpy.array([1/self._nr_segs]*self._nr_segs)
 
-        self.current_sp = self.get_current_from_field()
+        self.current_mon = self.get_current_from_field()
 
     def add_power_supply(self, power_supply):
         self._power_supplies.add(power_supply)
@@ -92,7 +92,7 @@ class Magnet(object):
         delta_skew_fields   = numpy.array(new_skew_fields) - numpy.array(prev_skew_fields)
 
         self.value = [delta_normal_fields, delta_skew_fields]
-        self.current_sp = current
+        self.current_mon = current
 
     def renormalize_magnet(self):
         """Change strengths of the magnet when accelerator energy is changed"""
@@ -197,7 +197,7 @@ class BoosterDipoleMagnet(Magnet):
         # Don't change the main harmonic value of polynom_b
         delta_normal_fields[0] = 0.0
         self.value = [delta_normal_fields, delta_skew_fields]
-        self.current_sp = current
+        self.current_mon = current
 
 
 class NormalMagnet(Magnet):
