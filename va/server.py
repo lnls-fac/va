@@ -126,7 +126,7 @@ def wait_for_initialisation():
     global start_event
     global stop_event
     t0 = time.time()
-    utils.log('start', 'waiting area structure initialisation')
+    utils.log('start', 'waiting area structure initialization')
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
@@ -148,6 +148,6 @@ def join_processes(processes,driver_thread):
 
 
 def old_wait_for_initialisation(interval):
-    utils.log('start', 'waiting %d s for area structure initialisation' % interval)
+    utils.log('start', 'waiting %d s for area structure initialization' % interval)
     time.sleep(JOIN_TIMEOUT)
     utils.log('start', 'starting server')

@@ -10,7 +10,7 @@ import sys
 class AreaStructureProcess(multiprocessing.Process):
 
     def __init__(self, area_structure, interval, stop_event, finalisation):
-        """Initialise, start and manage area_structure and area_structure processing.
+        """Initialize, start and manage area_structure and area_structure processing.
 
         Keyword arguments: see start_and_run_area_structure
         """
@@ -47,7 +47,7 @@ class AreaStructureProcess(multiprocessing.Process):
         area_structure -- area_structure class
         interval -- processing interval [s]
         stop_event -- event to stop processing
-        finalisation -- barrier to wait before finalisation
+        finalization -- barrier to wait before finalization
         **kwargs -- extra arguments to area_structure __init__
         """
         As = area_structure(**kwargs)
