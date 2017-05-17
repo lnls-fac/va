@@ -236,7 +236,7 @@ class AcceleratorModel(area_structure.AreaStructure):
             if parts.discipline == 'PS':   dev = self._power_supplies[parts.dev_name]
             elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
             deprecated_pvs = dev.set_pv(pv_name, value, parts)
-            if deprecated_pvs is not None:
+            if deprecated_pvs:
                 for pvname,value in deprecated_pvs.items():
                     self._others_queue['driver'].put(('s', (pvname, value)))
                 self._state_deprecated = True

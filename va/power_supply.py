@@ -96,11 +96,9 @@ class PowerSupply(_PowerSupply):
         elif propty.endswith('WfmSave-Cmd'):
             self.wfmsave_cmd = value
             deprecated_pvs[pv_name] = self.wfmsave_cmd
-        if not deprecated_pvs:
-            return False
-        else:
-            self.process()
-            return deprecated_pvs
+
+        if deprecated_pvs: self.process()
+        return deprecated_pvs
 
 
 class FamilyPowerSupply(PowerSupply):
