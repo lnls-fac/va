@@ -2,6 +2,7 @@
 import copy as _copy
 import siriuspy as _siriuspy
 from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
+from siriuspy.csdevice.pwrsupply import default_intlklabels as _default_intlklabels
 
 _PSOpModeEnums = _siriuspy.csdevice.EnumTypes.enums('PSOpModeTyp')
 
@@ -343,15 +344,18 @@ class RecordNames:
             p = device_name + ':Reset-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int'}
-            p = device_name + ':Interlock-SP'
+            p = device_name + ':Intlk-Mon'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int', 'value': 0}
+            p = device_name + ':IntlkLabels-Cte'
+            _record_names[p] = _device_names[device_name]
+            self.database[p] = {'type' : 'str', 'count' : len(_default_intlklabels), 'value': _default_intlklabels}
             p = device_name + ':WfmIndex-Mon'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int', 'value': 0}
             p = device_name + ':WfmLabels-Mon'
             _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : len(_default_wfmlabels), 'value':[label for label in _default_wfmlabels]}
+            self.database[p] = {'type' : 'string', 'count' : len(_default_wfmlabels), 'value': _default_wfmlabels}
             p = device_name + ':WfmLabel-SP'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
@@ -374,7 +378,7 @@ class RecordNames:
             p = device_name + ':WfmSave-Cmd'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int', 'value':0}
-            p = device_name + ':WfmRamping-Mon'
+            p = device_name + ':WfmScanning-Mon'
             _record_names[p] = _device_names[device_name]
             self.database[p] = {'type' : 'int', 'value':0}
 

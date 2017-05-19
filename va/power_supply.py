@@ -18,14 +18,9 @@ class PowerSupply(_PowerSupply):
         super().__init__(name_ps=name_ps)
         self._model = model
         self._magnets = magnets
-        self._interlock = 0
         for m in magnets:
             m.add_power_supply(self)
 
-    @property
-    def interlock(self):
-        # This will eventually be implemented in _PowerSupply!
-        return self._interlock
 
     def process(self):
         for m in self._magnets:
@@ -42,7 +37,6 @@ class PowerSupply(_PowerSupply):
         if parts.propty.endswith('OpMode-Sts'): return self.opmode_sts
         if parts.propty.endswith('CtrlMode-Mon'): return self.ctrlmode_mon
         if parts.propty.endswith('Reset-Cmd'): return 0
-        if parts.propty.endswith('Interlock-SP'): return self.interlock
         if parts.propty.endswith('WfmIndex-Mon'): return self.wfmindex_mon
         if parts.propty.endswith('WfmLabels-Mon'): return self.wfmlabels_mon
         if parts.propty.endswith('WfmLabel-SP'): return self.wfmlabel_sp
@@ -52,7 +46,9 @@ class PowerSupply(_PowerSupply):
         if parts.propty.endswith('WfmSave-Cmd'): return self.wfmsave_cmd
         if parts.propty.endswith('WfmLoad-Sel'): return self.wfmload_sel
         if parts.propty.endswith('WfmLoad-Sts'): return self.wfmload_sts
-        if parts.propty.endswith('WfmRamping-Mon'): return self.wfmramping_mon
+        if parts.propty.endswith('WfmScanning-Mon'): return self.wfmscanning_mon
+        if parts.propty.endswith('Intlk-Mon'): return self.intlk_mon
+        if parts.propty.endswith('IntlkLabels-Cte'): return self.intlklabels_cte
         return None
 
     def set_pv(self, pv_name, value, parts):
@@ -62,7 +58,6 @@ class PowerSupply(_PowerSupply):
             prev_value = self.current_rb
             if value != prev_value:
                 self.current_sp = value
-                deprecated_pvs[pv_name] = self.current_sp
                 deprecated_pvs[pv_name.replace('-SP','-RB')] = self.current_rb
                 deprecated_pvs[pv_name.replace('Current-SP','CurrentRef-Mon')] = self.currentref_mon
                 deprecated_pvs[pv_name.replace('-SP','-Mon')] = self.current_mon
@@ -89,7 +84,7 @@ class PowerSupply(_PowerSupply):
                 self.wfmdata_sp = value
                 deprecated_pvs[pv_name.replace('-SP','-RB')] = self.wfmdata_rb
         elif propty.endswith('WfmLoad-Sel'):
-            prev_value = self.wfmload
+            prev_value = self.wfmload_sts
             if value != prev_value:
                 self.wfmload_sel = value
                 deprecated_pvs[pv_name.replace('-Sel','-Sts')] = self.wfmload_sts
