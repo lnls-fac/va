@@ -5,10 +5,10 @@ import siriuspy.namesys as _namesys
 import siriuspy.magnet as _magnet
 import siriuspy.pwrsupply as _pwrsupply
 import siriuspy.timesys as _timesys
-from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
-from siriuspy.csdevice.pwrsupply import default_intlklabels as _default_intlklabels
+#from siriuspy.csdevice.pwrsupply import default_wfmlabels as _default_wfmlabels
+#from siriuspy.csdevice.pwrsupply import default_intlklabels as _default_intlklabels
 
-_PSOpModeEnums = _siriuspy.csdevice.EnumTypes.enums('PSOpModeTyp')
+#_PSOpModeEnums = _siriuspy.csdevice.EnumTypes.enums('PSOpModeTyp')
 
 class DeviceNames:
     pvnaming_glob = 'Glob'
@@ -294,98 +294,103 @@ class RecordNames:
             else:
                 self.di_ro.append(rec)
 
-    def _build_ps_limits(self):
-        excdict = self.device_names.get_excitation_curve_mapping(self.family_data)
-        curr_lims = {}
-        for device_name,(filename,polarity) in excdict.items():
-            excdata = _magnet.ExcitationData(filename_web = filename)
-            #lims = [polarity*item for item in excdata.currents]
-            lims = [item for item in excdata.currents]
-            curr_lims[device_name] = (min(lims),max(lims))
-        return curr_lims
-
     def _init_ps_record_names(self):
         _device_names = self.device_names.get_device_names(self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
         _record_names = {}
-        curr_lims = self._build_ps_limits()
         for device_name in _device_names.keys():
-            p = device_name + ':Current-SP'
-            _record_names[p] = _device_names[device_name]
 
-            parts = _namesys.SiriusPVName(device_name)
-            _device_name_ma = device_name.replace('PS','MA').replace('PU','PM')
-            if parts.subsection == 'Fam' and _device_name_ma in curr_lims:
-                lims = curr_lims[_device_name_ma]
-                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0, 'low':lims[0], 'high':lims[1]}
+            # this could be improved: the code could reuse PS objects from power_supply.py or vice-versa.
+            if device_name.startswith('LI-'):
+                ps = _pwrsupply.PowerSupplyLinac(name_ps = device_name)
             else:
-                self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-            p = device_name + ':Current-RB'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-            p = device_name + ':CurrentRef-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-            p = device_name + ':Current-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
-            p = device_name + ':PwrState-Sel'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
-            p = device_name + ':PwrState-Sts'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
-            p = device_name + ':OpMode-Sel'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value' : 0}
-            p = device_name + ':OpMode-Sts'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value': 0}
-            p = device_name + ':CtrlMode-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value': 0}
-            p = device_name + ':Reset-Cmd'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int'}
-            p = device_name + ':Intlk-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value': 0}
-            p = device_name + ':IntlkLabels-Cte'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'str', 'count' : len(_default_intlklabels), 'value': _default_intlklabels}
-            p = device_name + ':WfmIndex-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value': 0}
-            p = device_name + ':WfmLabels-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : len(_default_wfmlabels), 'value': _default_wfmlabels}
-            p = device_name + ':WfmLabel-SP'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
-            p = device_name + ':WfmLabel-RB'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
-            p = device_name + ':WfmLoad-Sel'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value' : 0}
-            p = device_name + ':WfmLoad-Sts'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value':0}
-            wfm = _pwrsupply.PSWaveForm.wfm_constant(_default_wfmlabels[0])
-            p = device_name + ':WfmData-SP'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
-            p = device_name + ':WfmData-RB'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
-            p = device_name + ':WfmSave-Cmd'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value':0}
-            p = device_name + ':WfmScanning-Mon'
-            _record_names[p] = _device_names[device_name]
-            self.database[p] = {'type' : 'int', 'value':0}
+                ps = _pwrsupply.PowerSupply(name_ps = device_name)
+            db = ps.database
+            for propty in db:
+                value = db[propty]
+                p = device_name + ':' + propty
+                _record_names[p] = _device_names[device_name]
+                if 'lolo' in value and value['lolo'] is None:
+                    print(device_name, ps.name_pstype)
+                self.database[p] = value
 
+
+
+            # p = device_name + ':Current-SP'
+            # _record_names[p] = _device_names[device_name]
+            #
+            # parts = _namesys.SiriusPVName(device_name)
+            # _device_name_ma = device_name.replace('PS','MA').replace('PU','PM')
+            # if parts.subsection == 'Fam' and _device_name_ma in curr_lims:
+            #     lims = curr_lims[_device_name_ma]
+            #     self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0, 'low':lims[0], 'high':lims[1]}
+            # else:
+            #     self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            # p = device_name + ':Current-RB'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            # p = device_name + ':CurrentRef-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            # p = device_name + ':Current-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'float', 'unit':'A', 'count': 1, 'value': 0.0}
+            # p = device_name + ':PwrState-Sel'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
+            # p = device_name + ':PwrState-Sts'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':('Off','On'), 'value': 1}
+            # p = device_name + ':OpMode-Sel'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value' : 0}
+            # p = device_name + ':OpMode-Sts'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':_PSOpModeEnums, 'value': 0}
+            # p = device_name + ':CtrlMode-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':('Remote','Local'), 'value': 0}
+            # p = device_name + ':Reset-Cmd'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'int'}
+            # p = device_name + ':Abort-Cmd'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'int'}
+            # p = device_name + ':Intlk-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'int', 'value': 0}
+            # p = device_name + ':IntlkLabels-Cte'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'str', 'count' : len(_default_intlklabels), 'value': _default_intlklabels}
+            # p = device_name + ':WfmIndex-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'int', 'value': 0}
+            # p = device_name + ':WfmLabels-Mon'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'string', 'count' : len(_default_wfmlabels), 'value': _default_wfmlabels}
+            # p = device_name + ':WfmLabel-SP'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
+            # p = device_name + ':WfmLabel-RB'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'string', 'count' : 1, 'value':_default_wfmlabels[0]}
+            # p = device_name + ':WfmLoad-Sel'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value' : 0}
+            # p = device_name + ':WfmLoad-Sts'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'enum', 'enums':_default_wfmlabels, 'value':0}
+            # wfm = _pwrsupply.PSWaveForm.wfm_constant(_default_wfmlabels[0])
+            # p = device_name + ':WfmData-SP'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
+            # p = device_name + ':WfmData-RB'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'float', 'count' : wfm.nr_points, 'value':wfm.data, 'unit':'m'}
+            # p = device_name + ':WfmSave-Cmd'
+            # _record_names[p] = _device_names[device_name]
+            # self.database[p] = {'type' : 'int', 'value':0}
 
         self.all_record_names.update(_record_names)
         self.ps_ro = []

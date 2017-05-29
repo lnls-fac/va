@@ -1,8 +1,6 @@
 
-import math
+import math as _math
 import numpy as _np
-from . import magnet
-import siriuspy
 from siriuspy.pwrsupply.model import PowerSupply as _PowerSupply
 
 
@@ -36,7 +34,8 @@ class PowerSupply(_PowerSupply):
         if parts.propty.endswith('OpMode-Sel'): return self.opmode_sel
         if parts.propty.endswith('OpMode-Sts'): return self.opmode_sts
         if parts.propty.endswith('CtrlMode-Mon'): return self.ctrlmode_mon
-        if parts.propty.endswith('Reset-Cmd'): return 0
+        if parts.propty.endswith('Reset-Cmd'): return self.reset
+        if parts.propty.endswith('Abort-Cmd'): return self.abort
         if parts.propty.endswith('WfmIndex-Mon'): return self.wfmindex_mon
         if parts.propty.endswith('WfmLabels-Mon'): return self.wfmlabels_mon
         if parts.propty.endswith('WfmLabel-SP'): return self.wfmlabel_sp
@@ -46,7 +45,6 @@ class PowerSupply(_PowerSupply):
         if parts.propty.endswith('WfmSave-Cmd'): return self.wfmsave_cmd
         if parts.propty.endswith('WfmLoad-Sel'): return self.wfmload_sel
         if parts.propty.endswith('WfmLoad-Sts'): return self.wfmload_sts
-        if parts.propty.endswith('WfmScanning-Mon'): return self.wfmscanning_mon
         if parts.propty.endswith('Intlk-Mon'): return self.intlk_mon
         if parts.propty.endswith('IntlkLabels-Cte'): return self.intlklabels_cte
         return None
@@ -55,37 +53,49 @@ class PowerSupply(_PowerSupply):
         propty = parts.propty
         deprecated_pvs = {}
         if propty.endswith('Current-SP'):
-            prev_value = self.current_rb
-            if value != prev_value:
+            value_prev = self.current_rb
+            if value != value_prev:
                 self.current_sp = value
                 deprecated_pvs[pv_name.replace('-SP','-RB')] = self.current_rb
                 deprecated_pvs[pv_name.replace('Current-SP','CurrentRef-Mon')] = self.currentref_mon
                 deprecated_pvs[pv_name.replace('-SP','-Mon')] = self.current_mon
         elif propty.endswith('PwrState-Sel'):
-            prev_value = self.pwrstate_sts
-            if value != prev_value:
+            value_prev = self.pwrstate_sts
+            if value != value_prev:
                 self.pwrstate_sel = value
                 deprecated_pvs[pv_name.replace('-Sel','-Sts')] = self.pwrstate_sts
                 deprecated_pvs[pv_name.replace('PwrState-Sel','CurrentRef-Mon')] = self.currentref_mon
                 deprecated_pvs[pv_name.replace('PwrState-Sel','Current-Mon')] = self.current_mon
         elif propty.endswith('OpMode-Sel'):
-            prev_value = self.opmode_sts
-            if value != prev_value:
+            value_prev = self.opmode_sts
+            if value != value_prev:
+                value_sts = self.opmode_sts
                 self.opmode_sel = value
-                deprecated_pvs[pv_name.replace('OpMode-Sel','OpMode-Sts')] = self.opmode_sts
+                if self.opmode_sel != value:
+                    deprecated_pvs[pv_name] = self.opmode_sts
+                if self.opmode_sts != value_sts:
+                    deprecated_pvs[pv_name.replace('OpMode-Sel','OpMode-Sts')] = self.opmode_sts
+        elif propty.endswith('Reset-Cmd'):
+            value_prev = self.reset
+            self.reset = value
+            deprecated_pvs[pv_name] = self.reset
+        elif propty.endswith('Abort-Cmd'):
+            value_prev = self.abort
+            self.abort = value
+            deprecated_pvs[pv_name] = self.abort
         elif propty.endswith('WfmLabel-SP'):
-            prev_value = self.wfmlabel_rb
-            if value != prev_value:
+            value_prev = self.wfmlabel_rb
+            if value != value_prev:
                 self.wfmlabel_sp = value
                 deprecated_pvs[pv_name.replace('-SP','-RB')] = self.wfmlabel_rb
         elif propty.endswith('WfmData-SP'):
-            prev_value = self.wfmdata_sp
-            if (value != prev_value).any():
+            value_prev = self.wfmdata_sp
+            if (value != value_prev).any():
                 self.wfmdata_sp = value
                 deprecated_pvs[pv_name.replace('-SP','-RB')] = self.wfmdata_rb
         elif propty.endswith('WfmLoad-Sel'):
-            prev_value = self.wfmload_sts
-            if value != prev_value:
+            value_prev = self.wfmload_sts
+            if value != value_prev:
                 self.wfmload_sel = value
                 deprecated_pvs[pv_name.replace('-Sel','-Sts')] = self.wfmload_sts
         elif propty.endswith('WfmSave-Cmd'):
@@ -125,7 +135,7 @@ class IndividualPowerSupply(PowerSupply):
             ps_current = 0.0
             for ps in power_supplies:
                 ps_current += ps.current_mon
-            self.current_sp = (total_current - ps_current) if math.fabs((total_current - ps_current))> 1e-10 else 0.0
+            self.current_sp = (total_current - ps_current) if _math.fabs((total_current - ps_current))> 1e-10 else 0.0
         else:
             self.current_sp = 0.0
 

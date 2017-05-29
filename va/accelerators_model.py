@@ -127,6 +127,18 @@ class AcceleratorModel(area_structure.AreaStructure):
             elif 'BeamSz' in pv_name:
                 return UNDEF_VALUE
             return None
+        elif parts.discipline == 'MO':
+            if parts.dev_type == 'Lattice':
+                if part.propty == 'BPMPos-Cte':
+                    indices = self._get_elements_indices('BPM', flat=False)
+                    if isinstance(indices[0], int):
+                        pos = pyaccel.lattice.find_spos(self._accelerator, indices)
+                    else:
+                        pos = [pyaccel.lattice.find_spos(self._accelerator, idx[0]) for idx in indices]
+                    start = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'start')[0]
+                    start_spos = pyaccel.lattice.find_spos(self._accelerator, start)
+                    pos = (pos-start_spos)%(pyaccel.lattice.length(self._accelerator))
+                    return pos
         return None
 
     def _get_pv_fake(self, pv_name, parts):
