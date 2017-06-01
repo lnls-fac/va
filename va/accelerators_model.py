@@ -5,7 +5,8 @@ import math
 import numpy
 import mathphys
 import pyaccel
-import siriuspy as _siriuspy
+from siriuspy.csdevice.enumtypes import EnumTypes as _et
+from siriuspy.namesys import SiriusPVName as _SiriusPVName
 from . import area_structure
 from . import magnet
 from . import power_supply
@@ -40,7 +41,7 @@ class AcceleratorModel(area_structure.AreaStructure):
     # --- methods implementing response of model to get requests
 
     def _get_pv(self, pv_name):
-        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        parts = _SiriusPVName(pv_name)
         value = self._get_pv_dynamic(pv_name, parts)
         if value is None:
             value = self._get_pv_fake(pv_name, parts)
@@ -204,7 +205,7 @@ class AcceleratorModel(area_structure.AreaStructure):
   # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
-        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        parts = _SiriusPVName(pv_name)
         if self._set_pv_magnets(pv_name, value, parts): return
         if self._set_pv_di(pv_name, value, parts): return
         if self._set_pv_rf(pv_name, value, parts): return
@@ -319,7 +320,7 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
-        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        parts = _SiriusPVName(pv_name)
         data = self._all_pvs[parts.dev_name]
         indices = []
         for key in data.keys():
@@ -409,31 +410,31 @@ class AcceleratorModel(area_structure.AreaStructure):
         # Set initial current values
         self._power_supplies = dict()
         self._pulsed_power_supplies = dict()
-        for name_ps in ps2magnet.keys():
+        for psname in ps2magnet.keys():
             magnets = set()
-            for magnet_name in ps2magnet[name_ps]:
+            for magnet_name in ps2magnet[psname]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if self.device_names.pvnaming_fam in name_ps:
-                ps = power_supply.FamilyPowerSupply(magnets, model=self, name_ps=name_ps)
-                ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
-                self._power_supplies[name_ps] = ps
+            if self.device_names.pvnaming_fam in psname:
+                ps = power_supply.FamilyPowerSupply(magnets, model=self, psname=psname)
+                ps.pwrstate_sel = _et.idx.On
+                self._power_supplies[psname] = ps
 
         # It is necessary to initalise all family power supplies before
-        for name_ps in ps2magnet.keys():
+        for psname in ps2magnet.keys():
             magnets = set()
-            for magnet_name in ps2magnet[name_ps]:
+            for magnet_name in ps2magnet[psname]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if not self.device_names.pvnaming_fam in name_ps:
-                if 'PU' in name_ps:
-                    ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, name_ps=name_ps)
-                    ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
-                    self._pulsed_power_supplies[name_ps] = ps
+            if not self.device_names.pvnaming_fam in psname:
+                if 'PU' in psname:
+                    ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, psname=psname)
+                    ps.pwrstate_sel = _et.idx.On
+                    self._pulsed_power_supplies[psname] = ps
                 else:
-                    ps = power_supply.IndividualPowerSupply(magnets, model=self, name_ps=name_ps)
-                    ps.pwrstate_sel = _siriuspy.csdevice.EnumTypes.idx.On
-                    self._power_supplies[name_ps] = ps
+                    ps = power_supply.IndividualPowerSupply(magnets, model=self, psname=psname)
+                    ps.pwrstate_sel = _et.idx.On
+                    self._power_supplies[psname] = ps
 
     def _get_sorted_pulsed_magnets(self):
         magnets_pos = []
@@ -993,8 +994,8 @@ class BoosterModel(AcceleratorModel):
             return
 
         # turn on injection pulsed magnet
-        for name_ps, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in name_ps and ps.enabled: ps.pwrstate_sel = 1
+        for psname, ps in self._pulsed_power_supplies.items():
+            if 'InjK' in psname and ps.enabled: ps.pwrstate_sel = 1
 
         # calc tracking efficiency
         _dict = self._injection_parameters
@@ -1004,8 +1005,8 @@ class BoosterModel(AcceleratorModel):
         self._injection_efficiency = 1.0 - tracking_loss_fraction
 
         # turn off injection pulsed magnet
-        for name_ps, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in name_ps: ps.pwrstate_sel = 0
+        for psname, ps in self._pulsed_power_supplies.items():
+            if 'InjK' in psname: ps.pwrstate_sel = 0
 
     def _calc_ejection_efficiency(self):
         self._log('calc', 'ejection efficiency for ' + self.model_module.lattice_version)
@@ -1025,8 +1026,8 @@ class BoosterModel(AcceleratorModel):
 
         # turn on extraction pulsed magnet
         indices = []
-        for name_ps, ps in self._pulsed_power_supplies.items():
-            if 'EjeK' in name_ps: # FIX!!
+        for psname, ps in self._pulsed_power_supplies.items():
+            if 'EjeK' in psname: # FIX!!
                 ps.pwrstate_sel = 1
                 indices.append(ps.magnet_idx)
         idx = min(indices)
@@ -1043,8 +1044,8 @@ class BoosterModel(AcceleratorModel):
         self._ejection_efficiency = 1.0 - tracking_loss_fraction
 
         # turn off injection pulsed magnet
-        for name_ps, ps in self._pulsed_power_supplies.items():
-            if 'EjeK' in name_ps:
+        for psname, ps in self._pulsed_power_supplies.items():
+            if 'EjeK' in psname:
                 ps.pwrstate_sel = 0
 
         # Change energy
@@ -1318,31 +1319,31 @@ class StorageRingModel(AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        for name_ps, ps in self._pulsed_power_supplies.items():
-            if 'InjNLK' in name_ps:
+        for psname, ps in self._pulsed_power_supplies.items():
+            if 'InjNLK' in psname:
                 nlk_enabled = True if ps.enabled else False
-            if 'InjDpK' in name_ps:
+            if 'InjDpK' in psname:
                 kickinj_enabled = True if ps.enabled else False
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
             self._log('calc', 'nlk injection efficiency for ' + self.model_module.lattice_version)
-            for name_ps, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in name_ps and ps.enabled: ps.pwrstate_sel = 1
+            for psname, ps in self._pulsed_power_supplies.items():
+                if 'InjNLK' in psname and ps.enabled: ps.pwrstate_sel = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
-            for name_ps, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in name_ps: ps.pwrstate_sel = 0
+            for psname, ps in self._pulsed_power_supplies.items():
+                if 'InjNLK' in psname: ps.pwrstate_sel = 0
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
             self._log('calc', 'on axis injection efficiency for '+self.model_module.lattice_version)
-            for name_ps, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in name_ps and ps.enabled: ps.pwrstate_sel = 1
+            for psname, ps in self._pulsed_power_supplies.items():
+                if 'InjDpK' in psname and ps.enabled: ps.pwrstate_sel = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
-            for name_ps, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in name_ps and ps.enabled: ps.pwrstate_sel = 0
+            for psname, ps in self._pulsed_power_supplies.items():
+                if 'InjDpK' in psname and ps.enabled: ps.pwrstate_sel = 0
 
         else:
             self._injection_efficiency = 0

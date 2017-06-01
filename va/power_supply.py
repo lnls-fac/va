@@ -9,11 +9,11 @@ from siriuspy.pwrsupply.model import PowerSupply as _PowerSupply
 
 class PowerSupply(_PowerSupply):
 
-    def __init__(self, magnets, model, name_ps):
+    def __init__(self, magnets, model, psname):
         """Gets and sets current [A]
         Connected magnets are processed after current is set.
         """
-        super().__init__(name_ps=name_ps)
+        super().__init__(psname=psname)
         self._model = model
         self._magnets = magnets
         for m in magnets:
@@ -108,9 +108,9 @@ class PowerSupply(_PowerSupply):
 
 class FamilyPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, name_ps, current=None):
+    def __init__(self, magnets, model, psname, current=None):
         """Initialises current from average integrated field in magnets"""
-        super().__init__(magnets, model=model, name_ps=name_ps)
+        super().__init__(magnets, model=model, psname=psname)
         if (current is None) and (len(magnets) > 0):
             total_current = 0.0
             n = 0
@@ -124,8 +124,8 @@ class FamilyPowerSupply(PowerSupply):
 
 class IndividualPowerSupply(PowerSupply):
 
-    def __init__(self, magnets, model, name_ps, current=None):
-        super().__init__(magnets, model=model, name_ps=name_ps)
+    def __init__(self, magnets, model, psname, current=None):
+        super().__init__(magnets, model=model, psname=psname)
         if len(magnets) > 1:
             raise Exception('Individual Power Supply')
         elif (current is None) and (len(magnets) > 0):
@@ -142,8 +142,8 @@ class IndividualPowerSupply(PowerSupply):
 
 class PulsedMagnetPowerSupply(IndividualPowerSupply):
 
-    def __init__(self, magnets, model, name_ps, current=None):
-        super().__init__(magnets, model=model, name_ps=name_ps)
+    def __init__(self, magnets, model, psname, current=None):
+        super().__init__(magnets, model=model, psname=psname)
         if current is not None: self.current_sp = current
 
     @property
