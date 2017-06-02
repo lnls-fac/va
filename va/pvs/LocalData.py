@@ -310,7 +310,7 @@ class RecordNames:
                 p = device_name + ':' + propty
                 _record_names[p] = _device_names[device_name]
                 if 'lolo' in value and value['lolo'] is None:
-                    print(device_name, ps.pstype)
+                    print("there is no value['lolo'] for  ", device_name, ps.pstype)
                 self.database[p] = value
 
         self.all_record_names.update(_record_names)
