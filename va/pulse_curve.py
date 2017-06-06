@@ -32,6 +32,9 @@ class PulseCurve:
     def _load_pulse_curve(self, magnet):
         self._read_pulse_curve_from_file(file_name=magnet)
 
+    def _load_pulse_curve_web(filename):
+        raise NotImplemented
+
     def _read_pulse_curve_from_file(self, file_name):
         with open(file_name, encoding='latin-1') as f:
             lines = [line.strip() for line in f]

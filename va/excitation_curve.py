@@ -21,6 +21,7 @@ class ExcitationCurve:
             self._load_excitation_curve(lines,polarity)
 
         elif method == 'filename_web':
+            self._filename = fname
             text = _siriuspy.servweb.magnets_excitation_data_read(fname)
             lines = text.split('\n')
             self._load_excitation_curve(lines,polarity)
@@ -71,6 +72,7 @@ class ExcitationCurve:
         low = value_range[0]
         high = value_range[1]
         if not low <= value <= high:
+            print(self._filename)
             msg = 'value %f out of range (%f, %f)' % (value, low, high)
             raise ValueError(msg)
 

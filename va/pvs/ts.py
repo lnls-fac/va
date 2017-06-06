@@ -27,10 +27,10 @@ _excitation_curves_mapping = (
     (('QF',)   , ('si-quadrupole-q20-fam.txt',1)),
     (('CH',)   , ('ts-corrector-ch.txt',1)),
     (('CV',)   , ('ts-corrector-cv.txt',1)),
-    (('EjeSF',), ('ts-septum-ejesf.txt',1)),
-    (('EjeSG',), ('ts-septum-ejesg.txt',1)),
-    (('InjSG',), ('ts-septum-injsg.txt',1)),
-    (('InjSF',), ('ts-septum-injsf.txt',1)),
+    (('EjeSF',), ('ts-ejeseptum-thin.txt',1)),
+    (('EjeSG',), ('ts-ejeseptum-thick.txt',1)),
+    (('InjSG',), ('ts-injseptum-thick.txt',1)),
+    (('InjSF',), ('ts-injseptum-thin.txt',1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {

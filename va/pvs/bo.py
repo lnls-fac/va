@@ -23,16 +23,16 @@ _glob_names = {# These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
 _excitation_curves_mapping = (
-    (('B',)    , ('bo-dipole-b.txt',1)),
-    (('QF',)   , ('bo-quadrupole-qf.txt',1)),
-    (('QD',)   , ('bo-quadrupole-qd.txt',1)),
+    (('B',)    , ('bo-dipole-b-fam.txt',1)),
+    (('QF',)   , ('bo-quadrupole-qf-fam.txt',1)),
+    (('QD',)   , ('bo-quadrupole-qd-fam.txt',1)),
     (('QS',)   , ('bo-quadrupole-qs.txt',1)),
-    (('SF',)   , ('bo-sextupole-sf.txt',1)),
-    (('SD',)   , ('bo-sextupole-sd.txt',1)),
+    (('SF',)   , ('bo-sextupole-sf-fam.txt',1)),
+    (('SD',)   , ('bo-sextupole-sd-fam.txt',1)),
     (('CH',)   , ('bo-corrector-ch.txt',1)),
     (('CV',)   , ('bo-corrector-cv.txt',1)),
-    (('InjK',) , ('bo-kicker-injk.txt',1)),
-    (('EjeK',) , ('bo-kicker-ejek.txt',1)),
+    (('InjK',) , ('bo-injkicker.txt',1)),
+    (('EjeK',) , ('bo-ejekicker.txt',1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {

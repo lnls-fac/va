@@ -57,10 +57,10 @@ _excitation_curves_mapping = (
     ((('C2','CV','2'),)                  , ('bo-corrector-cv.txt',+1)),
     (('FCH',)                            , ('si-corrector-fch.txt',+1)),
     (('FCV',)                            , ('si-corrector-fcv.txt',+1)),
-    (('InjDpK',)                         , ('si-kicker-injdpk.txt',+1)),
-    (('InjNLK',)                         , ('si-kicker-injnlk.txt',+1)),
-    (('HPing',)                          , ('si-kicker-hping.txt',+1)),
-    (('VPing',)                          , ('si-kicker-vping.txt',+1)),
+    (('InjDpK',)                         , ('si-injdpk.txt',+1)),
+    (('InjNLK',)                         , ('si-injnlk.txt',+1)),
+    (('HPing',)                          , ('si-hping.txt',+1)),
+    (('VPing',)                          , ('si-vping.txt',+1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {

@@ -218,6 +218,7 @@ class PulsedMagnet(NormalMagnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename, polarity, pulse_curve_filename):
         super().__init__(accelerator, indices, exc_curve_filename, polarity)
+        #self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename, method='filename_web')
         self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename)
         self._light_speed = mathphys.constants.light_speed
         self.length_to_inj_point = pyaccel.lattice.find_spos(self._accelerator, self._indices[0])

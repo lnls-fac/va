@@ -25,11 +25,11 @@ _glob_names = dict() # These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
 _excitation_curves_mapping = (
-    (('QD','QF3')  , ('li-quadrupole-qd.txt',1)),
-    (('QF1','QF2') , ('li-quadrupole-qf.txt',1)),
-    (('CH',)       , ('li-corrector-ch.txt',1)),
-    (('CV',)       , ('li-corrector-cv.txt',1)),
-    (('Spect',)    , ('li-dipole-spect.txt',1)),
+    (('QD',)  ,             ('li-quadrupole-long.txt',1)), # QD1 and QD2 !
+    (('QF1','QF2', 'QF3') , ('li-quadrupole-short.txt',1)),
+    (('CH',)       , ('li-corrector-ch-long.txt',1)), # Long and Short ?
+    (('CV',)       , ('li-corrector-cv-long.txt',1)),
+    (('Spect',)    , ('li-spect.txt',1)),
     (('Slnd',)     , ('li-solenoid-slnd.txt',1)),
     (('Lens',)     , ('li-lens.txt',1)),
 )

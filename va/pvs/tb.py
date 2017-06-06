@@ -21,12 +21,12 @@ _glob_names = dict() # These Family names can be any name
 _inj_names = dict()
 ##### Excitation Curves #######
 _excitation_curves_mapping = (
-    (('B',)            , ('tb-dipole-b.txt',1)),
-    ((('01','B',''),)  , ('tb-dipole-b.txt',-1)),
-    (('Q',)            , ('tb-quadrupole-q.txt',1)),
+    (('B',)            , ('tb-dipole-b-fam.txt',1)),
+    ((('01','B',''),)  , ('tb-dipole-b-fam.txt',-1)),
+    (('Q',)            , ('tb-quadrupole.txt',1)),
     (('CH',)           , ('tb-corrector-ch.txt',1)),
     (('CV',)           , ('tb-corrector-cv.txt',1)),
-    (('InjS',)         , ('tb-septum-injs.txt',1)),
+    (('InjS',)         , ('tb-injseptum.txt',1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
