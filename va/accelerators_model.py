@@ -379,6 +379,10 @@ class AcceleratorModel(area_structure.AreaStructure):
                     m = magnet.BoosterDipoleMagnet(accelerator, indices, excitation_curve, polarity)
                 else:
                     m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
+                    #print(magnet_name)
+                    #print(m.value)
+                    #print(m.current_mon)
+                    #print()
             elif family_type  == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
                 try:

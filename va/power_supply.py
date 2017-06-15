@@ -50,6 +50,10 @@ class PowerSupply(_PowerSupply):
         return None
 
     def set_pv(self, pv_name, value, parts):
+        # print(self.psname)
+        # for m in self._magnets:
+        #     print(m._excitation_curve._filename)
+
         propty = parts.propty
         deprecated_pvs = {}
         if propty.endswith('Current-SP'):
