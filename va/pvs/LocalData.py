@@ -301,7 +301,8 @@ class RecordNames:
 
             # this could be improved: the code could reuse PS objects from power_supply.py or vice-versa.
             if device_name.startswith('LI-'):
-                ps = _pwrsupply.PowerSupplyLinac(psname = device_name)
+                #ps = _pwrsupply.PowerSupplyLinac(psname = device_name)
+                ps = _pwrsupply.PowerSupply(psname = device_name)
             else:
                 ps = _pwrsupply.PowerSupply(psname = device_name)
             db = ps.database
