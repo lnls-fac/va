@@ -1,6 +1,5 @@
 
 import copy as _copy
-import siriuspy as _siriuspy
 import siriuspy.namesys as _namesys
 #import siriuspy.magnet as _magnet
 import siriuspy.pwrsupply as _pwrsupply
