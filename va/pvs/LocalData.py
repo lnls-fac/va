@@ -1,10 +1,9 @@
-
+import time
 import copy as _copy
-import siriuspy as _siriuspy
 import siriuspy.namesys as _namesys
 #import siriuspy.magnet as _magnet
 import siriuspy.pwrsupply as _pwrsupply
-import siriuspy.timesys as _timesys
+from siriuspy.timesys.time_simul import TimingSimulation
 
 
 
@@ -372,7 +371,7 @@ class RecordNames:
         for device_name in _device_names.keys():
             parts = _namesys.SiriusPVName(device_name)
             if parts.dev_type == 'Timing':
-                ioc = _timesys.time_simul.TimingSimulation
+                ioc = TimingSimulation
                 db = ioc.get_database()
                 self.database.update(db)
                 devs = _device_names[device_name]

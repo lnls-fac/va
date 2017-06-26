@@ -6,7 +6,7 @@ import time
 import numpy as _np
 # import prctl #Used in debugging
 from pcaspy import Driver
-from . import utils
+from va import utils
 
 
 PREFIX_LEN = utils.PREFIX_LEN

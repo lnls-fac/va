@@ -1,13 +1,14 @@
-import siriuspy as _siriuspy
+from siriuspy.timesys.time_simul import TimingSimulation
+from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
-from .pvs import As as _pvs_As
-from .pvs import li as _pvs_li
-from .pvs import tb as _pvs_tb
-from .pvs import bo as _pvs_bo
-from .pvs import ts as _pvs_ts
-from .pvs import si as _pvs_si
-from . import accelerators_model
-from . import area_structure
+from va.pvs import As as _pvs_As
+from va.pvs import li as _pvs_li
+from va.pvs import tb as _pvs_tb
+from va.pvs import bo as _pvs_bo
+from va.pvs import ts as _pvs_ts
+from va.pvs import si as _pvs_si
+from va import accelerators_model
+from va import area_structure
 
 
 class ASModel(area_structure.AreaStructure):
@@ -28,9 +29,7 @@ class ASModel(area_structure.AreaStructure):
 
 
     def _init_timing_devices(self):
-        self._timing = _siriuspy.timesys.time_simul.TimingSimulation(
-                                            self._rf_frequency,
-                                            callbacks={self._uuid:self._callback}  )
+        self._timing = TimingSimulation(self._rf_frequency, callbacks={self._uuid:self._callback}  )
         self._timing.add_injection_callback(self._uuid,self._injection_cycle)
         self._timing.add_single_callback(self._uuid,self._single_pulse_synchronism)
 
@@ -38,13 +37,13 @@ class ASModel(area_structure.AreaStructure):
         self._others_queue['driver'].put(('s', (propty, value)))
 
     def _get_pv(self, pv_name):
-        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        parts = _PVName(pv_name)
         if parts.discipline == 'TI':
             return self._timing.get_propty(pv_name)
         return None
 
     def _set_pv(self,pv_name, value):
-        parts = _siriuspy.namesys.SiriusPVName(pv_name)
+        parts = _PVName(pv_name)
         if parts.discipline == 'TI':
             return self._timing.set_propty(pv_name, value)
         else: return False

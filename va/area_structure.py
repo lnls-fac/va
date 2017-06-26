@@ -1,7 +1,7 @@
 import uuid as _uuid
 import multiprocessing
 import time
-from . import utils
+from va import utils
 import traceback
 import sys
 # import prctl #Used in debugging

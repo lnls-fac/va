@@ -7,12 +7,12 @@ import mathphys
 import pyaccel
 from siriuspy.csdevice.enumtypes import EnumTypes as _et
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
-from . import area_structure
-from . import magnet
-from . import power_supply
-from . import beam_charge
-from . import injection
-from . import utils
+from va import area_structure
+from va import magnet
+from va import power_supply
+from va import beam_charge
+from va import injection
+from va import utils
 
 _u = mathphys.units
 _light_speed = mathphys.constants.light_speed
@@ -379,6 +379,10 @@ class AcceleratorModel(area_structure.AreaStructure):
                     m = magnet.BoosterDipoleMagnet(accelerator, indices, excitation_curve, polarity)
                 else:
                     m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
+                    #print(magnet_name)
+                    #print(m.value)
+                    #print(m.current_mon)
+                    #print()
             elif family_type  == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
                 try:
