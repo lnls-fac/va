@@ -15,7 +15,7 @@ import epics as _epics
 __version__ = _pvs.__version__
 
 class App:
-    NOISELVL = 100e-9
+    NOISELVL = 100 # in nanometers
     PVS_PREFIX = ''
     VA_PREFIX = 'VAF-'
     pvs_database = _pvs.pvs_database

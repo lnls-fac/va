@@ -29,8 +29,7 @@ _fam_names = { # All these Family names must be defined in family_data dictionar
     'MA': (['B1B2-1','B1B2-2'] +
            model.families.families_quadrupoles() +
            model.families.families_sextupoles()
-          ),
-    'DI': ['BPM']
+          )
 }
 _glob_names = {# These Family names can be any name
     'AP': ['Tune','Chrom','CurrLT','BeamSz','Emit'],

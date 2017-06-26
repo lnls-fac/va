@@ -247,14 +247,10 @@ class RecordNames:
             if parts.dev_type== 'BPM':
                 p1 = dev_name + ':PosX-Mon'
                 _record_names[p1] = _device_names[dev_name]
+                self.database[p1] = {'type' : 'float', 'unit':'nm', 'value': 0.0}
                 p2 = dev_name + ':PosY-Mon'
                 _record_names[p2] = _device_names[dev_name]
-                if parts.subsection == self.device_names.pvnaming_fam:
-                    self.database[p1] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
-                    self.database[p2] = {'type' : 'float', 'unit':'m', 'count': len(_device_names[dev_name]['BPM'])}
-                else:
-                    self.database[p1] = {'type' : 'float', 'value': 0.0}
-                    self.database[p2] = {'type' : 'float', 'value': 0.0}
+                self.database[p2] = {'type' : 'float', 'unit':'nm', 'value': 0.0}
             elif 'TuneP' in parts.dev_type:
                 p = dev_name + ':Freq1-Mon'
                 _record_names[p] = _device_names[dev_name]

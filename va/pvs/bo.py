@@ -13,8 +13,7 @@ _el_names = { # All these Family names must be defined in family_data dictionary
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
     'PS': ['B-1','B-2','QD','QF','SD','SF'],
-    'MA': ['B-1','B-2','QD','QF','SD','SF'],
-    'DI': ['BPM']
+    'MA': ['B-1','B-2','QD','QF','SD','SF']
 }
 _glob_names = {# These Family names can be any name
     'AP': ['Chrom','CurrLT','Size','Emitt'],

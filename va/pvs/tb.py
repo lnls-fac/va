@@ -13,7 +13,6 @@ _el_names = { # All these Family names must be defined in family_data dictionary
     'PM': ['InjS']
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
-    'DI': ['BPM'],
     'PS': ['B'],
     'MA': ['B']
 }
