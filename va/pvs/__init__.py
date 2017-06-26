@@ -1,6 +1,1 @@
-from . import li
-from . import tb
-from . import bo
-from . import ts
-from . import si
-from . import As
+__all__ = ['li','tb','bo','ts','si','As']

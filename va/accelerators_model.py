@@ -7,12 +7,12 @@ import mathphys
 import pyaccel
 from siriuspy.csdevice.enumtypes import EnumTypes as _et
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
-from . import area_structure
-from . import magnet
-from . import power_supply
-from . import beam_charge
-from . import injection
-from . import utils
+from va import area_structure
+from va import magnet
+from va import power_supply
+from va import beam_charge
+from va import injection
+from va import utils
 
 _u = mathphys.units
 _light_speed = mathphys.constants.light_speed

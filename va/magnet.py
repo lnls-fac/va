@@ -1,8 +1,8 @@
 
 import numpy
 import mathphys
-import va.excitation_curve
-import va.pulse_curve
+from va.excitation_curve import ExcitationCurve
+from va.pulse_curve import PulseCurve
 import pyaccel
 
 class Magnet(object):
@@ -23,8 +23,8 @@ class Magnet(object):
             self._indices = indices
         self._nr_segs = len(self._indices)
 
-        self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity, method='filename_web')
-        #self._excitation_curve = va.excitation_curve.ExcitationCurve(exc_curve_filename,polarity, method='filename')
+        self._excitation_curve = ExcitationCurve(exc_curve_filename,polarity, method='filename_web')
+        #self._excitation_curve = ExcitationCurve(exc_curve_filename,polarity, method='filename')
 
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
@@ -218,8 +218,8 @@ class PulsedMagnet(NormalMagnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename, polarity, pulse_curve_filename):
         super().__init__(accelerator, indices, exc_curve_filename, polarity)
-        #self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename, method='filename_web')
-        self._pulse_curve = va.pulse_curve.PulseCurve(pulse_curve_filename)
+        #self._pulse_curve = PulseCurve(pulse_curve_filename, method='filename_web')
+        self._pulse_curve = PulseCurve(pulse_curve_filename)
         self._light_speed = mathphys.constants.light_speed
         self.length_to_inj_point = pyaccel.lattice.find_spos(self._accelerator, self._indices[0])
         self.length_to_prev_pulsed_magnet = 0

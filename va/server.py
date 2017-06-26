@@ -8,10 +8,10 @@ import time
 import signal
 import multiprocessing
 import pcaspy
-from . import driver
-from . import area_structure
-from . import sirius_area_structures
-from . import utils
+from va import driver
+from va import area_structure
+from va import sirius_area_structures
+from va import utils
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0

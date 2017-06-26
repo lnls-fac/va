@@ -4,7 +4,7 @@ import datetime
 from termcolor import colored
 import pyaccel
 import mathphys
-import va
+from va import __version__ as VERSION
 
 
 UNDEF_VALUE = 0.0
@@ -28,7 +28,7 @@ def print_banner(prefix, li_pv_names=None,
 
     print(r"")
     print(c(r"         (___)    ",'white') + " | " + c("Virtual Accelerator with Channel Access server"))
-    print(c(r"    _____(.oo)    ",'white') + " | " + c("Version {0}".format(va.__version__)))
+    print(c(r"    _____(.oo)    ",'white') + " | " + c("Version {0}".format(VERSION)))
     print(c(r"  //     ' ",'white')+c("@@     ",'magenta') + " | " + c("LNLS Accelerator Physics Group", attrs=['bold']))
     print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Documentation: https://github.com/lnls-fac/va"))
     print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~~~",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
