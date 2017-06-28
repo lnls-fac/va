@@ -19,95 +19,68 @@ class PowerSupply(_PowerSupply):
         for m in magnets:
             m.add_power_supply(self)
 
+        self.propties = {
+            'Current-SP': 'current_sp',
+            'Current-RB': 'current_rb',
+            'CurrentRef-Mon': 'currentref_mon',
+            'Current-Mon': 'current_mon',
+            'PwrState-Sel': 'pwrstate_sts',
+            'PwrState-Sts': 'pwrstate_sts',
+            'OpMode-Sel': 'opmode_sel',
+            'OpMode-Sts': 'opmode_sts',
+            'CtrlMode-Mon': 'ctrlmode_mon',
+            'Reset-Cmd': 'reset',
+            'Abort-Cmd': 'abort',
+            'WfmIndex-Mon': 'wfmindex_mon',
+            'WfmLabels-Mon': 'wfmlabels_mon',
+            'WfmLabel-SP': 'wfmlabel_sp',
+            'WfmLabel-RB': 'wfmlabel_rb',
+            'WfmData-SP': 'wfmdata_sp',
+            'WfmData-RB': 'wfmdata_rb',
+            'WfmSave-Cmd': 'wfmsave_cmd',
+            'WfmLoad-Sel': 'wfmload_sel',
+            'WfmLoad-Sts': 'wfmload_sts',
+            'Intlk-Mon': 'intlk_mon',
+            'IntlkLabels-Cte': 'intlklabels_cte',
+        }
 
     def process(self):
         for m in self._magnets:
             m.process()
 
     def get_pv(self, pv_name, parts):
-        if parts.propty.endswith('Current-SP'): return self.current_sp
-        if parts.propty.endswith('Current-RB'): return self.current_rb
-        if parts.propty.endswith('CurrentRef-Mon'): return self.currentref_mon
-        if parts.propty.endswith('Current-Mon'): return self.current_mon
-        if parts.propty.endswith('PwrState-Sel'): return self.pwrstate_sts
-        if parts.propty.endswith('PwrState-Sts'): return self.pwrstate_sts
-        if parts.propty.endswith('OpMode-Sel'): return self.opmode_sel
-        if parts.propty.endswith('OpMode-Sts'): return self.opmode_sts
-        if parts.propty.endswith('CtrlMode-Mon'): return self.ctrlmode_mon
-        if parts.propty.endswith('Reset-Cmd'): return self.reset
-        if parts.propty.endswith('Abort-Cmd'): return self.abort
-        if parts.propty.endswith('WfmIndex-Mon'): return self.wfmindex_mon
-        if parts.propty.endswith('WfmLabels-Mon'): return self.wfmlabels_mon
-        if parts.propty.endswith('WfmLabel-SP'): return self.wfmlabel_sp
-        if parts.propty.endswith('WfmLabel-RB'): return self.wfmlabel_rb
-        if parts.propty.endswith('WfmData-SP'): return self.wfmdata_sp
-        if parts.propty.endswith('WfmData-RB'): return self.wfmdata_rb
-        if parts.propty.endswith('WfmSave-Cmd'): return self.wfmsave_cmd
-        if parts.propty.endswith('WfmLoad-Sel'): return self.wfmload_sel
-        if parts.propty.endswith('WfmLoad-Sts'): return self.wfmload_sts
-        if parts.propty.endswith('Intlk-Mon'): return self.intlk_mon
-        if parts.propty.endswith('IntlkLabels-Cte'): return self.intlklabels_cte
-        return None
+        if not parts.propty in self.propties.keys():  return None
+        return getattr(self, self.propties[parts.propty])
 
     def set_pv(self, pv_name, value, parts):
-        # print(self.psname)
-        # for m in self._magnets:
-        #     print(m._excitation_curve._filename)
-
         propty = parts.propty
-        deprecated_pvs = {}
-        if propty.endswith('Current-SP'):
-            value_prev = self.current_rb
-            if value != value_prev:
-                self.current_sp = value
-                deprecated_pvs[pv_name.replace('-SP','-RB')] = self.current_rb
-                deprecated_pvs[pv_name.replace('Current-SP','CurrentRef-Mon')] = self.currentref_mon
-                deprecated_pvs[pv_name.replace('-SP','-Mon')] = self.current_mon
-        elif propty.endswith('PwrState-Sel'):
-            value_prev = self.pwrstate_sts
-            if value != value_prev:
-                self.pwrstate_sel = value
-                deprecated_pvs[pv_name.replace('-Sel','-Sts')] = self.pwrstate_sts
-                deprecated_pvs[pv_name.replace('PwrState-Sel','CurrentRef-Mon')] = self.currentref_mon
-                deprecated_pvs[pv_name.replace('PwrState-Sel','Current-Mon')] = self.current_mon
-        elif propty.endswith('OpMode-Sel'):
-            value_prev = self.opmode_sts
-            if value != value_prev:
-                value_sts = self.opmode_sts
-                self.opmode_sel = value
-                if self.opmode_sel != value:
-                    deprecated_pvs[pv_name] = self.opmode_sts
-                if self.opmode_sts != value_sts:
-                    deprecated_pvs[pv_name.replace('OpMode-Sel','OpMode-Sts')] = self.opmode_sts
-        elif propty.endswith('Reset-Cmd'):
-            value_prev = self.reset
-            self.reset = value
-            deprecated_pvs[pv_name] = self.reset
-        elif propty.endswith('Abort-Cmd'):
-            value_prev = self.abort
-            self.abort = value
-            deprecated_pvs[pv_name] = self.abort
-        elif propty.endswith('WfmLabel-SP'):
-            value_prev = self.wfmlabel_rb
-            if value != value_prev:
-                self.wfmlabel_sp = value
-                deprecated_pvs[pv_name.replace('-SP','-RB')] = self.wfmlabel_rb
-        elif propty.endswith('WfmData-SP'):
-            value_prev = self.wfmdata_sp
-            if (value != value_prev).any():
-                self.wfmdata_sp = value
-                deprecated_pvs[pv_name.replace('-SP','-RB')] = self.wfmdata_rb
-        elif propty.endswith('WfmLoad-Sel'):
-            value_prev = self.wfmload_sts
-            if value != value_prev:
-                self.wfmload_sel = value
-                deprecated_pvs[pv_name.replace('-Sel','-Sts')] = self.wfmload_sts
-        elif propty.endswith('WfmSave-Cmd'):
-            self.wfmsave_cmd = value
-            deprecated_pvs[pv_name] = self.wfmsave_cmd
+        if not propty.endswith(('-SP','-Sel','-Cmd')) or not propty in self.propties.keys(): return
 
-        if deprecated_pvs: self.process()
-        return deprecated_pvs
+        old_values = {}
+        for k,v in self.propties.items():
+            if k.startswith(('WfmData','WfmLabels-Mon')): continue
+            old_values[k] = getattr(self,v)
+
+        setattr(self,self.propties[propty],value)
+        self.process()
+
+        deprecated = {}
+        if propty == 'WfmData-SP':
+            deprecated[propty] = value
+        for k,v in old_values.items():
+            new_v = getattr(self, self.propties[k])
+            if v != new_v:   deprecated[k] = new_v
+        if 'WfmData-SP' in deprecated or 'WfmLoad-Sel' in deprecated:
+            deprecated['WfmData-RB'] = getattr(self,self.propties['WfmData-RB'])
+        if 'WfmLabel-SP' in deprecated:
+            deprecated['WfmLabels-Mon'] = getattr(self, self.propties['WfmLabels-Mon'])
+
+        deprec = {}
+        for k,v in deprecated.items():
+            if k.endswith(('-SP','-Sel')): continue
+            deprec[pv_name.replace(propty,k)] = v
+
+        return deprec
 
 
 class FamilyPowerSupply(PowerSupply):
