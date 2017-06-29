@@ -43,7 +43,7 @@ class BeamCharge:
         self.value
         n = len(self._charge)
         current_loss_rate, *_ = self.loss_rate
-        b_lifetime  = [float("inf") if bunch_loss_rate==0.0 else bunch_loss_rate**(-1) for bunch_loss_rate in current_loss_rate]
+        b_lifetime  = [float("inf") if bunch_loss_rate==0.0 else 1.0/bunch_loss_rate for bunch_loss_rate in current_loss_rate]
         return b_lifetime
 
     @property
@@ -54,7 +54,9 @@ class BeamCharge:
             w_avg = sum([w[i]*q[i] for i in range(len(q))])/sum(q)
         else:
             w_avg = sum(w)/len(w)
-        return 1.0/w_avg
+        if w_avg: tlt = 1.0/w_avg
+        else:     tlt = float('inf')
+        return tlt
 
     @property
     def value(self):

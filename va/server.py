@@ -18,12 +18,13 @@ JOIN_TIMEOUT = 10.0
 INIT_TIMEOUT = 20.0
 
 
-def run(prefix):
+def run(prefix, only_orbit=False):
     """Start virtual accelerator with given PV prefix
 
     Keyword arguments:
     prefix -- prefix to be added to PVs
     """
+    area_structure.SIMUL_ONLY_ORBIT = only_orbit
     global start_event
     global stop_event
     start_event = multiprocessing.Event()

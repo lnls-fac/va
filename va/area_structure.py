@@ -6,6 +6,7 @@ import traceback
 import sys
 # import prctl #Used in debugging
 
+SIMUL_ONLY_ORBIT = False
 
 class AreaStructureProcess(multiprocessing.Process):
 
@@ -80,6 +81,7 @@ class AreaStructure:
         self._my_queue = my_queue
         self._log = log_func
         self._state_changed = False
+        self.simulate_only_orbit = SIMUL_ONLY_ORBIT
 
     def process(self):
         self._process_requests()
@@ -109,7 +111,9 @@ class AreaStructure:
         self._set_pv(pv_name, value)
 
     def _update_pvs(self):
-        pvs = self.pv_module.get_dynamical_pvs()
+        pvs = []
+        if not self.simulate_only_orbit:
+            pvs = pvs + self.pv_module.get_dynamical_pvs()
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
             self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))

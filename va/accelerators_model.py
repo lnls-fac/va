@@ -2,6 +2,7 @@
 import os
 import enum
 import math
+import time
 import numpy
 import mathphys
 import pyaccel
@@ -607,7 +608,7 @@ class LinacModel(AcceleratorModel):
 
         charge_time = [(kwargs['injection_bunch']+ i)*kwargs['bunch_separation'] + self._egun_delay for i in range(len(charge))]
 
-        if calc_injection_eff:
+        if calc_injection_eff and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
             self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
@@ -728,14 +729,14 @@ class TLineModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        if calc_timing_eff:
+        if calc_timing_eff and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        if calc_injection_eff:
+        if calc_injection_eff and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
             charge = [bunch_charge * efficiency for bunch_charge in charge]
@@ -787,9 +788,10 @@ class BoosterModel(AcceleratorModel):
     def _update_state(self, force=False):
         if force or self._state_deprecated:
             self._calc_closed_orbit()
-            self._calc_linear_optics()
-            self._calc_equilibrium_parameters()
-            self._calc_lifetimes()
+            if not self.simulate_only_orbit:
+                self._calc_linear_optics()
+                self._calc_equilibrium_parameters()
+                self._calc_lifetimes()
             self._update_injection_efficiency = True
             self._update_ejection_efficiency  = True
             self._state_changed = True
@@ -988,6 +990,7 @@ class BoosterModel(AcceleratorModel):
         return eq
 
     def _calc_injection_efficiency(self):
+        if self.simulate_only_orbit: return
         if self._injection_parameters is None: return
 
         self._log('calc', 'injection efficiency for  ' + self.model_module.lattice_version)
@@ -1013,6 +1016,7 @@ class BoosterModel(AcceleratorModel):
             if 'InjK' in psname: ps.pwrstate_sel = 0
 
     def _calc_ejection_efficiency(self):
+        if self.simulate_only_orbit: return
         self._log('calc', 'ejection efficiency for ' + self.model_module.lattice_version)
 
         if not hasattr(self, '_pulsed_power_supplies'):
@@ -1089,21 +1093,21 @@ class BoosterModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        if self._summary is None:
+        if self._summary is None and not self.simulate_only_orbit:
             self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             return
 
         charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        if calc_timing_eff:
+        if calc_timing_eff and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnet in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        if calc_injection_eff:
+        if calc_injection_eff and not self.simulate_only_orbit:
             # Injection
             efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
@@ -1150,9 +1154,10 @@ class StorageRingModel(AcceleratorModel):
     def _update_state(self, force=False):
         if force or self._state_deprecated:
             self._calc_closed_orbit()
-            self._calc_linear_optics()
-            self._calc_equilibrium_parameters()
-            self._calc_lifetimes()
+            if not self.simulate_only_orbit:
+                self._calc_linear_optics()
+                self._calc_equilibrium_parameters()
+                self._calc_lifetimes()
             self._update_injection_efficiency = True
             self._state_deprecated = False
             self._state_changed = True
@@ -1162,7 +1167,8 @@ class StorageRingModel(AcceleratorModel):
         # Calculate nlk and on-axis injection efficiencies
         if self._update_injection_efficiency:# and (self._received_charge or self._injection_efficiency is None):
             self._update_injection_efficiency = False
-            self._calc_injection_efficiency()
+            if not self.simulate_only_orbit:
+                self._calc_injection_efficiency()
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
         self._beam_charge  = beam_charge.BeamCharge(nr_bunches = self.nr_bunches)
@@ -1379,7 +1385,7 @@ class StorageRingModel(AcceleratorModel):
 
         charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        if calc_timing_eff:
+        if calc_timing_eff and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 if magnet.enabled:
@@ -1387,7 +1393,7 @@ class StorageRingModel(AcceleratorModel):
             efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        if calc_injection_eff:
+        if calc_injection_eff and not self.simulate_only_orbit:
             # Injection
             efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
