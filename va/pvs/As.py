@@ -1,20 +1,23 @@
+"""Create PV names for AS section."""
+
 from .LocalData import DeviceNames, RecordNames
 
 _section = 'AS'
-_el_names   = dict() # All these Family names must be defined in family_data dictionary
-_fam_names  = dict() # All these Family names must be defined in family_data dictionary
-_glob_names = { # These Family names can be any name
-        'TI': ['Timing',]
+_el_names = dict()  # All these Family names must be defined in family_data
+_fam_names = dict()  # All these Family names must be defined in family_data
+_glob_names = {  # These Family names can be any name
+        'TI': ['Timing', ]
 }
 _inj_names = dict()
 
-##### Excitation Curves #######
+# #### Excitation Curves #######
 _excitation_curves_mapping = tuple()
-##### Pulsed Magnets #######
-_pulse_curve_mapping= dict()
+# #### Pulsed Magnets #######
+_pulse_curve_mapping = dict()
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
-            _excitation_curves_mapping, _pulse_curve_mapping)
+device_names = DeviceNames(_section, _el_names, _fam_names,
+                           _glob_names, _inj_names,
+                           _excitation_curves_mapping, _pulse_curve_mapping)
 
 # build record names
 record_names = RecordNames(device_names)
