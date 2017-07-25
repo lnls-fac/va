@@ -35,8 +35,6 @@ class ASModel(area_structure.AreaStructure):
         self._timing = TimingSimulation(self._rf_frequency,
                                         callbacks={self._uuid: self._callback})
         self._timing.add_injection_callback(self._uuid, self._injection_cycle)
-        self._timing.add_single_callback(self._uuid,
-                                         self._single_pulse_synchronism)
 
     def _callback(self, propty, value, **kwargs):
         self._others_queue['driver'].put(('s', (propty, value)))
@@ -55,6 +53,7 @@ class ASModel(area_structure.AreaStructure):
             return False
         return True
 
+    # Not used in the moment.
     def _single_pulse_synchronism(self, triggers):
         self._log(message1='cycle', message2='--')
         self._log(message1='cycle',
