@@ -71,10 +71,14 @@ class PCASDriver(Driver):
         self._my_queue = my_queue
         self._stop_event = stop_event
         self._processes = dict()
+        self._processes_database = dict()
         self._processes_initialisation = dict()
         for p in processes:
-            self._processes[p.area_structure_prefix] = p
-            self._processes_initialisation[p.area_structure_prefix] = False
+            prefix = p.area_structure_prefix
+            self._processes[prefix] = p
+            self._processes_initialisation[prefix] = False
+            self._processes_database[prefix] = \
+                p.area_structure.pv_module.get_database()
 
     def process(self):
         """Function that run continuously."""
@@ -160,7 +164,7 @@ class PCASDriver(Driver):
                 self._stop_event.set()
                 return True
             process = self._get_pv_process(reason)
-            if self._is_process_pv_writable(process, reason):
+            if self._isValid(process, reason, value):
                 self.setParam(reason, value)
                 self._internal_queue.put((process, reason, value))
                 if type(value) in (list, tuple,
@@ -176,16 +180,31 @@ class PCASDriver(Driver):
             else:
                 utils.log('!write', reason, c='yellow', a=['bold'])
                 return False
-        except Exception():
+        except Exception:
             utils.log('!write', reason, c='red', a=['bold'])
             return False
+
+    def _isValid(self, process, reason, value):
+        if reason.endswith(('-Sts', '-RB', '-Mon')):
+            return False
+        db = self._processes_database[process.area_structure_prefix]
+        enums = (db[reason].get('enums') or db[reason].get('Enums'))
+        if enums is not None:
+            if isinstance(value, int):
+                len_ = len(enums)
+                if value >= len_:
+                    return False
+            elif isinstance(value, str):
+                if value not in enums:
+                    return False
+        return True
 
     def _get_pv_process(self, reason):
         prefix = reason[:PREFIX_LEN]
         process = self._processes[prefix]
         return process
 
-    def _is_process_pv_writable(self, process, reason):
-        read_only_pvs = process.area_structure.pv_module.get_read_only_pvs()
-        dynamic_pvs = process.area_structure.pv_module.get_dynamical_pvs()
-        return reason not in read_only_pvs + dynamic_pvs
+    # def _is_process_pv_writable(self, process, reason):
+    #     read_only_pvs = process.area_structure.pv_module.get_read_only_pvs()
+    #     dynamic_pvs = process.area_structure.pv_module.get_dynamical_pvs()
+    #     return reason not in read_only_pvs + dynamic_pvs
