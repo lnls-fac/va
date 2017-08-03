@@ -24,7 +24,7 @@ class PowerSupply(_PowerSupply):
             'Current-RB': 'current_rb',
             'CurrentRef-Mon': 'currentref_mon',
             'Current-Mon': 'current_mon',
-            'PwrState-Sel': 'pwrstate_sts',
+            'PwrState-Sel': 'pwrstate_sel',
             'PwrState-Sts': 'pwrstate_sts',
             'OpMode-Sel': 'opmode_sel',
             'OpMode-Sts': 'opmode_sts',
