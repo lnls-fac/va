@@ -278,7 +278,6 @@ class RecordNames:
                 _record_names[dev_name] = _device_names[dev_name]
                 self.database[dev_name] = {'type' : 'float', 'value': 0.0}
         self.all_record_names.update(_record_names)
-        #self.di_ro = list(_record_names.keys())
         self.di_ro = []
         self.di_rw = []
         for rec in _record_names.keys():
@@ -398,11 +397,11 @@ class RecordNames:
 
     def _init_dynamical_pvs(self):
         self.dynamical_pvs = []
-        for pv in self.di_ro:
+        for pv in self.di_ro.copy():
             if 'Current' in pv:
                 self.dynamical_pvs.append(pv)
                 self.di_ro.remove(pv)
-        for pv in self.ap:
+        for pv in self.ap.copy():
             if 'CurrLT' in pv:
                 self.dynamical_pvs.append(pv)
                 self.ap.remove(pv)
