@@ -39,7 +39,7 @@ def run():
     # define abort function
     _signal.signal(_signal.SIGINT, stop_now)
 
-    # create a new simple pcaspy server and driver to responde client's requests
+    # create a new simple pcaspy server and driver to respond client's requests
     server = _pcaspy.SimpleServer()
     server.createPV(_main.App.PVS_PREFIX, _main.App.pvs_database)
     pcas_driver = PCASDriver()

@@ -1,12 +1,10 @@
 from siriuspy.namesys import SiriusPVName as _PVName
 from va.pvs import bo, si
 
-with open('VERSION','r') as _f:
+with open('VERSION', 'r') as _f:
     __version__ = _f.read().strip()
 
-pvs_database = {
-    'Version': {'type':'string', 'value':__version__},
-}
+pvs_database = {'Version': {'type': 'string', 'value': __version__}}
 
 area_structures = (bo, si)
 for ArS in area_structures:
