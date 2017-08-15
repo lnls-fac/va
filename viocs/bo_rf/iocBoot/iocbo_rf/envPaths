@@ -1,5 +1,0 @@
-epicsEnvSet("ARCH","linux-x86_64")
-epicsEnvSet("IOC","iocbo_rf")
-epicsEnvSet("TOP","/home/fac_files/code/va/viocs/bo_rf")
-epicsEnvSet("SNCSEQ","/usr/local/epics/R3.14/base/../extensions/seq-2.2.2")
-epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14/base")

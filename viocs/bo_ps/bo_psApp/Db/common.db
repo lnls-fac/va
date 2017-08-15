@@ -1,5 +1,0 @@
-
-record(event, "EVENT-BOPS-SP-INIT")
-{
-    field(VAL, 125)
-}

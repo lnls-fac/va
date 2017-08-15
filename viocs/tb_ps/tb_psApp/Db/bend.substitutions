@@ -1,8 +1,0 @@
-
-file "db/individual.db" {
-    pattern { family, pos }
-        { "BEND", "01" }
-        { "BEND", "02" }
-        { "BEND", "03" }
-        { "BEND", "04" }
-}

@@ -1,5 +1,0 @@
-
-file "db/septa.db" {
-    pattern { family, pos }
-        { "SEPTUMINJ", "05" }
-}

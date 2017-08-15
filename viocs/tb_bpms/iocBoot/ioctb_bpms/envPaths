@@ -1,4 +1,0 @@
-epicsEnvSet("ARCH","linux-x86_64")
-epicsEnvSet("IOC","ioctb_bpms")
-epicsEnvSet("TOP","/home/fac_files/code/va/viocs/tb_bpms")
-epicsEnvSet("EPICS_BASE","/usr/local/epics/R3.14.12.4/base")

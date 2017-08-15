@@ -1,5 +1,0 @@
-
-record(event, "EVENT-TSPS-SP-INIT")
-{
-    field(VAL, 123)
-}
