@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-sirius
 
 from setuptools import setup
 
-with open('VERSION','r') as _f:
+with open('VERSION', 'r') as _f:
     __version__ = _f.read().strip()
 
 setup(
@@ -20,6 +20,8 @@ setup(
     ],
     packages=['va'],
     package_data={'va': ['VERSION', 'pvs/*.py']},
-    scripts=['scripts/sirius-vaca.py', 'scripts/sirius-state-save.py', 'scripts/sirius-state-load.py'],
+    scripts=['scripts/sirius-vaca.py',
+             'scripts/sirius-state-save.py',
+             'scripts/sirius-state-load.py'],
     zip_safe=False
 )

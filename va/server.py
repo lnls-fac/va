@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-#import siriuspy as _siriuspy
-#_siriuspy.util.set_ioc_ca_port_number('vaca')
-
+# import siriuspy as _siriuspy
+# _siriuspy.util.set_ioc_ca_port_number('vaca')
 
 import time
 import signal
@@ -28,19 +27,22 @@ def run(prefix, only_orbit=False):
     global start_event
     global stop_event
     start_event = multiprocessing.Event()
-    stop_event = multiprocessing.Event() # signals a stop request
+    stop_event = multiprocessing.Event()  # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
     area_structures = get_area_structures()
     pv_database = get_pv_database(area_structures)
+    _print_pvs_in_file(prefix, pv_database)
+
     pv_names = get_pv_names(area_structures)
     utils.print_banner(prefix, **pv_names)
 
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
 
-    num_parties = len(area_structures) + 1 # number of parties for barrier
-    finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
+    num_parties = len(area_structures) + 1  # number of parties for barrier
+    finalisation_barrier = multiprocessing.Barrier(num_parties,
+                                                   timeout=JOIN_TIMEOUT)
 
     processes, driver_thread = create_and_start_processes_and_threads(
                                 area_structures,
@@ -53,7 +55,7 @@ def run(prefix, only_orbit=False):
         server.process(WAIT_TIMEOUT)
 
     print_stop_event_message()
-    join_processes(processes,driver_thread)
+    join_processes(processes, driver_thread)
 
 
 def set_sigint_handler(handler):
@@ -82,7 +84,7 @@ def get_pv_database(area_structures):
     pv_database = {}
     for As in area_structures:
         pv_database.update(As.database)
-    pv_database['QUIT'] = {'type':'float', 'value':0, 'count':1}
+    pv_database['QUIT'] = {'type': 'float', 'value': 0, 'count': 1}
     return pv_database
 
 
@@ -90,18 +92,19 @@ def get_pv_names(area_structures):
     pv_names = {}
     for As in area_structures:
         # Too low level?
-        area_structure_pv_names = {As.prefix.lower()+'_pv_names': As.database.keys()}
+        area_structure_pv_names = {As.prefix.lower() +
+                                   '_pv_names': As.database.keys()}
         pv_names.update(area_structure_pv_names)
-
     return pv_names
 
 
-def create_and_start_processes_and_threads(area_structures, start_event, stop_event, finalisation_barrier):
+def create_and_start_processes_and_threads(area_structures, start_event,
+                                           stop_event, finalisation_barrier):
     processes = []
     all_queues = dict()
     for As in area_structures:
         Asp = area_structure.AreaStructureProcess(As, WAIT_TIMEOUT, stop_event,
-            finalisation_barrier)
+                                                  finalisation_barrier)
         all_queues[Asp.area_structure_prefix] = Asp.my_queue
         processes.append(Asp)
 
@@ -113,7 +116,7 @@ def create_and_start_processes_and_threads(area_structures, start_event, stop_ev
         finalisation_barrier
     )
     all_queues['driver'] = driver_thread.my_queue
-    #Start processes and threads
+    # Start processes and threads
     for proc in processes:
         proc.set_others_queue(all_queues)
         proc.start()
@@ -131,7 +134,8 @@ def wait_for_initialisation():
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
-        if (t-t0) > INIT_TIMEOUT: break
+        if (t-t0) > INIT_TIMEOUT:
+            break
     if not stop_event.is_set():
         utils.log('start', 'starting server', 'green')
 
@@ -140,7 +144,7 @@ def print_stop_event_message():
     utils.log('exit', 'stop_event was set', 'red')
 
 
-def join_processes(processes,driver_thread):
+def join_processes(processes, driver_thread):
     utils.log('join', 'joining processes...')
     for process in processes:
         process.join(JOIN_TIMEOUT)
@@ -148,7 +152,8 @@ def join_processes(processes,driver_thread):
     utils.log('join', 'done')
 
 
-def old_wait_for_initialisation(interval):
-    utils.log('start', 'waiting %d s for area structure initialization' % interval)
-    time.sleep(JOIN_TIMEOUT)
-    utils.log('start', 'starting server')
+def _print_pvs_in_file(prefix, db):
+    fname = 'ioc-as-vaca.txt'
+    with open('pvs/' + fname, 'w') as f:
+        for key in sorted(db.keys()):
+            f.write(prefix+'{0:40s}\n'.format(key))

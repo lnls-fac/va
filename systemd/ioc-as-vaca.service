@@ -1,0 +1,14 @@
+[Unit]
+Description=Soft IOC for Accelerator Simulation
+After=multi-user.target
+
+[Service]
+Group=fac
+User=fac
+Type=simple
+WorkingDirectory=/home/fac/sirius-iocs/as-vaca/
+StandardOutput=syslog
+StandardError=syslog
+ExecStartPre=/bin/bash --login -c 'env > /tmp/.magic-environment-file'
+EnvironmentFile=-/tmp/.magic-environment-file
+ExecStart=/usr/local/bin/sirius-vaca.py
