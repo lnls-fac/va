@@ -2,9 +2,8 @@
 
 import sys
 import va.server
-import siriuspy
+from siriuspy.envars import vaca_prefix as prefix
 
-prefix = siriuspy.envars.vaca_prefix
 only_orbit = False
 if len(sys.argv) > 1:
     only_orbit = sys.argv[1].lower().endswith('true')
