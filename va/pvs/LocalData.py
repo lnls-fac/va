@@ -1,7 +1,8 @@
 import time
 import copy as _copy
-import siriuspy.namesys as _namesys
-#import siriuspy.magnet as _magnet
+from siriuspy.namesys import SiriusPVName as _PVName
+from siriuspy.namesys import join_name as _join_name
+# import siriuspy.magnet as _magnet
 import siriuspy.pwrsupply as _pwrsupply
 from siriuspy.timesys.time_simul import TimingSimulation
 
@@ -15,25 +16,28 @@ class DeviceNames:
     def __init__(self, section, el_names, fam_names, glob_names, inj_names,
                 excitation_curves_mapping, pulse_curve_mapping, get_family_data=None):
         self.section = section
-        self.el_names = el_names  # All these Family names must be defined in family_data dictionary
-        self.fam_names = fam_names  # All these Family names must be defined in family_data dictionary
-        self.glob_names = glob_names # These Family names can be any name
-        self.inj_names  = inj_names  # These Family names can be any name
-        self.disciplines =  sorted(el_names.keys() | fam_names.keys() | glob_names.keys() | inj_names.keys())
-        ##### Excitation Curves #######
+        # All these Family names must be defined in family_data dictionary:
+        self.el_names = el_names
+        self.fam_names = fam_names
+        # These Family names can be any name:
+        self.glob_names = glob_names
+        self.inj_names = inj_names
+        self.disciplines = sorted(el_names.keys() | fam_names.keys() |
+                                  glob_names.keys() | inj_names.keys())
+        # #### Excitation Curves ######
         self.excitation_curves_mapping = excitation_curves_mapping
-        ##### Pulsed Magnets #######
+        # #### Pulsed Magnets ######
         self.pulse_curve_mapping = pulse_curve_mapping
-        ##### Family Data Function ######
+        # #### Family Data Function #####
         self.get_family_data = get_family_data
 
     def join_name(self, discipline, device, subsection,
-        instance=None, proper=None, field=None):
-        return _namesys.join_name(self.section, discipline, device, subsection,
-                                           instance, proper, field)
+                  instance=None, proper=None, field=None):
+        return _join_name(self.section, discipline, device, subsection,
+                          instance, proper, field)
 
-    ##### Device Names ######
-    def get_device_names(self, accelerator=None, discipline = None):
+    # #### Device Names ####
+    def get_device_names(self, accelerator=None, discipline=None):
         """Return a dictionary of device names for given discipline
         each entry is another dictionary of model families whose
         values are the indices in the pyaccel model of the magnets
@@ -45,9 +49,9 @@ class DeviceNames:
         elif not isinstance(accelerator, dict):
             family_data = self.get_family_data(accelerator)
 
-        if discipline == None:
+        if discipline is None:
             discipline = self.disciplines
-        if not isinstance(discipline,(list,tuple)):
+        if not isinstance(discipline, (list, tuple)):
             discipline = [discipline.upper()]
         else:
             discipline = [s.upper() for s in discipline]
@@ -58,43 +62,43 @@ class DeviceNames:
                 names = self.el_names.get(dis) or []
                 for el in names:
                     subsec = family_data[el]['subsection']
-                    num    = family_data[el]['instance']
-                    idx    = family_data[el]['index']
+                    num = family_data[el]['instance']
+                    idx = family_data[el]['index']
                     for i in range(len(subsec)):
-                        device_name = self.join_name(dis, el, subsec[i], num[i])
-                        _dict.update({ device_name:{el:idx[i]} })
+                        dev_name = self.join_name(dis, el, subsec[i], num[i])
+                        _dict.update({dev_name: {el: idx[i]}})
 
                 fams = self.fam_names.get(dis) or []
                 for fam in fams:
                     idx = family_data[fam]['index']
-                    device_name = self.join_name(dis, fam, self.pvnaming_fam)
-                    _dict.update({ device_name:{fam:idx} })
+                    dev_name = self.join_name(dis, fam, self.pvnaming_fam)
+                    _dict.update({dev_name: {fam: idx}})
 
             globs = self.glob_names.get(dis) or []
             for glob in globs:
-                device_name = self.join_name(dis, glob, self.pvnaming_glob)
-                _dict.update({ device_name:{} })
+                dev_name = self.join_name(dis, glob, self.pvnaming_glob)
+                _dict.update({dev_name: {}})
 
             injs = self.inj_names.get(dis) or []
             for inj in injs:
-                device_name = self.join_name(dis, inj, self.pvnaming_inj)
-                _dict.update({ device_name:{} })
+                dev_name = self.join_name(dis, inj, self.pvnaming_inj)
+                _dict.update({dev_name: {}})
 
         return _dict
 
-    def get_magnet_names(self,accelerator):
+    def get_magnet_names(self, accelerator):
         _dict = self.get_device_names(accelerator, 'ma')
         _dict.update(self.get_device_names(accelerator, 'pm'))
         return _dict
 
-    ####### Power Supplies ########
+    # ###### Power Supplies ########
     def get_magnet2power_supply_mapping(self, accelerator):
         """Get mapping from power supply to magnet names and inverse mapping
 
         Returns mapping, inverse_mapping.
         """
         mapping = dict()
-        for mag, power in zip(['ma','pm'],['ps','pu']):
+        for mag, power in zip(['ma', 'pm'], ['ps', 'pu']):
             # create a mapping of index in the lattice and magnet name
             mag_ind_dict = dict()
             for mag_name, mag_prop in self.get_device_names(accelerator,mag).items():
@@ -106,13 +110,13 @@ class DeviceNames:
 
             #Use this mapping to see if the power supply is attached to the same element
             for ps_name, ps_prop in self.get_device_names(accelerator,power).items():
-                ps = _namesys.SiriusPVName(ps_name).dev_type
+                ps = _PVName(ps_name).dev_type
                 idx = list(ps_prop.values())[0]
                 idx = [idx[0]] if self.pvnaming_fam not in ps_name else [i[0] for i in idx] # if Fam then indices are list of lists
                 for i in idx:
                     mag_names = mag_ind_dict[i]
                     for mag_name in mag_names:
-                        m = _namesys.SiriusPVName(mag_name).dev_type
+                        m = _PVName(mag_name).dev_type
                         if (m not in ps) and (ps not in m):
                             continue  # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
                         if mapping.get(mag_name) is None:
@@ -135,7 +139,7 @@ class DeviceNames:
         tis_dev = set(self.get_device_names(accelerator, 'TI').keys())
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            parts = _namesys.SiriusPVName(pm)
+            parts = _PVName(pm)
             dev = parts.dev_type
             ins = parts.dev_instance
             dev += '-'+ins if ins else ins
@@ -170,7 +174,7 @@ class DeviceNames:
         mapping = {}
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
         for pm in pms_dev:
-            dev = _namesys.SiriusPVName(pm).dev_type
+            dev = _PVName(pm).dev_type
             mapping[pm] = self.pulse_curve_mapping[dev]
 
         return mapping
@@ -187,7 +191,7 @@ class DeviceNames:
         for fams, curve in self.excitation_curves_mapping:
             if isinstance(fams[0],tuple):
                 for name in magnets:
-                    parts = _namesys.SiriusPVName(name)
+                    parts = _PVName(name)
                     device = parts.dev_type
                     sub    = parts.subsection
                     inst   = parts.dev_instance
@@ -195,7 +199,7 @@ class DeviceNames:
                         ec[name] = curve
             else:
                 for name in magnets:
-                    parts = _namesys.SiriusPVName(name)
+                    parts = _PVName(name)
                     if parts.dev_type.startswith(fams): ec[name] = curve
         return ec
 
@@ -243,7 +247,7 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'DI')
         _record_names = {}
         for dev_name in _device_names.keys():
-            parts = _namesys.SiriusPVName(dev_name)
+            parts = _PVName(dev_name)
             if parts.dev_type== 'BPM':
                 p1 = dev_name + ':PosX-Mon'
                 _record_names[p1] = _device_names[dev_name]
@@ -321,7 +325,7 @@ class RecordNames:
         _record_names = dict()
         _device_names = self.device_names.get_device_names(self.family_data, 'AP')
         for dev_name in _device_names.keys():
-            parts = _namesys.SiriusPVName(dev_name)
+            parts = _PVName(dev_name)
             if parts.dev_type== 'CurrLT':
                 p = dev_name + ':CurrLT-Mon'
                 _record_names[p] = _device_names[dev_name]
@@ -339,7 +343,7 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'RF')
         _record_names = {}
         for device_name in _device_names.keys():
-            parts = _namesys.SiriusPVName(device_name)
+            parts = _PVName(device_name)
             #if parts.dev_type.endswith('Cav'):
             if parts.dev_type in ('P5Cav','SRFCav'):
                 p = device_name + ':Freq-SP'
@@ -364,7 +368,7 @@ class RecordNames:
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
-            parts = _namesys.SiriusPVName(device_name)
+            parts = _PVName(device_name)
             if parts.dev_type == 'Timing':
                 ioc = TimingSimulation
                 db = ioc.get_database()
