@@ -17,7 +17,7 @@ JOIN_TIMEOUT = 10.0
 INIT_TIMEOUT = 20.0
 
 
-def run(prefix, only_orbit=False):
+def run(prefix, only_orbit=False, print_pvs=False):
     """Start virtual accelerator with given PV prefix
 
     Keyword arguments:
@@ -32,7 +32,8 @@ def run(prefix, only_orbit=False):
 
     area_structures = get_area_structures()
     pv_database = get_pv_database(area_structures)
-    _print_pvs_in_file(prefix, pv_database)
+    if print_pvs:
+        _print_pvs_in_file(prefix, pv_database)
 
     pv_names = get_pv_names(area_structures)
     utils.print_banner(prefix, **pv_names)
