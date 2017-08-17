@@ -11,4 +11,4 @@ StandardOutput=syslog
 StandardError=syslog
 ExecStartPre=/bin/bash --login -c 'env > /tmp/.magic-environment-file'
 EnvironmentFile=-/tmp/.magic-environment-file
-ExecStart=/usr/local/bin/sirius-vaca.py
+ExecStart=/usr/local/bin/sirius-vaca.py -f
