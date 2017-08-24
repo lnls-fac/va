@@ -6,7 +6,7 @@ from siriuspy.envars import vaca_prefix as prefix
 parser = _argparse.ArgumentParser(description="Run VACA.")
 parser.add_argument('-o', '--orbit', action='store_true', default=False,
                     help="If present simulate only orbit")
-parser.add_argument('-f', '--pvs', action='store_true', default=False,
+parser.add_argument('-f', '--pvs', action='store_true', default=True,
                     help="If present print pvs in file")
 parser.add_argument('-p', "--prefix", type=str, default='',
                     help="prefix to be used")
