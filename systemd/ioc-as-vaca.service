@@ -1,5 +1,6 @@
 [Unit]
 Description=Soft IOC for Accelerator Simulation
+Conflicts=ioc-as-ps-test.service
 After=multi-user.target
 
 [Service]
