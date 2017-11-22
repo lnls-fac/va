@@ -379,8 +379,9 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if self.prefix == 'BO':
                     m = magnet.BoosterDipoleMagnet(accelerator, indices, excitation_curve, polarity)
                 else:
+                    # if 'TB-' in magnet_name:
+                    #     print(magnet_name)
                     m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
-                    #print(magnet_name)
                     #print(m.value)
                     #print(m.current_mon)
                     #print()

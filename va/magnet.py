@@ -5,10 +5,11 @@ from va.excitation_curve import ExcitationCurve
 from va.pulse_curve import PulseCurve
 import pyaccel
 
+
 class Magnet(object):
 
-    def __init__(self, accelerator, indices, exc_curve_filename,polarity):
-        """Magnet with power supplies
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity):
+        """Magnet with power supplies.
 
         Reads current from power supplies and sets Accelerator elements fields
         using value converted with excitation curve.
@@ -17,42 +18,71 @@ class Magnet(object):
         self._accelerator = accelerator
         self._prev_brho = accelerator.brho
 
+
+
         if isinstance(indices, int):
             self._indices = [indices]
         else:
             self._indices = indices
         self._nr_segs = len(self._indices)
 
-        self._excitation_curve = ExcitationCurve(exc_curve_filename,polarity, method='filename_web')
-        #self._excitation_curve = ExcitationCurve(exc_curve_filename,polarity, method='filename')
+        self._excitation_curve = ExcitationCurve(exc_curve_filename,
+                                                 polarity,
+                                                 method='filename_web')
 
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
         total_length = 0.0
-        total_angle  = 0.0
-        len_polynom  = min(len(self._accelerator[self._indices[0]].polynom_b),
-                       len(self._accelerator[self._indices[0]].polynom_a))
+        total_angle = 0.0
+        len_polynom = min(len(self._accelerator[self._indices[0]].polynom_b),
+                          len(self._accelerator[self._indices[0]].polynom_a))
         self._len_profile = max(len_polynom, self._len_fields)
-        self._field_profile_a  = numpy.zeros((self._nr_segs, self._len_profile))
-        self._field_profile_b  = numpy.zeros((self._nr_segs, self._len_profile))
+        self._field_profile_a = numpy.zeros((self._nr_segs, self._len_profile))
+        self._field_profile_b = numpy.zeros((self._nr_segs, self._len_profile))
 
         for i in range(self._nr_segs):
             idx = self._indices[i]
             total_length += self._accelerator[idx].length
-            total_angle  += self._accelerator[idx].angle
-
+            total_angle += self._accelerator[idx].angle
 
             if len_polynom < self._len_fields:
-                self._accelerator[idx].polynom_b = resize_polynom(self._accelerator[idx].polynom_b, self._len_fields)
-                self._accelerator[idx].polynom_a = resize_polynom(self._accelerator[idx].polynom_a, self._len_fields)
+                self._accelerator[idx].polynom_b = \
+                    resize_polynom(self._accelerator[idx].polynom_b,
+                                   self._len_fields)
+                self._accelerator[idx].polynom_a = \
+                    resize_polynom(self._accelerator[idx].polynom_a,
+                                   self._len_fields)
 
-            self._field_profile_b[i,:] = - self._accelerator[idx].polynom_b*self._accelerator[idx].length
-            self._field_profile_a[i,:] = - self._accelerator[idx].polynom_a*self._accelerator[idx].length
+            try:
+                self._field_profile_b[i, :] = \
+                    -self._accelerator[idx].polynom_b * \
+                    self._accelerator[idx].length
+            except:
+                # print(exc_curve_filename)
+                # print('nr_segs: {}'.format(self._nr_segs))
+                # print('_len_fields: {}'.format(self._len_fields))
+                # print('len_polynom: {}'.format(len_polynom))
+                # print(self._accelerator[idx])
+                # print(self._accelerator[idx].polynom_b)
+                # print(self._accelerator[idx].length)
+                pass
+
+            self._field_profile_a[i, :] = \
+                -self._accelerator[idx].polynom_a * \
+                self._accelerator[idx].length
             if self._excitation_curve.main_harmonic == 0:
-                self._field_profile_b[i,0] -= self._accelerator[idx].angle
+                self._field_profile_b[i, 0] -= self._accelerator[idx].angle
 
         self._length = total_length
         self._nominal_angle = total_angle
+
+        if 'bo-dipole' in exc_curve_filename:
+            print()
+            print('exc_fname: ', exc_curve_filename)
+            print('nr_segs: ', self._nr_segs)
+            print('indices:', self._indices)
+            print()
+
 
         # field profiles
         if self._nr_segs == 1:
@@ -60,12 +90,14 @@ class Magnet(object):
             self._field_profile_a = numpy.array([[1]*self._len_profile])
         else:
             for n in range(self._len_profile):
-                sum_fb = numpy.sum(self._field_profile_b[:,n])
-                sum_fa = numpy.sum(self._field_profile_a[:,n])
+                sum_fb = numpy.sum(self._field_profile_b[:, n])
+                sum_fa = numpy.sum(self._field_profile_a[:, n])
                 if sum_fa != 0:
-                    self._field_profile_a[:,n] = self._field_profile_a[:,n]/sum_fa
+                    self._field_profile_a[:, n] = \
+                        self._field_profile_a[:, n]/sum_fa
                 else:
-                    self._field_profile_a[:,n] = numpy.array([1/self._nr_segs]*self._nr_segs)
+                    self._field_profile_a[:, n] = \
+                        numpy.array([1/self._nr_segs]*self._nr_segs)
                 if sum_fb != 0:
                     self._field_profile_b[:,n] = self._field_profile_b[:,n]/sum_fb
                 else:
@@ -126,6 +158,7 @@ class Magnet(object):
             value += polynom[self._excitation_curve.main_harmonic]*self._accelerator[i].length
 
         if self._excitation_curve.main_harmonic == 0:
+            #print('get_value: ', value, self._nominal_angle)
             main_field = -(value + self._nominal_angle)*self._accelerator.brho
         else:
             main_field = -value*self._accelerator.brho

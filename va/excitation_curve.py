@@ -1,6 +1,6 @@
 
 import numpy as _numpy
-from siriuspy.envars import folder_lnls_sirius_csconstants
+from siriuspy.envars import folder_lnls_sirius_csconstants as _folder_lnls_sirius_csconstants
 from siriuspy.servweb import magnets_excitation_data_read
 import os as _os
 
@@ -15,7 +15,7 @@ class ExcitationCurve:
         """
 
         if method == 'filename':
-            _excitation_curves_dir = _os.path.join(folder_lnls_sirius_csconstants, 'magnets', 'excitation-data')
+            _excitation_curves_dir = _os.path.join(_folder_lnls_sirius_csconstants, 'magnets', 'excitation-data')
             filename = _os.path.join(_excitation_curves_dir, fname)
             with open(filename, encoding='latin-1') as f:
                 lines = f.readlines()
