@@ -22,7 +22,7 @@ class App:
         _siriuspy.util.print_ioc_banner(
             ioc_name=section + ' Beam Charge',
             db=_pvs.get_ioc_database(),
-            description=section + 'beam charge soft IOC',
+            description=section + ' beam charge soft IOC',
             version=_pvs._VERSION,
             prefix=_pvs._PREFIX)
         _siriuspy.util.save_ioc_pv_list(
@@ -32,10 +32,11 @@ class App:
         self._driver = driver
         self._beam_charge = BeamCharge(
             charge=_pvs._INIT_CHARGE, nr_bunches=_pvs._NR_BUNCHES,
-            time_interval=_pvs._REV_PERIOD)
-        self._beam_charge.set_lifetimes(
-            elastic=_pvs._LT_ELASTIC, inelastic=_pvs._LT_INELASTIC,
-            quantum=_pvs._LT_QUANTUM, touschek=_pvs._TOUSCHEK_LIFETIME)
+            period=_pvs._REV_PERIOD,
+            lifetime_elastic=_pvs._LT_ELASTIC,
+            lifetime_inelastic=_pvs._LT_INELASTIC,
+            lifetime_quantum=_pvs._LT_QUANTUM,
+            lifetime_touschek_ref=_pvs._TOUSCHEK_LIFETIME)
 
         # Set object responsible for fake pvs
         self._fake_pvs = _pvs.fake_pvs
@@ -74,9 +75,9 @@ class App:
         return None
 
     def _update(self):
-        currents_BbB = self._beam_charge.current_BbB()
+        currents_BbB = self._beam_charge.current_BbB
         currents_mA = [bunch_current / _u.mA for bunch_current in currents_BbB]
-        current_mA = self._beam_charge.current() / _u.mA
+        current_mA = self._beam_charge.current / _u.mA
 
         for pv in _pvs._PVS:
             self._driver.setParam(pv + ':Current-Mon', current_mA)

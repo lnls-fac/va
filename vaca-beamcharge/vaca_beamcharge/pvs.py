@@ -13,7 +13,7 @@ _LT_ELASTIC = 20*60*60  # [s]
 _LT_INELASTIC = 30*60*60  # [s]
 _LT_QUANTUM = float('inf')  # [s]
 # _TOUSCHEK_COEFF = 36.31  # [1/(C*s)]
-_TOUSCHEK_LIFETIME = 1*60*60
+_TOUSCHEK_LIFETIME = 15*60*60
 _REV_PERIOD = 1.7e-6  # [s]
 _INIT_CURRENT = 300e-3  # [A]
 _INIT_CHARGE = _INIT_CURRENT*_REV_PERIOD
@@ -88,7 +88,7 @@ class FakePvs:
 
     def read(self, reason):
         """Read from beam charge object."""
-        if reason in self._readable_fake_pvs:
+        if self.is_fake(reason):
             return self._read_beam_charge(reason)
 
     def write(self, reason, value):
@@ -133,7 +133,8 @@ class FakePvs:
     def _read_beam_charge(self, reason):
         if self._beam_charge is not None:
             if reason == FakePvs.FakeCurrLTMon:
-                return float(self._beam_charge.lifetime_total)
+                return float(self._beam_charge.lifetime)
+        return None
 
     def _set_beam_charge(self, reason, value):
         if self._beam_charge is not None:
@@ -150,11 +151,11 @@ class FakePvs:
                 charge_list = [current*_REV_PERIOD for current in current_list]
                 self._beam_charge.inject(charge_list)
             elif reason == FakePvs.FakeElasticSP:
-                self._beam_charge.elastic_lifetime = value
+                self._beam_charge.lifetime_elastic = value
             elif reason == FakePvs.FakeInelasticSP:
-                self._beam_charge.inelastic_lifetime = value
+                self._beam_charge.lifetime_inelastic = value
             elif reason == FakePvs.FakeQuantumSP:
-                self._beam_charge.quantum_lifetime = value
+                self._beam_charge.lifetime_quantum = value
             elif reason == FakePvs.FakeToucheskSP:
-                self._beam_charge.touschek_lifetime = value
+                self._beam_charge.lifetime_touschek_ref = value
             self._driver.setParam(reason, value)
