@@ -5,116 +5,145 @@ import numpy
 
 
 class BeamCharge:
-    """Calculates charge drop."""
+    """Beam Charge Class.
 
-    def __init__(self, charge=0.0,
+    Simulates time-evolution of beam charge and currents given partial
+    lifetimes.
+
+    Attributes:
+        reference_current -- reference current for Touschek lifetime parameter.
+    """
+
+    reference_current = 300e-3  # [A]
+
+    def __init__(self,
+                 charge=0.0,
                  nr_bunches=1,
-                 time_interval=0.0,
-                 elastic_lifetime=float("inf"),
-                 inelastic_lifetime=float("inf"),
-                 quantum_lifetime=float("inf"),
-                 touschek_lifetime=float("inf")):
+                 period=0.0,
+                 lifetime_elastic=float("inf"),
+                 lifetime_inelastic=float("inf"),
+                 lifetime_quantum=float("inf"),
+                 lifetime_touschek_ref=float("inf")):
         """Set inital parameters."""
         # Convert args to lists, if not yet; get nr_bunches
         self._nr_bunches = nr_bunches
-        self._time_interval = time_interval
+        self._period = period
         self._charge = [charge/nr_bunches] * nr_bunches
-        self._elastic_lifetime = elastic_lifetime
-        self._inelastic_lifetime = inelastic_lifetime
-        self._quantum_lifetime = quantum_lifetime
-        self._touschek_lifetime = touschek_lifetime
+        self._lifetime_elastic = lifetime_elastic
+        self._lifetime_inelastic = lifetime_inelastic
+        self._lifetime_quantum = lifetime_quantum
+        self._lifetime_touschek_ref = lifetime_touschek_ref
         self._touschek_coefficient = \
-            self._conv_touschek_lifetime(self._touschek_lifetime)
+            self._calc_touschek_coeff(self._lifetime_touschek_ref)
         self._timestamp = time.time()
-        self._accumulated_value = 0.0
 
-    def get_lifetimes(self):
-        """Return lifetimes."""
-        return [self._elastic_lifetime, self._inelastic_lifetime,
-                self._quantum_lifetime, self._touschek_lifetime]
+    # --- properties ---
 
-    def set_lifetimes(self, elastic=None, inelastic=None, quantum=None,
-                      touschek=None):
-        """Set lifetime parameters."""
-        self.value  # updates values
-        if elastic is not None:
-            self._elastic_lifetime = elastic
-        if inelastic is not None:
-            self._inelastic_lifetime = inelastic
-        if quantum is not None:
-            self._quantum_lifetime = quantum
-        if touschek is not None:
-            self._touschek_lifetime = touschek
-            self._touschek_coefficient = \
-                self._conv_touschek_lifetime(self._touschek_lifetime)
+    @property
+    def period(self):
+        """Return time period."""
+        return self._period
 
     @property
     def nr_bunches(self):
-        """Number of bunche."""
+        """Number of bunches."""
         return self._nr_bunches
 
     @property
-    def elastic_lifetime(self):
+    def lifetime_elastic(self):
         """Elastic lifetime parameter."""
-        return self._elastic_lifetime
+        return self._lifetime_elastic
 
-    @elastic_lifetime.setter
-    def elastic_lifetime(self, value):
-        self._elastic_lifetime = value
+    @lifetime_elastic.setter
+    def lifetime_elastic(self, value):
+        """Set elastic lifetime parameter."""
+        self._update()
+        self._lifetime_elastic = value
 
     @property
-    def inelastic_lifetime(self):
+    def lifetime_inelastic(self):
         """Inelastic lifetime parameter."""
-        return self._inelastic_lifetime
+        return self._lifetime_inelastic
 
-    @inelastic_lifetime.setter
-    def inelastic_lifetime(self, value):
-        self._inelastic_lifetime = value
+    @lifetime_inelastic.setter
+    def lifetime_inelastic(self, value):
+        """Set inelastic lifetime parameter."""
+        self._update()
+        self._lifetime_inelastic = value
 
     @property
-    def quantum_lifetime(self):
+    def lifetime_quantum(self):
         """Quatum lifetime parameter."""
-        return self._quantum_lifetime
+        return self._lifetime_quantum
 
-    @quantum_lifetime.setter
-    def quantum_lifetime(self, value):
-        self._quantum_lifetime = value
+    @lifetime_quantum.setter
+    def lifetime_quantum(self, value):
+        """Set quantum lifetime parameter."""
+        self._update()
+        self._lifetime_quantum = value
 
     @property
-    def touschek_lifetime(self):
+    def lifetime_touschek_ref(self):
         """Touchesk lifetime parameter."""
-        return self._touschek_lifetime
+        return self._lifetime_touschek_ref
 
-    @touschek_lifetime.setter
-    def touschek_lifetime(self, value):
-        self._touschek_lifetime = value
-        self._touschek_coefficient = self._conv_touschek_lifetime(value)
+    @lifetime_touschek_ref.setter
+    def lifetime_touschek_ref(self, value):
+        """Set Touschek lifetime at reference current parameter."""
+        self._update()
+        self._lifetime_touschek_ref = value
+        self._touschek_coefficient = self._calc_touschek_coeff(value)
+
+    @property
+    def lifetime_touschek(self):
+        """Touchesk lifetime."""
+        current = self.current
+        if current == 0:
+            return float('inf')
+        else:
+            return self._lifetime_touschek_ref * \
+                   BeamCharge.reference_current / current
+
+    @property
+    def loss_rate_BbB(self):
+        """Calculate loss rate bunch-by-bunch."""
+        charge = self.charge_BbB  # updates values
+        current_loss_rate_BbB = [self._lifetime_elastic**(-1) +
+                                 self._lifetime_inelastic**(-1) +
+                                 self._lifetime_quantum**(-1) +
+                                 self._touschek_coefficient * charge
+                                 for charge in self._charge]
+        return current_loss_rate_BbB, charge
 
     @property
     def loss_rate(self):
-        """Calculate loss rate by bunch."""
-        charge = self.value_BbB  # updates values
-        current_loss_rate = [self._elastic_lifetime**(-1) +
-                             self._inelastic_lifetime**(-1) +
-                             self._quantum_lifetime**(-1) +
-                             self._touschek_coefficient * charge
-                             for charge in self._charge]
-        return current_loss_rate, charge
+        """Return beam loss rate."""
+        return 1.0/self.lifetime
+
+    @property
+    def loss_rate_charge(self):
+        """Return beam charge loss rate [C/s]."""
+        return self.charge/self.lifetime
+
+    @property
+    def loss_rate_current(self):
+        """Return beam charge loss rate [C/s]."""
+        return self.loss_rate_charge/self._period
 
     @property
     def lifetime_BbB(self):
         """Return lifetime by bunch."""
         # n = len(self.value_BbB)
-        current_loss_rate, *_ = self.loss_rate
-        b_lifetime = [float("inf") if bunch_loss_rate == 0.0
-                      else 1.0/bunch_loss_rate
-                      for bunch_loss_rate in current_loss_rate]
+        current_loss_rate_BbB, *_ = self.loss_rate_BbB
+        b_lifetime = [float("inf") if bunch_loss_rate_BbB == 0.0
+                      else 1.0/bunch_loss_rate_BbB
+                      for bunch_loss_rate_BbB in current_loss_rate_BbB]
         return b_lifetime
 
     @property
-    def lifetime_total(self):
+    def lifetime(self):
         """Return total lifetime."""
-        w, q = self.loss_rate
+        w, q = self.loss_rate_BbB
         q_total = sum(q)
         if q_total != 0.0:
             w_avg = sum([w[i]*q[i] for i in range(len(q))])/sum(q)
@@ -127,17 +156,62 @@ class BeamCharge:
         return tlt
 
     @property
-    def value_BbB(self):
-        """Retrun vector of charge by bunch."""
-        print(self._touschek_coefficient)
+    def charge_BbB(self):
+        """Return bunch-by-bunch charges."""
+        self._update()
+        return self._charge[:]
+
+    @property
+    def charge(self):
+        """Return total charge."""
+        current_charge = self.charge_BbB
+        return sum(current_charge)
+
+    @property
+    def current_BbB(self):
+        """Return current by bunch."""
+        charges = self.charge_BbB
+        currents = [bunch_charge/self._period
+                    for bunch_charge in charges]
+        return currents
+
+    @property
+    def current(self):
+        """Return sum of current in all bunches."""
+        currents = self.current_BbB
+        return sum(currents)
+
+    # --- public methods ---
+
+    def inject(self, delta_charge):
+        """Inject a delta charge to all bunches."""
+        current_charge = self.charge_BbB
+        total_nr_bunches = len(current_charge)
+        for i in range(len(delta_charge)):
+            idx = i % total_nr_bunches
+            self._charge[idx] += delta_charge[i]
+
+    def eject(self):
+        """Eject beam charge."""
+        ejected_charge = self.charge_BbB
+        self.dump()
+        return ejected_charge
+
+    def dump(self):
+        """Dump beam charge."""
+        self._charge = [0] * len(self._charge)
+        self._timestamp = time.time()
+
+    # --- private methods ---
+
+    def _update(self):
         single_particle_loss_rate = \
-            self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1)
+            self._lifetime_elastic**(-1) + self._lifetime_inelastic**(-1)
         if single_particle_loss_rate == 0:
             single_particle_lifetime = float('inf')
         else:
             single_particle_lifetime = 1.0 / single_particle_loss_rate
         # updates bunch charges
-        prev_total_value = sum(self._charge)
         t0, t1 = self._timestamp, time.time()
         expf = math.exp(-(t1-t0)/single_particle_lifetime)
         touf = numpy.multiply(
@@ -147,57 +221,11 @@ class BeamCharge:
         for i in range(len(self._charge)):
             if not math.isnan(new_value[i]):
                 self._charge[i] = new_value[i]
-        new_total_value = sum(self._charge)
-        self._accumulated_value = self._accumulated_value + \
-            math.fabs((new_total_value - prev_total_value))*(t1-t0)
         # updates timestamp
         self._timestamp = t1
-        return self._charge[:]
 
-    @property
-    def value(self):
-        """Return total charge."""
-        current_charge = self.value_BbB
-        return sum(current_charge)
-
-    def accumulated_charge(self):
-        """Accumulated charge."""
-        self.value_BbB
-        return (self._accumulated_value/self._time_interval)
-
-    def current_BbB(self):
-        """Return current by bunch."""
-        charges = self.value_BbB
-        currents = [bunch_charge/self._time_interval
-                    for bunch_charge in charges]
-        return currents
-
-    def current(self):
-        """Return sum of current in all bunches."""
-        currents = self.current_BbB()
-        return sum(currents)
-
-    def inject(self, delta_charge):
-        """Inject a delta charge to all bunches."""
-        current_charge = self.value_BbB
-        total_nr_bunches = len(current_charge)
-        for i in range(len(delta_charge)):
-            idx = i % total_nr_bunches
-            self._charge[idx] += delta_charge[i]
-
-    def eject(self):
-        """Eject."""
-        ejected_charge = self.value_BbB
-        self.dump()
-        return ejected_charge
-
-    def dump(self):
-        """Dump."""
-        self._charge = [0] * len(self._charge)
-        self._timestamp = time.time()
-
-    def _conv_touschek_lifetime(self, lifetime):
-        try:
-            return 1/(lifetime*300e-3*self._time_interval)
-        except ZeroDivisionError:
-            return float("inf")
+    def _calc_touschek_coeff(self, lifetime):
+        if lifetime * self._period == 0:
+            return float('inf')
+        else:
+            return 1.0/(lifetime*BeamCharge.reference_current*self._period)
