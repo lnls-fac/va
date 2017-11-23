@@ -37,6 +37,11 @@ class App:
             quantum=_pvs._LT_QUANTUM,
             touschek_coefficient=_pvs._TOUSCHEK_COEFF)
 
+        # Set object responsible for fake pvs
+        self._fake_pvs = _pvs.fake_pvs
+        self._fake_pvs.set_driver(self._driver)
+        self._fake_pvs.set_beam_charge(self._beam_charge)
+
     @staticmethod
     def init_class():
         """Init class."""
@@ -56,10 +61,16 @@ class App:
         if 'Version-Cte' in reason:
             self._update()
             return _pvs._VERSION
+
+        if self._fake_pvs.is_fake(reason):
+            return self._fake_pvs.read(reason)
+
         return None
 
     def write(self, reason, value):
         """Write value to reason."""
+        if self._fake_pvs.is_fake(reason):
+            self._fake_pvs.write(reason, value)
         return None
 
     def _update(self):
