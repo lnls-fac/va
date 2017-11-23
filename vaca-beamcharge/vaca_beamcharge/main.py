@@ -30,12 +30,12 @@ class App:
             (_pvs._PREFIX_SECTOR, _pvs._PREFIX_VACA), App.pvs_database)
 
         self._driver = driver
-        self._beam_charge = BeamCharge(charge=_pvs._INIT_CHARGE,
-                                       nr_bunches=_pvs._NR_BUNCHES)
+        self._beam_charge = BeamCharge(
+            charge=_pvs._INIT_CHARGE, nr_bunches=_pvs._NR_BUNCHES,
+            time_interval=_pvs._REV_PERIOD)
         self._beam_charge.set_lifetimes(
             elastic=_pvs._LT_ELASTIC, inelastic=_pvs._LT_INELASTIC,
-            quantum=_pvs._LT_QUANTUM,
-            touschek_coefficient=_pvs._TOUSCHEK_COEFF)
+            quantum=_pvs._LT_QUANTUM, touschek=_pvs._TOUSCHEK_LIFETIME)
 
         # Set object responsible for fake pvs
         self._fake_pvs = _pvs.fake_pvs
@@ -74,11 +74,9 @@ class App:
         return None
 
     def _update(self):
-        time_interval = _pvs._REV_PERIOD
-
-        currents_BbB = self._beam_charge.current_BbB(time_interval)
+        currents_BbB = self._beam_charge.current_BbB()
         currents_mA = [bunch_current / _u.mA for bunch_current in currents_BbB]
-        current_mA = self._beam_charge.current(time_interval) / _u.mA
+        current_mA = self._beam_charge.current() / _u.mA
 
         for pv in _pvs._PVS:
             self._driver.setParam(pv + ':Current-Mon', current_mA)

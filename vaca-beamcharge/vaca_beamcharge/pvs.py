@@ -12,7 +12,8 @@ _NR_BUNCHES = 864
 _LT_ELASTIC = 20*60*60  # [s]
 _LT_INELASTIC = 30*60*60  # [s]
 _LT_QUANTUM = float('inf')  # [s]
-_TOUSCHEK_COEFF = 36.31  # [1/(C*s)]
+# _TOUSCHEK_COEFF = 36.31  # [1/(C*s)]
+_TOUSCHEK_LIFETIME = 1*60*60
 _REV_PERIOD = 1.7e-6  # [s]
 _INIT_CURRENT = 300e-3  # [A]
 _INIT_CHARGE = _INIT_CURRENT*_REV_PERIOD
@@ -155,5 +156,5 @@ class FakePvs:
             elif reason == FakePvs.FakeQuantumSP:
                 self._beam_charge.quantum_lifetime = value
             elif reason == FakePvs.FakeToucheskSP:
-                self._beam_charge.touschek_coefficient = value
+                self._beam_charge.touschek_lifetime = value
             self._driver.setParam(reason, value)
