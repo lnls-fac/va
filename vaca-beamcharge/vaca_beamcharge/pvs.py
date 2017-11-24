@@ -7,6 +7,8 @@ _PREFIX = None
 
 _VERSION = '0.0.1'
 
+_CURRENT_FLUC_STD = 0.0
+
 # Must be parametrized to SI and BO
 _NR_BUNCHES = 864
 _LT_ELASTIC = 20*60*60  # [s]
@@ -41,7 +43,7 @@ def ioc_setting(section):
 def get_ioc_database():
     """Return DI database."""
     pv_database = {}
-    pv_database['Version-Cte'] = \
+    pv_database['Glob:AP-BABeamCharge:Version-Cte'] = \
         {'type': 'str', 'value': _VERSION, 'scan': 0.1}
 
     for pv in _PVS:
@@ -66,6 +68,7 @@ class FakePvs:
     FakeQuantumSP = "FakeLTQuantum-SP"
     FakeToucheskSP = "FakeLTTouschek-SP"
     FakeCurrLTMon = "FakeCurrLT-Mon"
+    FakeCurrFluctStd = "FakeCurrFluctStd-SP"
 
     def __init__(self):
         """Set fake pvs."""
@@ -126,6 +129,9 @@ class FakePvs:
         self._db[FakePvs.FakeQuantumSP] = {'type': 'float', 'value': 0.0}
         self._writable_fake_pvs.add(FakePvs.FakeToucheskSP)
         self._db[FakePvs.FakeToucheskSP] = {'type': 'float', 'value': 0.0}
+        self._writable_fake_pvs.add(FakePvs.FakeCurrFluctStd)
+        self._db[FakePvs.FakeCurrFluctStd] = {'type': 'float', 'value': 0.0}
+
         # Fake readbacks
         self._readable_fake_pvs.add(FakePvs.FakeCurrLTMon)
         self._db[FakePvs.FakeCurrLTMon] = {'type': 'float', 'value': 0.0}
@@ -158,4 +164,7 @@ class FakePvs:
                 self._beam_charge.lifetime_quantum = value
             elif reason == FakePvs.FakeToucheskSP:
                 self._beam_charge.lifetime_touschek_ref = value
+            elif reason == FakePvs.FakeCurrFluctStd:
+                global _CURRENT_FLUC_STD
+                _CURRENT_FLUC_STD = value
             self._driver.setParam(reason, value)

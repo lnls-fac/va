@@ -1,5 +1,7 @@
 """Definition of main application."""
 import time as _time
+import random as _random
+import math as _math
 
 import mathphys
 
@@ -75,11 +77,16 @@ class App:
         return None
 
     def _update(self):
+        # Fluctuation
+        bfluc = _random.gauss(
+            0, _pvs._CURRENT_FLUC_STD) / _math.sqrt(_pvs._NR_BUNCHES)
+
         currents_BbB = self._beam_charge.current_BbB
-        currents_mA = [bunch_current / _u.mA for bunch_current in currents_BbB]
-        current_mA = self._beam_charge.current / _u.mA
+        currents_mA = \
+            [bunch_current / _u.mA + bfluc for bunch_current in currents_BbB]
+        current_mA = sum(currents_mA)
 
         for pv in _pvs._PVS:
-            self._driver.setParam(pv + ':Current-Mon', current_mA)
             self._driver.setParam(pv + ':BbBCurrent-Mon', currents_mA)
+            self._driver.setParam(pv + ':Current-Mon', current_mA)
         self._driver.updatePVs()
