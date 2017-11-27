@@ -127,9 +127,9 @@ class PVFake:
             if reason == PVFake.FakeDeltaCurrentSP:
                 # Convert to charge and set
                 nr_bunches = self._beam_charge.nr_bunches
-                current_list = [value/nr_bunches] * nr_bunches
+                current_mA = [_u.mA*value/nr_bunches] * nr_bunches
                 charge_list = [current*_parameters._REV_PERIOD for
-                               current in current_list]
+                               current in current_mA]
                 self._beam_charge.inject(charge_list)
             elif reason == PVFake.FakeBbBDeltaCurrentSP:
                 # Convert to charge and set
