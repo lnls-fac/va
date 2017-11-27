@@ -62,7 +62,7 @@ def get_ioc_database():
         pv_database[pv + ':Current-Mon'] = \
             {'type': 'float', 'unit': 'mA', 'value': 0.0}
         pv_database[pv + ':BbBCurrent-Mon'] = \
-            {'type': 'float', 'count': _parameters._NR_BUNCHES}
+            {'type': 'float', 'unit': 'mA', 'count': _parameters._NR_BUNCHES}
 
     # Add fake pvs to db
     _PVFAKE.update_db(pv_database)

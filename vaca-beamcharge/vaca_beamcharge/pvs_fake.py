@@ -1,7 +1,7 @@
 """Fake PVs."""
 
 import vaca_beamcharge.parameters as _parameters
-
+import mathphys.units as _u
 
 _FAKE_PVS_PREFIX = 'Glob:AP-VABeamCharge:'
 _CURRENT_FLUC_STD = 0.0
@@ -78,29 +78,41 @@ class PVFake:
         # Fake setpoints
         self._writable_fake_pvs.add(PVFake.FakeDeltaCurrentSP)
         self._db[PVFake.FakeDeltaCurrentSP] = \
-            {'type': 'float', 'unit': 'C', 'value': 0.0}
+            {'type': 'float', 'unit': 'mA', 'value': 0.0}
         self._writable_fake_pvs.add(PVFake.FakeBbBDeltaCurrentSP)
         self._db[PVFake.FakeBbBDeltaCurrentSP] = {
-            'type': 'float', 'count': _parameters._NR_BUNCHES,
+            'type': 'float', 'unit': 'mA', 'count': _parameters._NR_BUNCHES,
             'value': [0.0 for _ in range(_parameters._NR_BUNCHES)]
         }
         self._writable_fake_pvs.add(PVFake.FakeLTElasticSP)
-        self._db[PVFake.FakeLTElasticSP] = {'type': 'float', 'value': 1.0}
+        self._db[PVFake.FakeLTElasticSP] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
         self._writable_fake_pvs.add(PVFake.FakeLTInelasticSP)
-        self._db[PVFake.FakeLTInelasticSP] = {'type': 'float', 'value': 2.0}
+        self._db[PVFake.FakeLTInelasticSP] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
         self._writable_fake_pvs.add(PVFake.FakeLTQuantumSP)
-        self._db[PVFake.FakeLTQuantumSP] = {'type': 'float', 'value': 3.0}
+        self._db[PVFake.FakeLTQuantumSP] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
         self._writable_fake_pvs.add(PVFake.FakeLTTouschekRefSP)
-        self._db[PVFake.FakeLTTouschekRefSP] = {'type': 'float', 'value': 4.0}
+        self._db[PVFake.FakeLTTouschekRefSP] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
         self._writable_fake_pvs.add(PVFake.FakeCurrentFluctStd)
-        self._db[PVFake.FakeCurrentFluctStd] = {'type': 'float', 'value': 0.0}
+        self._db[PVFake.FakeCurrentFluctStd] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
 
         # Fake readbacks
         self._readable_fake_pvs.add(PVFake.FakeLifetimeMon)
         self._readable_fake_pvs.add(PVFake.FakeBbBLifetimeMon)
-        self._db[PVFake.FakeLifetimeMon] = {'type': 'float', 'value': 0.0}
+        self._db[PVFake.FakeLifetimeMon] = {
+            'type': 'float', 'unit': 's', 'value': 0.0
+        }
         self._db[PVFake.FakeBbBLifetimeMon] = {
-            'type': 'float', 'count': _parameters._NR_BUNCHES,
+            'type': 'float', 'unit': 's', 'count': _parameters._NR_BUNCHES,
             'value': [0.0 for _ in range(_parameters._NR_BUNCHES)]
         }
 
@@ -136,6 +148,6 @@ class PVFake:
                 self._beam_charge.lifetime_touschek_ref = value
             elif reason == PVFake.FakeCurrentFluctStd:
                 global _CURRENT_FLUC_STD
-                _CURRENT_FLUC_STD = value
+                _CURRENT_FLUC_STD = value * _u.mA
             self._driver.setParam(reason, value)
             self._driver.updatePVs()
