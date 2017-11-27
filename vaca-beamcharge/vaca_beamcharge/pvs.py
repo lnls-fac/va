@@ -9,8 +9,6 @@ _PREFIX = None
 
 _VERSION = '0.0.1'
 
-_CURRENT_FLUC_STD = 0.0
-
 # Must be parametrized to SI and BO
 _LT_ELASTIC = None
 _LT_INELASTIC = None

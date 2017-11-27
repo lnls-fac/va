@@ -6,6 +6,7 @@ import math as _math
 import mathphys
 
 import vaca_beamcharge.pvs as _pvs
+import vaca_beamcharge.pvs_fake as _pvs_fake
 import vaca_beamcharge.parameters as _parameters
 from .beam_charge import BeamCharge
 import siriuspy as _siriuspy
@@ -81,7 +82,7 @@ class App:
     def _update(self):
         # Fluctuation
         bfluc = _random.gauss(
-            0, _pvs._CURRENT_FLUC_STD) / _math.sqrt(_parameters._NR_BUNCHES)
+            0, _pvs_fake._CURRENT_FLUC_STD) / _math.sqrt(_parameters._NR_BUNCHES)
 
         currents_BbB = self._beam_charge.current_BbB
         currents_mA = \

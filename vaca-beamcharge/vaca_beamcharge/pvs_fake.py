@@ -4,6 +4,7 @@ import vaca_beamcharge.parameters as _parameters
 
 
 _FAKE_PVS_PREFIX = 'Glob:AP-VABeamCharge:'
+_CURRENT_FLUC_STD = 0.0
 
 
 class PVFake:
