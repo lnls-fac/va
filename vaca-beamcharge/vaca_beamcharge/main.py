@@ -6,6 +6,7 @@ import math as _math
 import mathphys
 
 import vaca_beamcharge.pvs as _pvs
+import vaca_beamcharge.parameters as _parameters
 from .beam_charge import BeamCharge
 import siriuspy as _siriuspy
 
@@ -33,17 +34,18 @@ class App:
 
         self._driver = driver
         self._beam_charge = BeamCharge(
-            charge=_pvs._INIT_CHARGE, nr_bunches=_pvs._NR_BUNCHES,
-            period=_pvs._REV_PERIOD,
+            charge=_pvs._INIT_CHARGE,
+            nr_bunches=_parameters._NR_BUNCHES,
+            period=_parameters._REV_PERIOD,
             lifetime_elastic=_pvs._LT_ELASTIC,
             lifetime_inelastic=_pvs._LT_INELASTIC,
             lifetime_quantum=_pvs._LT_QUANTUM,
-            lifetime_touschek_ref=_pvs._TOUSCHEK_LIFETIME)
+            lifetime_touschek_ref=_pvs._LT_TOUSCHEK_REF)
 
         # Set object responsible for fake pvs
-        self._fake_pvs = _pvs.fake_pvs
-        self._fake_pvs.set_driver(self._driver)
-        self._fake_pvs.set_beam_charge(self._beam_charge)
+        self._PVFAKE = _pvs._PVFAKE
+        self._PVFAKE.set_driver(self._driver)
+        self._PVFAKE.set_beam_charge(self._beam_charge)
 
     @staticmethod
     def init_class():
@@ -65,21 +67,21 @@ class App:
             self._update()
             return _pvs._VERSION
 
-        if self._fake_pvs.is_fake(reason):
-            return self._fake_pvs.read(reason)
+        if self._PVFAKE.is_fake(reason):
+            return self._PVFAKE.read(reason)
 
         return None
 
     def write(self, reason, value):
         """Write value to reason."""
-        if self._fake_pvs.is_fake(reason):
-            self._fake_pvs.write(reason, value)
+        if self._PVFAKE.is_fake(reason):
+            self._PVFAKE.write(reason, value)
         return None
 
     def _update(self):
         # Fluctuation
         bfluc = _random.gauss(
-            0, _pvs._CURRENT_FLUC_STD) / _math.sqrt(_pvs._NR_BUNCHES)
+            0, _pvs._CURRENT_FLUC_STD) / _math.sqrt(_parameters._NR_BUNCHES)
 
         currents_BbB = self._beam_charge.current_BbB
         currents_mA = \
@@ -89,4 +91,10 @@ class App:
         for pv in _pvs._PVS:
             self._driver.setParam(pv + ':BbBCurrent-Mon', currents_mA)
             self._driver.setParam(pv + ':Current-Mon', current_mA)
+
+        lifetime = self._beam_charge.lifetime
+        # print(self._beam_charge)
+        lifetime_BbB = self._beam_charge.lifetime
+        self._driver.setParam(self._PVFAKE.FakeLifetimeMon, lifetime)
+        self._driver.setParam(self._PVFAKE.FakeBbBLifetimeMon, lifetime_BbB)
         self._driver.updatePVs()

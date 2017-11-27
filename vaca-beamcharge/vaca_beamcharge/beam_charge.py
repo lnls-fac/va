@@ -11,10 +11,11 @@ class BeamCharge:
     lifetimes.
 
     Attributes:
-        reference_current -- reference current for Touschek lifetime parameter.
+        reference_current -- bunch reference current for Touschek lifetime
+        parameter.
     """
 
-    reference_current = 300e-3  # [A]
+    reference_current = 1e-3  # bunch reference current [A]
 
     def __init__(self,
                  charge=0.0,
@@ -108,6 +109,7 @@ class BeamCharge:
     def loss_rate_BbB(self):
         """Calculate loss rate bunch-by-bunch."""
         charge = self.charge_BbB  # updates values
+
         current_loss_rate_BbB = [self._lifetime_elastic**(-1) +
                                  self._lifetime_inelastic**(-1) +
                                  self._lifetime_quantum**(-1) +
@@ -143,17 +145,17 @@ class BeamCharge:
     @property
     def lifetime(self):
         """Return total lifetime."""
-        w, q = self.loss_rate_BbB
-        q_total = sum(q)
-        if q_total != 0.0:
-            w_avg = sum([w[i]*q[i] for i in range(len(q))])/sum(q)
+        Ri, Qi = self.loss_rate_BbB
+        Q = sum(Qi)
+        if Q != 0.0:
+            R_avg = sum([Ri[i]*Qi[i] for i in range(len(Qi))]) / Q
         else:
-            w_avg = sum(w)/len(w)
-        if w_avg:
-            tlt = 1.0/w_avg
+            R_avg = sum(Ri)/len(Ri)
+        if R_avg:
+            lt = 1.0/R_avg
         else:
-            tlt = float('inf')
-        return tlt
+            lt = float('inf')
+        return lt
 
     @property
     def charge_BbB(self):
@@ -202,6 +204,19 @@ class BeamCharge:
         self._charge = [0] * len(self._charge)
         self._timestamp = time.time()
 
+    def __str__(self):
+
+        st = ''
+        st += 'charge          : {} [nC]\n'.format(self.charge/1e-9)
+        st += 'current         : {} [mA]\n'.format(self.current/1e-3)
+        st += 'elas LT         : {} [h]\n'.format(self.lifetime_elastic/3600)
+        st += 'inelas LT       : {} [h]\n'.format(self.lifetime_inelastic/3600)
+        st += 'quantum LT      : {} [h]\n'.format(self.lifetime_quantum/3600)
+        st += 'touschek ref LT : {} [h]\n'.format(self.lifetime_touschek_ref/3600)
+        st += 'touschek LT     : {} [h]\n'.format(self.lifetime_touschek/3600)
+        st += 'total LT        : {} [h]\n'.format(self.lifetime/3600)
+        return st
+
     # --- private methods ---
 
     def _update(self):
@@ -228,4 +243,6 @@ class BeamCharge:
         if lifetime * self._period == 0:
             return float('inf')
         else:
-            return 1.0/(lifetime*BeamCharge.reference_current*self._period)
+            total_ref_current = BeamCharge.reference_current
+            total_ref_charge = total_ref_current * self._period
+            return 1.0/(lifetime*total_ref_charge)
