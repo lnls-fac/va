@@ -54,7 +54,7 @@ def run(section):
 
     # check if IOC is already running
     pvname = _pvs._PREFIX + next(iter(_main.App.pvs_database.keys()))
-    running = _util.check_running_ioc(
+    running = _util.check_pv_online(
         pvname=pvname, use_prefix=False, timeout=0.5)
     if running:
         print('Another ' + section + ' -beamcharge IOC is already running!')
