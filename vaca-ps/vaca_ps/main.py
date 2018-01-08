@@ -1,6 +1,6 @@
 """Main application."""
 
-import as_ps_test.pvs as _pvs
+import vaca_ps.pvs as _pvs
 import time as _time
 import siriuspy as _siriuspy
 

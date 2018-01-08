@@ -3,7 +3,7 @@
 import pcaspy as _pcaspy
 import pcaspy.tools as _pcaspy_tools
 import signal as _signal
-import as_ps_test.main as _main
+import vaca_ps.main as _main
 import siriuspy.util as _util
 import sys as _sys
 

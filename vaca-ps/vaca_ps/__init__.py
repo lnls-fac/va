@@ -1,3 +1,3 @@
-"""AS_PS_TEST package."""
+"""VACA_PS package."""
 
-__all__ = ('as_ps_test', 'pvs', 'main')
+__all__ = ('vaca_ps', 'pvs', 'main')
