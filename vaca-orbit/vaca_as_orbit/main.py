@@ -29,7 +29,6 @@ class App(_Callback):
         self._acc = acc
         self._const = _csorb.get_consts(acc)
         self._driver = None
-        self._database = self.get_database()
         self._queue = _Queue()
         self._queue.start()
 
@@ -53,6 +52,7 @@ class App(_Callback):
                 ioc_callback=self._schedule_update,
                 trig_callback=self._timing_trigger)
         self.add_callback(self._schedule_update)
+        self._database = self.get_database()
 
     @property
     def acc(self):
