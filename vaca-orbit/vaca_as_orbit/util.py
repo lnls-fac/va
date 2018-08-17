@@ -199,7 +199,7 @@ class Timing(_Callback):
         super().__init__()
         self._acc = acc
         self._evt = 'Orb' + acc.upper()
-        self._trigger = acc.upper() + '-Glob:TI-Corrs'
+        self._trigger = acc.upper() + '-Glob:TI-Corrs:'
         srcs = _HLTimeSearch.get_hl_trigger_sources(self._trigger)
         self._trig_src_idx = srcs.index(self._evt)
         self.add_callback(ioc_callback)
