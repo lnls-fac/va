@@ -26,6 +26,7 @@ class App(_Callback):
 
     def __init__(self, acc, callback=None):
         """Initialize Object."""
+        super().__init__(callback=callback)
         self._acc = acc
         self._const = _csorb.get_consts(acc)
         self._driver = None

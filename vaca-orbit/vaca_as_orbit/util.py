@@ -28,6 +28,7 @@ class RFCtrl(_Callback):
         return {self._name+':'+k: v for k, v in db.items()}
 
     def __init__(self, idx, ioc_callback=None, orb_callback=None):
+        super().__init__()
         self._name = _csorb.RF_GEN_NAME
         self._idx = idx
         self._sp = 0
@@ -102,6 +103,7 @@ class CHCV(_Callback):
         return {self._name+':'+k: v for k, v in db.items()}
 
     def __init__(self, idx, corr_name, ioc_callback=None, orb_callback=None):
+        super().__init__()
         self._name = corr_name
         self._idx = idx
         self._sp = 0
@@ -194,6 +196,7 @@ class Timing(_Callback):
         return db
 
     def __init__(self, acc, ioc_callback, trig_callback):
+        super().__init__()
         self._acc = acc
         self._evt = 'Orb' + acc.upper()
         self._trigger = acc.upper() + '-Glob:TI-Corrs'
