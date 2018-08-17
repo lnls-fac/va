@@ -33,7 +33,7 @@ class RFCtrl(_Callback):
         self._idx = idx
         self._sp = 0
         self._rb = 0
-        self._pwrstt = _PwrSplyConst.PwrSate.Off
+        self._pwrstt = _PwrSplyConst.PwrState.Off
         self.add_callback(ioc_callback)
         self.add_callback(orb_callback)
 
@@ -109,7 +109,7 @@ class CHCV(_Callback):
         self._sp = 0
         self._rb = 0
         self._ref = 0
-        self._pwrstt = _PwrSplyConst.PwrSate.Off
+        self._pwrstt = _PwrSplyConst.PwrState.Off
         self._opmode = _PwrSplyConst.OpMode.SlowRef
         self.add_callback(ioc_callback)
         self.add_callback(orb_callback)
