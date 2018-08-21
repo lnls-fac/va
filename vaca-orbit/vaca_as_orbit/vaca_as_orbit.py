@@ -58,33 +58,30 @@ def run(acc='SI', debug=False):
     app = _App(acc=acc)
     _log.info('Generating database file.')
     db = app.get_database()
-    db.update({'Version-Cte': {'type': 'string', 'value': __version__}})
     PREFIX = acc.upper() + '-Glob:VA-Orbit:'
+    db.update({PREFIX+'Version-Cte': {'type': 'string', 'value': __version__}})
     _util.save_ioc_pv_list(
                         ioc_name=acc.lower() + '-va-orbit',
-                        prefix=(PREFIX, _vaca_prefix), db=db)
-
+                        prefix=('', _vaca_prefix), db=db)
+    _util.print_ioc_banner('vaca-orbit', db, 'vaca-orbit', '0.2', _vaca_prefix)
     # create a new simple pcaspy server and driver to respond client's requests
     _log.info('Creating Server.')
     server = _pcaspy.SimpleServer()
     _log.info('Setting Server Database.')
     _attribute_access_security_group(server, db)
-    server.createPV(PREFIX, db)
+    server.createPV(_vaca_prefix, db)
     _log.info('Creating Driver.')
-    pcas_driver = _PCASDriver(app)
-
-    # Connects to low level PVs
-    _log.info('Openning connections with Low Level IOCs.')
-    app.connect()
+    _PCASDriver(app)
 
     # initiate a new thread responsible for listening for client connections
     server_thread = _pcaspy_tools.ServerThread(server)
     _log.info('Starting Server Thread.')
+    server_thread.setDaemon(True)
     server_thread.start()
 
     # main loop
     while not stop_event:
-        pcas_driver.app.update_status()
+        app.process()
 
     _log.info('Stoping Server Thread...')
     # sends stop signal to server thread

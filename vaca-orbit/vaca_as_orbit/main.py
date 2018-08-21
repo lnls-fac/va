@@ -3,6 +3,7 @@
 import time as _time
 import numpy as _np
 import logging as _log
+from copy import deepcopy as _dcopy
 from pcaspy import Driver as _PCasDriver
 import siriuspy.csdevice.orbitcorr as _csorb
 from siriuspy.thread import QueueThread as _Queue
@@ -18,6 +19,11 @@ class App(_Callback):
     def get_database(self):
         """Get the database of the class."""
         db = dict()
+        for i, b in enumerate(self._bpm_pv_names):
+            db[b] = {
+                'type': 'float', 'prec': 2, 'unit': 'nm',
+                'value': self.orbit[i]}
+
         for c in self._chcvs:
             db.update(c.get_database())
         db.update(self._rf_ctrl.get_database())
@@ -37,15 +43,17 @@ class App(_Callback):
         self.matrix = _np.random.rand(
                             2*self._const.NR_BPMS, self._const.NR_CORRS)
 
-        self._names = self._const.CH_NAMES + self._const.CV_NAMES
-        self._chcvs = len(self._names)*[0]
-        for i, dev in enumerate(self._names):
+        self._bpm_pv_names = [b+':PosX-Mon' for b in self._const.BPM_NAMES]
+        self._bpm_pv_names += [b+':PosY-Mon' for b in self._const.BPM_NAMES]
+        self._cr_names = self._const.CH_NAMES + self._const.CV_NAMES
+        self._chcvs = len(self._cr_names)*[0]
+        for i, dev in enumerate(self._cr_names):
             self._chcvs[i] = _CHCV(
-                dev, i,
+                i, dev,
                 ioc_callback=self._schedule_update,
                 orb_callback=self._update_orbit)
         self._rf_ctrl = _RFCtrl(
-                len(self._names),
+                len(self._cr_names),
                 ioc_callback=self._schedule_update,
                 orb_callback=self._update_orbit)
         self._timing = _Timing(
@@ -101,9 +109,8 @@ class App(_Callback):
         self._queue.add_callback(self._update_driver, pvname, value, **kwargs)
 
     def _update_driver(self, pvname, value, **kwargs):
-        reason = self._prefix + pvname
-        self._driver.setParam(reason, value)
-        self._driver.updatePV(reason)
+        self._driver.setParam(pvname, value)
+        self._driver.updatePV(pvname)
 
     def _isValid(self, reason, value):
         if reason.endswith(('-Sts', '-RB', '-Mon')):
@@ -123,7 +130,9 @@ class App(_Callback):
         return True
 
     def _update_orbit(self, corrs_idx, corrs_deltas, **kw):
-        self._orbit += _np.dot(self._matrix[:, corrs_idx], corrs_deltas)
+        self.orbit += _np.dot(self.matrix[:, corrs_idx], corrs_deltas)
+        for i, b in enumerate(self._bpm_pv_names):
+            self._schedule_update(b, self.orbit[i])
 
     def _timing_trigger(self, **kw):
         for c in self._chcvs:

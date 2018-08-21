@@ -5,7 +5,6 @@ import siriuspy.csdevice.orbitcorr as _csorb
 import siriuspy.csdevice.timesys as _cstime
 from siriuspy.search.hl_time_search import HLTimeSearch as _HLTimeSearch
 from siriuspy.csdevice.pwrsupply import Const as _PwrSplyConst
-from siriuspy.envars import vaca_prefix as LL_PREF
 from siriuspy.callbacks import Callback as _Callback
 
 TIMEOUT = 0.05
@@ -183,7 +182,7 @@ class Timing(_Callback):
         db['Mode-Sel'][prop] = self.set_mode
         db['ExtTrig-Cmd'][prop] = self.set_trigger
 
-        pref_name = LL_PREF + _csorb.EVG_NAME + ':' + self._evt
+        pref_name = _csorb.EVG_NAME + ':' + self._evt
         db = {pref_name+k: v for k, v in db.items()}
 
         db2 = _cstime.get_hl_trigger_database(self._trigger)
