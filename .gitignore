@@ -3,6 +3,7 @@
 *.o
 tags
 *.log
+*.vscode
 pid.txt
 
 build/
