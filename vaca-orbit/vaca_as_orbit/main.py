@@ -3,10 +3,9 @@
 import time as _time
 import numpy as _np
 import logging as _log
-from copy import deepcopy as _dcopy
 from pcaspy import Driver as _PCasDriver
 import siriuspy.csdevice.orbitcorr as _csorb
-from siriuspy.thread import QueueThread as _Queue
+from siriuspy.csdevice.pwrsupply import Const as _PwrSplyConst
 from .util import CHCV as _CHCV, RFCtrl as _RFCtrl, Timing as _Timing
 from siriuspy.callbacks import Callback as _Callback
 
@@ -33,11 +32,10 @@ class App(_Callback):
     def __init__(self, acc, callback=None):
         """Initialize Object."""
         super().__init__(callback=callback)
+        self.add_callback(self._schedule_update)
         self._acc = acc
         self._const = _csorb.get_consts(acc)
         self._driver = None
-        self._queue = _Queue()
-        self._queue.start()
 
         self.orbit = _np.random.normal(0, 2e6, 2*self._const.NR_BPMS)
         self.matrix = _np.random.rand(
@@ -53,14 +51,13 @@ class App(_Callback):
                 ioc_callback=self._schedule_update,
                 orb_callback=self._update_orbit)
         self._rf_ctrl = _RFCtrl(
-                len(self._cr_names),
-                ioc_callback=self._schedule_update,
-                orb_callback=self._update_orbit)
+            len(self._cr_names),
+            ioc_callback=self._schedule_update,
+            orb_callback=self._update_orbit)
         self._timing = _Timing(
-                acc,
-                ioc_callback=self._schedule_update,
-                trig_callback=self._timing_trigger)
-        self.add_callback(self._schedule_update)
+            acc,
+            ioc_callback=self._schedule_update,
+            trig_callback=self._timing_trigger)
         self._database = self.get_database()
 
     @property
@@ -94,6 +91,7 @@ class App(_Callback):
             _log.warning('Unsuccessful write of PV ' +
                          '{0:s}; value = {1:s}.'.format(reason, str(value)))
         self._schedule_update(reason, value)
+        return True
 
     def process(self):
         """Run continuously in the main thread."""
@@ -106,11 +104,12 @@ class App(_Callback):
             _log.debug('App: check took {0:f}ms.'.format((tf-t0)*1000))
 
     def _schedule_update(self, pvname, value, **kwargs):
-        self._queue.add_callback(self._update_driver, pvname, value, **kwargs)
-
-    def _update_driver(self, pvname, value, **kwargs):
-        self._driver.setParam(pvname, value)
-        self._driver.updatePV(pvname)
+        if not isinstance(pvname, (list, tuple)):
+            pvname = [pvname, ]
+            value = [value, ]
+        for i, name in enumerate(pvname):
+            self._driver.setParam(name, value[i])
+            self._driver.updatePV(name)
 
     def _isValid(self, reason, value):
         if reason.endswith(('-Sts', '-RB', '-Mon')):
@@ -131,9 +130,17 @@ class App(_Callback):
 
     def _update_orbit(self, corrs_idx, corrs_deltas, **kw):
         self.orbit += _np.dot(self.matrix[:, corrs_idx], corrs_deltas)
-        for i, b in enumerate(self._bpm_pv_names):
-            self._schedule_update(b, self.orbit[i])
+        self._schedule_update(self._bpm_pv_names, self.orbit)
 
     def _timing_trigger(self, **kw):
-        for c in self._chcvs:
+        t0 = _time.time()
+        delta = []
+        indcs = []
+        for i, c in enumerate(self._chcvs):
+            if not c.opmode == _PwrSplyConst.OpMode.SlowRefSync:
+                continue
+            indcs.append(i)
+            ini_ref = c.value
             c.timing_trigger()
+            delta.append(c.value - ini_ref)
+        self._update_orbit(indcs, delta)

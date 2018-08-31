@@ -1,6 +1,7 @@
 """Module to deal with correctors."""
 
 from functools import partial as _part
+from threading import Thread as _Thread
 import siriuspy.csdevice.orbitcorr as _csorb
 import siriuspy.csdevice.timesys as _cstime
 from siriuspy.search.hl_time_search import HLTimeSearch as _HLTimeSearch
@@ -36,23 +37,16 @@ class RFCtrl(_Callback):
         self.add_callback(ioc_callback)
         self.add_callback(orb_callback)
 
-    def _kickApplied(self):
-        self._isReady()
-        self._applied = self._ready
-
-    def _isTurnedOn(self):
-        self._state = self._pwrstt_sts.value == 1  # TODO: database of RF GEN
-
     @property
     def value(self):
-        return self._ref
+        return self._rb
 
     @value.setter
     def value(self, value):
         delta = value - self._rb
         self._sp = value
         self._rb = value
-        self.run_callback(0, self._name+':Current-RB', value)
+        self.run_callback(0, self._name+':Freq-RB', value)
         self.run_callback(1, self._idx, delta)
 
     @property
@@ -123,7 +117,7 @@ class CHCV(_Callback):
         self._rb = value
         self.run_callback(0, self._name+':Current-RB', value)
         if self._opmode == _PwrSplyConst.OpMode.SlowRef:
-            self.set_ref()
+            self.set_ref(True)
 
     @property
     def opmode(self):
@@ -145,17 +139,18 @@ class CHCV(_Callback):
         if self._pwrstt == _PwrSplyConst.PwrState.Off:
             self.value = 0.0
             self.run_callback(0, self._name+':Current-SP', 0.0)
-            self.set_ref()
+            self.set_ref(True)
 
-    def set_ref(self):
+    def set_ref(self, call_cb1=False):
         delta = self._sp - self._ref
         self._ref = self._sp
         self.run_callback(0, self._name+':CurrentRef-Mon', self._ref)
-        self.run_callback(1, self._idx, delta)
+        if call_cb1:
+            self.run_callback(1, self._idx, delta)
 
     def timing_trigger(self):
         if self._opmode == _PwrSplyConst.OpMode.SlowRefSync:
-            self.set_ref()
+            self.set_ref(False)
 
     def set_curr(self, value):
         if self._pwrstt == _PwrSplyConst.PwrState.Off:
@@ -208,11 +203,13 @@ class Timing(_Callback):
         pr = '_' + prop.split('-')[0].lower()
         setattr(self, pr, value)
         pr = prop.replace('-Sel', '-Sts').replace('-SP', '-RB')
-        self.run_callback(0, pr, value)
+        self.run_callback(0, self._trigger+pr, value)
         return True
 
     def set_mode(self, value):
         self._evt_mode = value
+        self.run_callback(
+            0, _csorb.EVG_NAME+':'+self._evt+'Mode-Sts', value)
         return True
 
     def set_trigger(self, value):
