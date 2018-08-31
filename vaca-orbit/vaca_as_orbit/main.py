@@ -133,7 +133,6 @@ class App(_Callback):
         self._schedule_update(self._bpm_pv_names, self.orbit)
 
     def _timing_trigger(self, **kw):
-        t0 = _time.time()
         delta = []
         indcs = []
         for i, c in enumerate(self._chcvs):

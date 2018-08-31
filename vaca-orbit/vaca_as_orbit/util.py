@@ -1,7 +1,6 @@
 """Module to deal with correctors."""
 
 from functools import partial as _part
-from threading import Thread as _Thread
 import siriuspy.csdevice.orbitcorr as _csorb
 import siriuspy.csdevice.timesys as _cstime
 from siriuspy.search.hl_time_search import HLTimeSearch as _HLTimeSearch
