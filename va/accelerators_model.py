@@ -4,6 +4,7 @@ import enum
 import math
 import time
 import numpy
+import lnls
 import mathphys
 import pyaccel
 from siriuspy.csdevice.enumtypes import EnumTypes as _et
@@ -325,7 +326,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         data = self._all_pvs[parts.dev_name]
         indices = []
         for key in data.keys():
-            idx = mathphys.utils.flatten(data[key]) if flat else data[key]
+            idx = lnls.utils.flatten(data[key]) if flat else data[key]
             indices.extend(idx)
         return indices
 
