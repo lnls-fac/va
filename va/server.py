@@ -7,7 +7,6 @@ from va import driver
 from va import area_structure
 from va import sirius_area_structures
 from va import utils
-import siriuspy.util as _util
 
 
 WAIT_TIMEOUT = 0.1
@@ -33,7 +32,9 @@ def run(prefix, only_orbit=False, print_pvs=True):
     pv_names = get_pv_names(area_structures)
     utils.print_banner(prefix, **pv_names)
     if print_pvs:
-        _util.save_ioc_pv_list('as-vaca', ('',prefix), pv_database)
+        print(pv_names)
+        pass
+        # _util.save_ioc_pv_list('as-vaca', ('',prefix), pv_database)
 
     server = pcaspy.SimpleServer()
     server.createPV(prefix, pv_database)
@@ -70,8 +71,8 @@ def get_area_structures():
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
         sirius_area_structures.BoModel,
-        sirius_area_structures.TsModel,
-        sirius_area_structures.SiModel,
+        # sirius_area_structures.TsModel,
+        # sirius_area_structures.SiModel,
     )
 
     return area_structures

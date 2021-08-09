@@ -26,24 +26,24 @@ _excitation_curves_mapping = (
     (('QF',)   , ('si-quadrupole-q20-fam.txt',1)),
     (('CH',)   , ('ts-corrector-ch.txt',1)),
     (('CV',)   , ('ts-corrector-cv.txt',1)),
-    (('EjeSF',), ('ts-ejeseptum-thin.txt',1)),
-    (('EjeSG',), ('ts-ejeseptum-thick.txt',1)),
-    (('InjSG',), ('ts-injseptum-thick.txt',1)),
-    (('InjSF',), ('ts-injseptum-thin.txt',1)),
+    (('EjeSeptF',), ('ts-ejeseptum-thin.txt',1)),
+    (('EjeSeptG',), ('ts-ejeseptum-thick.txt',1)),
+    (('InjSeptG',), ('ts-injseptum-thick.txt',1)),
+    (('InjSeptF',), ('ts-injseptum-thin.txt',1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'InjSF':'ts-septum-injs.txt', # INJECTION SEPTUM
-    'InjSG':'ts-septum-injs.txt', # INJECTION SEPTUM
-    'EjeSF':'ts-septum-ejes.txt',
-    'EjeSG':'ts-septum-ejes.txt',
+    'InjSeptF':'ts-septum-injs.txt', # INJECTION SEPTUM
+    'InjSeptG':'ts-septum-injs.txt', # INJECTION SEPTUM
+    'EjeSeptF':'ts-septum-ejes.txt',
+    'EjeSeptG':'ts-septum-ejes.txt',
 }
 
 device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
-accelerator,_ = model.create_accelerator()
+accelerator, *_ = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 # build record names
 record_names = RecordNames(device_names, model, family_data)

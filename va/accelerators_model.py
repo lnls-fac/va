@@ -1,12 +1,10 @@
 
-import os
 import enum
-import math
-import time
 import numpy
 import mathphys
 import pyaccel
-from siriuspy.csdevice.enumtypes import EnumTypes as _et
+# from siriuspy.csdevice.enumtypes import EnumTypes as _et
+from siriuspy.csdev import Const as _Const
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
 from va import area_structure
 from va import magnet
@@ -57,33 +55,33 @@ class AcceleratorModel(area_structure.AreaStructure):
         return value
 
     def _get_pv_dynamic(self, pv_name, parts):
-        if parts.discipline == 'DI' and parts.propty == 'BbBCurrent-Mon':
+        if parts.dis == 'DI' and parts.propty == 'BbBCurrent-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
-        elif parts.discipline == 'DI' and parts.propty == 'Current-Mon':
+        elif parts.dis == 'DI' and parts.propty == 'Current-Mon':
             time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
-        elif parts.discipline == 'AP' and parts.propty == 'BbBCurrLT-Mon':
+        elif parts.dis == 'AP' and parts.propty == 'BbBCurrLT-Mon':
             return [lifetime for lifetime in self._beam_charge.lifetime]
             # return [lifetime / _u.hour for lifetime in self._beam_charge.lifetime]
-        elif parts.discipline == 'AP' and parts.propty == 'CurrLT-Mon':
+        elif parts.dis == 'AP' and parts.propty == 'CurrLT-Mon':
             return self._beam_charge.total_lifetime
             # return self._beam_charge.total_lifetime / _u.hour
         else:
             return None
 
     def _get_pv_static(self, pv_name, parts):
-        if parts.discipline in ('PS','PU'):
-            if parts.discipline == 'PS': dev = self._power_supplies[parts.dev_name]
-            elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
+        if parts.dis in ('PS','PU'):
+            if parts.dis == 'PS': dev = self._power_supplies[parts.device_name]
+            elif parts.dis == 'PU': dev = self._pulsed_power_supplies[parts.device_name]
             value = dev.get_pv(pv_name, parts)
             if value is not None: return value
-        elif parts.discipline == 'DI':
-            if parts.dev_type == 'BPM':
+        elif parts.dis == 'DI':
+            if parts.dev == 'BPM':
                 idx = self._get_elements_indices(pv_name)
                 if parts.propty == 'PosX-Mon':
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
@@ -92,17 +90,19 @@ class AcceleratorModel(area_structure.AreaStructure):
                     if self._orbit is None: return [UNDEF_VALUE]*len(idx)
                     return orbit_unit*self._orbit[2,idx]
                 return None
+            elif parts.dev in ('SlitH', 'SlitV'):
+                return 0.0
             elif parts.propty == 'HwFlt-Mon':
                 try:
-                    dcct = self._dcct[parts.dev_name]
+                    dcct = self._dcct[parts.device_name]
                 except:
-                    dcct = self._dcct[parts.dev_name] = {'HwFlt':0, 'CurrThold':0.0}
+                    dcct = self._dcct[parts.device_name] = {'HwFlt':0, 'CurrThold':0.0}
                 return dcct['HwFlt']
             elif parts.propty == 'CurrThold':
                 try:
-                    dcct = self._dcct[parts.dev_name]
+                    dcct = self._dcct[parts.device_name]
                 except:
-                    dcct = self._dcct[parts.dev_name] = {'HwFlt':0, 'CurrThold':0.0}
+                    dcct = self._dcct[parts.device_name] = {'HwFlt':0, 'CurrThold':0.0}
                 return dcct['CurrThold']
             elif parts.propty == 'Freq1-Mon':
                 return self._get_tune_component(Plane.horizontal)
@@ -111,14 +111,14 @@ class AcceleratorModel(area_structure.AreaStructure):
             elif parts.propty == 'Freq3-Mon':
                 return self._get_tune_component(Plane.longitudinal)
             return None
-        elif parts.discipline == 'RF':
+        elif parts.dis == 'RF':
             if parts.propty in ('Freq-SP','Freq-RB'):
                 return pyaccel.optics.get_rf_frequency(self._accelerator)
             elif parts.propty in ('Volt-SP', 'Volt-RB'):
                 idx = self._get_elements_indices(pv_name)
                 return self._accelerator[idx[0]].voltage
             return None
-        elif parts.discipline == 'AP':
+        elif parts.dis == 'AP':
             return UNDEF_VALUE
             if 'Chrom' in pv_name:
                 return UNDEF_VALUE
@@ -129,8 +129,8 @@ class AcceleratorModel(area_structure.AreaStructure):
             elif 'BeamSz' in pv_name:
                 return UNDEF_VALUE
             return None
-        elif parts.discipline == 'MO':
-            if parts.dev_type == 'Lattice':
+        elif parts.dis == 'MO':
+            if parts.dev == 'Lattice':
                 if part.propty == 'BPMPos-Cte':
                     indices = self._get_elements_indices('BPM', flat=False)
                     if isinstance(indices[0], int):
@@ -144,7 +144,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         return None
 
     def _get_pv_fake(self, pv_name, parts):
-        if parts.discipline != 'FK': return None
+        if parts.dis != 'FK': return None
         if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name)
             error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -173,7 +173,7 @@ class AcceleratorModel(area_structure.AreaStructure):
             return None
 
     def _get_pv_timing(self, pv_name, parts):
-        if parts.discipline == 'TI':
+        if parts.dis == 'TI':
             if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].enabled
@@ -186,20 +186,20 @@ class AcceleratorModel(area_structure.AreaStructure):
             return None
 
     def _get_pv_not_implemented(self, pv_name, parts):
-        if parts.section == 'LI':
-            if parts.dev_type.startswith(('AccStr','ICT','Bun','Scrn','SHB')):
+        if parts.sec == 'LI':
+            if parts.dev.startswith(('AccStr','ICT','Bun','Scrn','SHB')):
                 return 1
             if pv_name.endswith('-Cmd'):
                 return 1
-        if parts.section == 'BO':
-            if parts.dev_type.startswith(('GSL','STDMOE','TuneS','Scrn',)):
+        if parts.sec == 'BO':
+            if parts.dev.startswith(('GSL','STDMOE','TuneS','Scrn',)):
                 return 1
-        if parts.section == 'SI':
-            if parts.dev_type.startswith(('BPME','GSL','BbBP','HBbBS','VBbBS','VTuneS',
+        if parts.sec == 'SI':
+            if parts.dev.startswith(('BPME','GSL','BbBP','HBbBS','VBbBS','VTuneS',
                                   'HTuneS','HScrap','VScrap')):
                 return 1
-        elif parts.section.startswith('T'):
-            if parts.dev_type.startswith(('ICT','FCT','Scrn','HSlit','VSlit')):
+        elif parts.sec.startswith('T'):
+            if parts.dev.startswith(('ICT','FCT','Scrn','HSlit','VSlit')):
                 return 1
 
 
@@ -214,19 +214,19 @@ class AcceleratorModel(area_structure.AreaStructure):
         if self._set_pv_timing(pv_name, value, parts): return
 
     def _set_pv_di(self, pv_name, value, parts):
-        if parts.discipline == 'DI':
+        if parts.dis == 'DI':
             if parts.propty == 'CurrThold':
-                prev_value = self._dcct[parts.dev_name]['CurrThold']
+                prev_value = self._dcct[parts.device_name]['CurrThold']
                 if value != prev_value:
                     if value < 0:
                         self._others_queue['driver'].put(('s', (pv_name, prev_value)))
                     else:
-                        self._dcct[parts.dev_name]['CurrThold'] = value
+                        self._dcct[parts.device_name]['CurrThold'] = value
                     return True
         return False
 
     def _set_pv_rf(self, pv_name, value, parts):
-        if not parts.discipline == 'RF': return None
+        if not parts.dis == 'RF': return None
         if parts.propty == 'Volt-SP':
             idx = self._get_elements_indices(pv_name)
             prev_value = self._accelerator[idx[0]].voltage
@@ -246,9 +246,9 @@ class AcceleratorModel(area_structure.AreaStructure):
         return False
 
     def _set_pv_magnets(self, pv_name, value, parts):
-        if parts.discipline in ('PS','PU'):
-            if parts.discipline == 'PS':   dev = self._power_supplies[parts.dev_name]
-            elif parts.discipline == 'PU': dev = self._pulsed_power_supplies[parts.dev_name]
+        if parts.dis in ('PS','PU'):
+            if parts.dis == 'PS':   dev = self._power_supplies[parts.device_name]
+            elif parts.dis == 'PU': dev = self._pulsed_power_supplies[parts.device_name]
             deprecated_pvs = dev.set_pv(pv_name, value, parts)
             if deprecated_pvs:
                 for pvname,value in deprecated_pvs.items():
@@ -258,7 +258,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         return False
 
     def _set_pv_fake(self, pv_name, value, parts):
-        if parts.discipline != 'FK': return None
+        if parts.dis != 'FK': return None
         if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name) # vector with indices of corrector segments
             prev_errorx = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
@@ -288,7 +288,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         return None
 
     def _set_pv_timing(self, pv_name, value, parts):
-        if not parts.discipline == 'TI': return False
+        if not parts.dis == 'TI': return False
         if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
             magnet_name = self._enabled2magnet[pv_name]
             self._pulsed_magnets[magnet_name].enabled = value
@@ -322,18 +322,21 @@ class AcceleratorModel(area_structure.AreaStructure):
     def _get_elements_indices(self, pv_name, flat=True):
         """Get flattened indices of element in the model"""
         parts = _SiriusPVName(pv_name)
-        data = self._all_pvs[parts.dev_name]
+        data = self._all_pvs[parts.device_name]
         indices = []
         for key in data.keys():
-            idx = mathphys.utils.flatten(data[key]) if flat else data[key]
+            if flat:
+                idx = numpy.array(data[key]).flatten()
+            else:
+                idx = data[key]
             indices.extend(idx)
         return indices
 
     def _set_vacuum_chamber(self):
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator._accelerator.lattice, 'vmax'))
+        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'hmin'))
+        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'hmax'))
+        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'vmin'))
+        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'vmax'))
 
     def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
         _dict = {}
@@ -422,7 +425,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                     magnets.add(self._magnets[magnet_name])
             if self.device_names.pvnaming_fam in psname:
                 ps = power_supply.FamilyPowerSupply(magnets, model=self, psname=psname)
-                ps.pwrstate_sel = _et.idx.On
+                ps.pwrstate_sel = _Const.OffOn.On
                 self._power_supplies[psname] = ps
 
         # It is necessary to initalise all family power supplies before
@@ -434,11 +437,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             if not self.device_names.pvnaming_fam in psname:
                 if 'PU' in psname:
                     ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, psname=psname)
-                    ps.pwrstate_sel = _et.idx.On
+                    ps.pwrstate_sel = _Const.OffOn.On
                     self._pulsed_power_supplies[psname] = ps
                 else:
                     ps = power_supply.IndividualPowerSupply(magnets, model=self, psname=psname)
-                    ps.pwrstate_sel = _et.idx.On
+                    ps.pwrstate_sel = _Const.OffOn.On
                     self._power_supplies[psname] = ps
 
     def _get_sorted_pulsed_magnets(self):
@@ -468,7 +471,7 @@ class LinacModel(AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_fake(self, pv_name, parts):
-        if parts.discipline == 'FK' and 'Mode' in pv_name:
+        if parts.dis == 'FK' and 'Mode' in pv_name:
             return self._single_bunch_mode
         return super()._get_pv_fake(pv_name, parts)
 
@@ -477,8 +480,8 @@ class LinacModel(AcceleratorModel):
         value = super()._get_pv_timing(pv_name, parts)
         if value is not None: return value
 
-        if not parts.discipline == 'TI': return None
-        if parts.dev_type == 'EGun':
+        if not parts.dis == 'TI': return None
+        if parts.dev == 'EGun':
             if parts.propty == 'Enbl': return self._egun_enabled
             elif parts.propty =='Delay':
                 if not hasattr(self, '_egun_delay'):
@@ -491,7 +494,7 @@ class LinacModel(AcceleratorModel):
     # --- methods implementing response of model to set requests
 
     def _set_pv_fake(self, pv_name, value, parts):
-        if parts.discipline == 'FK' and 'Mode' in pv_name:
+        if parts.dis == 'FK' and 'Mode' in pv_name:
             self._single_bunch_mode = value
             return True
         return super()._set_pv_fake(pv_name, value, parts)
@@ -500,8 +503,8 @@ class LinacModel(AcceleratorModel):
     def _set_pv_timing(self, pv_name, value, parts):
         if super()._set_pv_timing(pv_name, value, parts): return
 
-        if not parts.discipline == 'TI': return False
-        if parts.dev_type == 'EGun':
+        if not parts.dis == 'TI': return False
+        if parts.dev == 'EGun':
             if parts.propty == 'Enbl': self._egun_enabled = value
             elif parts.propty == 'Delay': self._egun_delay = value
             else: return False
@@ -518,7 +521,7 @@ class LinacModel(AcceleratorModel):
             self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator,_ = self.model_module.create_accelerator()
+        self._accelerator, *_ = self.model_module.create_accelerator()
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
         self._all_pvs = self.device_names.get_device_names(self._accelerator)
@@ -631,7 +634,7 @@ class TLineModel(AcceleratorModel):
             self._state_changed = True
 
     def _reset(self, message1='reset', message2='', c='white', a=None):
-        self._accelerator,_ = self.model_module.create_accelerator()
+        self._accelerator, *_ = self.model_module.create_accelerator()
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         self._append_marker()
         self._all_pvs = self.device_names.get_device_names(self._accelerator)
@@ -756,7 +759,7 @@ class BoosterModel(AcceleratorModel):
         value = super()._get_pv_timing(pv_name, parts)
         if value is not None: return value
 
-        if parts.discipline == 'TI':
+        if parts.dis == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 return self._rampps_enabled
             elif 'RampPS:Delay' in pv_name:
@@ -771,7 +774,7 @@ class BoosterModel(AcceleratorModel):
     def _set_pv_timing(self, pv_name, value, parts):
         if super()._set_pv_timing(pv_name, value, parts): return
 
-        if parts.discipline == 'TI':
+        if parts.dis == 'TI':
             if 'RampPS:Enbl' in pv_name:
                 self._rampps_enabled = value
                 return True
@@ -1002,7 +1005,7 @@ class BoosterModel(AcceleratorModel):
 
         # turn on injection pulsed magnet
         for psname, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in psname and ps.enabled: ps.pwrstate_sel = 1
+            if 'InjKckr' in psname and ps.enabled: ps.pwrstate_sel = 1
 
         # calc tracking efficiency
         _dict = self._injection_parameters
@@ -1013,7 +1016,7 @@ class BoosterModel(AcceleratorModel):
 
         # turn off injection pulsed magnet
         for psname, ps in self._pulsed_power_supplies.items():
-            if 'InjK' in psname: ps.pwrstate_sel = 0
+            if 'InjKckr' in psname: ps.pwrstate_sel = 0
 
     def _calc_ejection_efficiency(self):
         if self.simulate_only_orbit: return
@@ -1074,7 +1077,7 @@ class BoosterModel(AcceleratorModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'InjK' in magnet_name:
+            if 'InjKckr' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time
@@ -1136,7 +1139,7 @@ class StorageRingModel(AcceleratorModel):
     # --- methods implementing response of model to get requests
 
     def _get_pv_static(self, pv_name, parts):
-        if parts.discipline == 'DI' and parts.dev_type == 'BPM':
+        if parts.dis == 'DI' and parts.dev == 'BPM':
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if parts.propty == 'PosX-Mon':

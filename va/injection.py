@@ -161,17 +161,16 @@ def _process_loss_fraction_args(accelerator, **kwargs):
 
     init_twiss.co = fixed_point
 
-    lattice = accelerator._accelerator.lattice
     if 'hmax' in kwargs and 'hmin' in kwargs:
         hmax = kwargs['hmax']
         hmin = kwargs['hmin']
     else:
-        hmax, hmin = numpy.array([(lattice[i].hmax,lattice[i].hmin) for i in range(len(accelerator))]).transpose()
+        hmax, hmin = numpy.array([(accelerator[i].hmax, accelerator[i].hmin) for i in range(len(accelerator))]).transpose()
     if 'vmax' in kwargs and 'vmin' in kwargs:
         vmax = kwargs['vmax']
         vmin = kwargs['vmin']
     else:
-        vmax, vmin = numpy.array([(lattice[i].vmax,lattice[i].vmin) for i in range(len(accelerator))]).transpose()
+        vmax, vmin = numpy.array([(accelerator[i].vmax, accelerator[i].vmin) for i in range(len(accelerator))]).transpose()
     return init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin
 
 

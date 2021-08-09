@@ -3,6 +3,9 @@ from siriuspy.envars import vaca_prefix as _vaca_prefix
 import vaca_beamcharge.pvs_fake as _pvs_fake
 import vaca_beamcharge.parameters as _parameters
 
+if _vaca_prefix == '':
+    _vaca_Prefix = 'VA-'
+
 _PREFIX_VACA = _vaca_prefix
 _PREFIX_SECTOR = None
 _PREFIX = None

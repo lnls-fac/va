@@ -1,6 +1,6 @@
 """Definition of all Sirius Area Structures."""
 
-from siriuspy.timesys.time_simul import TimingSimulation
+# from siriuspy.timesys_orig.time_simul import TimingSimulation
 from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
 from va.pvs import As as _pvs_As
@@ -8,7 +8,7 @@ from va.pvs import li as _pvs_li
 from va.pvs import tb as _pvs_tb
 from va.pvs import bo as _pvs_bo
 from va.pvs import ts as _pvs_ts
-from va.pvs import si as _pvs_si
+# from va.pvs import si as _pvs_si
 from va import accelerators_model
 from va import area_structure
 
@@ -28,7 +28,7 @@ class ASModel(area_structure.AreaStructure):
     def __init__(self, **kwargs):
         """Initialize the instance."""
         super().__init__(**kwargs)
-        self._init_timing_devices()
+        # self._init_timing_devices()
         self._init_sp_pv_values()
 
     def _init_timing_devices(self):
@@ -41,13 +41,13 @@ class ASModel(area_structure.AreaStructure):
 
     def _get_pv(self, pv_name):
         parts = _PVName(pv_name)
-        if parts.discipline == 'TI':
+        if parts.dis == 'TI':
             return self._timing.get_propty(pv_name)
         return None
 
     def _set_pv(self, pv_name, value):
         parts = _PVName(pv_name)
-        if parts.discipline == 'TI':
+        if parts.dis == 'TI':
             return self._timing.set_propty(pv_name, value)
         else:
             return False
@@ -136,8 +136,8 @@ class BoModel(accelerators_model.BoosterModel):
     _global_coupling = model_module.accelerator_data['global_coupling']
     _pressure_profile = model_module.accelerator_data['pressure_profile']
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
-    _injection_point_label = 'InjS'
-    _extraction_point_label = 'EjeSF'
+    _injection_point_label = 'InjSept'
+    _extraction_point_label = 'EjeSeptF'
     _ramp_interval = 0.23
 
 
@@ -156,18 +156,18 @@ class TsModel(accelerators_model.TLineModel):
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
 
 
-class SiModel(accelerators_model.StorageRingModel):
-    """Definition of SI area structure."""
+# class SiModel(accelerators_model.StorageRingModel):
+#     """Definition of SI area structure."""
 
-    pv_module = _pvs_si
-    model_module = pv_module.model
-    device_names = pv_module.device_names
-    prefix = device_names.section.upper()
-    database = pv_module.get_database()
+#     pv_module = _pvs_si
+#     model_module = pv_module.model
+#     device_names = pv_module.device_names
+#     prefix = device_names.section.upper()
+#     database = pv_module.get_database()
 
-    # Injection parameters
-    nr_bunches = model_module.harmonic_number
-    _global_coupling = model_module.accelerator_data['global_coupling']
-    _pressure_profile = model_module.accelerator_data['pressure_profile']
-    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
-    _injection_point_label = 'InjSF'
+#     # Injection parameters
+#     nr_bunches = model_module.harmonic_number
+#     _global_coupling = model_module.accelerator_data['global_coupling']
+#     _pressure_profile = model_module.accelerator_data['pressure_profile']
+#     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
+#     _injection_point_label = 'InjSF'

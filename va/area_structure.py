@@ -1,6 +1,5 @@
 import uuid as _uuid
 import multiprocessing
-import time
 from va import utils
 import traceback
 import sys
@@ -40,8 +39,7 @@ class AreaStructureProcess(multiprocessing.Process):
             if pr == self.area_structure_prefix: continue
             self.others_queue[pr] = q
 
-
-    def start_and_run_area_structure(self,area_structure, interval, stop_event, finalisation, **kwargs):
+    def start_and_run_area_structure(self, area_structure, interval, stop_event, finalisation, **kwargs):
         """Start periodic processing of area_structure
 
         Keyword arguments:
@@ -133,7 +131,8 @@ class AreaStructure:
         utils.log('exit', 'area_structure ' + self.prefix)
 
     def _send_parameters_to_other_area_structure(self, prefix, _dict):
-        self._others_queue[prefix].put(('p', _dict))
+        if prefix in self._others_queue:
+            self._others_queue[prefix].put(('p', _dict))
 
     def _get_parameters_from_other_area_structure(self, _dict):
         if 'pulsed_magnet_parameters' in _dict.keys():

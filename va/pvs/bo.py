@@ -7,9 +7,9 @@ _el_names = { # All these Family names must be defined in family_data dictionary
     'RF': model.families.families_rf(),
     'MA': ['B','QD','QF','SD','SF','QS','CH','CV'],
     'PS': ['QS','CH','CV'],
-    'PM': ['InjK','EjeK'],
-    'PU': ['InjK','EjeK'],
-    'TI': ['InjK','EjeK'],
+    'PM': ['InjKckr','EjeKckr'],
+    'PU': ['InjKckr','EjeKckr'],
+    'TI': ['InjKckr','EjeKckr'],
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
     'PS': ['B-1','B-2','QD','QF','SD','SF'],
@@ -30,13 +30,13 @@ _excitation_curves_mapping = (
     (('SD',)   , ('bo-sextupole-sd-fam.txt',1)),
     (('CH',)   , ('bo-corrector-ch.txt',1)),
     (('CV',)   , ('bo-corrector-cv.txt',1)),
-    (('InjK',) , ('bo-injkicker.txt',1)),
-    (('EjeK',) , ('bo-ejekicker.txt',1)),
+    (('InjKckr',) , ('bo-injkicker.txt',1)),
+    (('EjeKckr',) , ('bo-ejekicker.txt',1)),
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'EjeK':'bo-kicker-ejek.txt',
-    'InjK':'bo-kicker-injk.txt',
+    'EjeKckr':'bo-kicker-ejek.txt',
+    'InjKckr':'bo-kicker-injk.txt',
 }
 
 device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,

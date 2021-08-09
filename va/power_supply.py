@@ -1,7 +1,7 @@
 
 import math as _math
 import numpy as _np
-from siriuspy.pwrsupply.model import PowerSupply as _PowerSupply
+from siriuspy.pwrsupply.simul.model import PowerSupply as _PowerSupply
 
 
 # These classes extend the base class PowerSupply in siriuspy
@@ -19,6 +19,7 @@ class PowerSupply(_PowerSupply):
         for m in magnets:
             m.add_power_supply(self)
 
+        self._propty_db = self.propty_database
         self.propties = {
             'Current-SP': 'current_sp',
             'Current-RB': 'current_rb',
@@ -49,8 +50,11 @@ class PowerSupply(_PowerSupply):
             m.process()
 
     def get_pv(self, pv_name, parts):
-        if not parts.propty in self.propties.keys():  return None
-        return getattr(self, self.propties[parts.propty])
+        if parts.propty in self.propties.keys():
+            return getattr(self, self.propties[parts.propty])
+        if parts.propty in self._propty_db:
+            return self._propty_db[parts.propty]['value']
+        return None
 
     def set_pv(self, pv_name, value, parts):
         propty = parts.propty
