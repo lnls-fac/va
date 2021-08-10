@@ -397,6 +397,7 @@ class RecordNames:
     def _init_ti_record_names(self):
         self.ti_ro = []
         self.ti_rw = []
+        print('NOTE: delete return in init_ti_record_names')
         return
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
