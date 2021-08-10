@@ -21,9 +21,14 @@ _inj_names = dict()
 ##### Excitation Curves #######
 _excitation_curves_mapping = (
     (('B',)    , ('ts-dipole-b-fam.txt',1)),
-    (('QF1',)  , ('si-quadrupole-q14-fam.txt',-1)),
-    (('QD',)   , ('si-quadrupole-q14-fam.txt',1)),
-    (('QF',)   , ('si-quadrupole-q20-fam.txt',1)),
+    (('QD2',)  , ('ts-quadrupole-q14-qd.txt',1)),
+    (('QD4A',) , ('ts-quadrupole-q14-qd.txt',1)),
+    (('QD4B',) , ('ts-quadrupole-q14-qd.txt',1)),
+    (('QF1A',) , ('ts-quadrupole-q14-qf.txt',1)),
+    (('QF1B',) , ('ts-quadrupole-q14-qf.txt',1)),
+    (('QF2',)  , ('ts-quadrupole-q20-qf.txt',1)),
+    (('QF3',)  , ('ts-quadrupole-q20-qf.txt',1)),
+    (('QF4',)  , ('ts-quadrupole-q20-qf.txt',1)),
     (('CH',)   , ('ts-corrector-ch.txt',1)),
     (('CV',)   , ('ts-corrector-cv.txt',1)),
     (('EjeSeptF',), ('ts-ejeseptum-thin.txt',1)),

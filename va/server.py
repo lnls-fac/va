@@ -32,8 +32,9 @@ def run(prefix, only_orbit=False, print_pvs=True):
     pv_names = get_pv_names(area_structures)
     utils.print_banner(prefix, **pv_names)
     if print_pvs:
-        print(pv_names)
-        pass
+        for sec, pvs in pv_names.items():
+            with open('{}.txt'.format(sec), 'w') as fp:
+                fp.write('\n'.join(pvs))
         # _util.save_ioc_pv_list('as-vaca', ('',prefix), pv_database)
 
     server = pcaspy.SimpleServer()
@@ -71,8 +72,8 @@ def get_area_structures():
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
         sirius_area_structures.BoModel,
-        # sirius_area_structures.TsModel,
-        # sirius_area_structures.SiModel,
+        sirius_area_structures.TsModel,
+        sirius_area_structures.SiModel,
     )
 
     return area_structures

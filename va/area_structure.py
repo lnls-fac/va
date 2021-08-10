@@ -61,7 +61,7 @@ class AreaStructureProcess(multiprocessing.Process):
             traceback.print_exception(*exc_info)
             del exc_info
             print('-----------------')
-            utils.log('error', str(ex), 'red')
+            utils.log('error2', str(ex), 'red')
             stop_event.set()
         finally:
             As.close_others_queues()

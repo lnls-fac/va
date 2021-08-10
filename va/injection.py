@@ -36,6 +36,10 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     emity = emittance * coupling / (1 + coupling)
     sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
     sigmay = numpy.sqrt(betay * emity + (etax * energy_spread)**2)
+    hmax[hmax>1e100] = 1e100
+    hmin[hmin<-1e100] = -1e100
+    vmax[vmax>1e100] = 1e100
+    vmin[vmin<-1e100] = -1e100
     h_vc = hmax - hmin
     v_vc = vmax - vmin
     co = twiss.co

@@ -3,7 +3,6 @@ import enum
 import numpy
 import mathphys
 import pyaccel
-# from siriuspy.csdevice.enumtypes import EnumTypes as _et
 from siriuspy.csdev import Const as _Const
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
 from va import area_structure
@@ -84,10 +83,12 @@ class AcceleratorModel(area_structure.AreaStructure):
             if parts.dev == 'BPM':
                 idx = self._get_elements_indices(pv_name)
                 if parts.propty == 'PosX-Mon':
-                    if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                    # if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                    if self._orbit is None: return UNDEF_VALUE
                     return orbit_unit*self._orbit[0,idx]
                 elif parts.propty == 'PosY-Mon':
-                    if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                    # if self._orbit is None: return [UNDEF_VALUE]*len(idx)
+                    if self._orbit is None: return UNDEF_VALUE
                     return orbit_unit*self._orbit[2,idx]
                 return None
             elif parts.dev in ('SlitH', 'SlitV'):
@@ -203,7 +204,7 @@ class AcceleratorModel(area_structure.AreaStructure):
                 return 1
 
 
-  # --- methods implementing response of model to set requests
+    # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
         parts = _SiriusPVName(pv_name)
@@ -302,7 +303,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         else:
             return False
 
-   # --- auxiliary methods
+    # --- auxiliary methods
 
     def _beam_inject(self, charge=None):
         if charge is None: return
@@ -372,7 +373,6 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._magnets = dict()
         self._pulsed_magnets = dict()
         for magnet_name in magnet_names.keys():
-
             excitation_curve, polarity = excit_curv_polarity_map[magnet_name]
             family, indices = magnet_names[magnet_name].popitem()
             indices = indices[0]
@@ -590,7 +590,7 @@ class LinacModel(AcceleratorModel):
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        pv_name = self.device_names.join_name('TI','EGun','01',proper='Delay')
+        pv_name = self.device_names.join_name('01','TI','EGun','1',proper='Delay')
         self._others_queue['driver'].put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self, **kwargs):
@@ -709,6 +709,7 @@ class TLineModel(AcceleratorModel):
         if self._injection_parameters is None: return
         self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
         _dict = {}
+
         _dict.update(self._injection_parameters)
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
@@ -802,7 +803,7 @@ class BoosterModel(AcceleratorModel):
         self._calc_efficiencies()
 
     def _calc_efficiencies(self):
-        if self._summary is None:
+        if self._lifetime is None:
             self._update_injection_efficiency = False
             self._update_ejection_efficiency  = False
             return
@@ -852,7 +853,6 @@ class BoosterModel(AcceleratorModel):
         self._state_deprecated = True
         self._update_state()
 
-
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
@@ -862,7 +862,7 @@ class BoosterModel(AcceleratorModel):
         self._m66 = None
         self._tunes = None
         self._transfer_matrices = None
-        self._summary = None
+        self._lifetime = None
         # self._received_charge = False
         self._injection_efficiency = None
         self._ejection_efficiency  = None
@@ -949,7 +949,7 @@ class BoosterModel(AcceleratorModel):
         # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-            self._tunes = pyaccel.optics.get_frac_tunes(m66=self._m66)
+            self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
@@ -962,33 +962,40 @@ class BoosterModel(AcceleratorModel):
         if self._m66 is None: return
         try:
             self._log('calc', 'equilibrium parameters for '+self.model_module.lattice_version)
-            self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
-                                         accelerator=self._accelerator,
-                                         twiss=self._twiss,
-                                         m66=self._m66,
-                                         closed_orbit=self._orbit)
+            # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
+            #                              accelerator=self._accelerator,
+            #                              twiss=self._twiss,
+            #                              m1turn=self._m66,
+            #                              closed_orbit=self._orbit)
+            self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
     def _calc_lifetimes(self):
-        if self._summary is None or self._beam_charge is None: return
+        if self._lifetime is None or self._beam_charge is None: return
 
         self._log('calc', 'beam lifetimes for '+self.model_module.lattice_version)
 
-        Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
-        coupling = self._global_coupling
-        pressure_profile = self._pressure_profile
+        # Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
+        # coupling = self._global_coupling
+        # pressure_profile = self._pressure_profile
 
-        e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
-                                           Ne1C, coupling, pressure_profile, self._twiss, self._summary)
-        self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
-                                        quantum=q_lifetime, touschek_coefficient=t_coeff)
+        # e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
+        #                                    Ne1C, coupling, pressure_profile, self._twiss, self._summary)
+        # self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
+        #                                 quantum=q_lifetime, touschek_coefficient=t_coeff)
+
+        lf = self._lifetime
+        lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
+        lft = float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
+        self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
+                                        quantum=lfq, touschek_coefficient=lft)
 
     def _get_equilibrium_at_maximum_energy(self):
         eq = dict()
         # Fix this function!!!
-        eq['emittance']       = self._summary['natural_emittance']
-        eq['energy_spread']   = self._summary['natural_energy_spread']
+        eq['emittance']       = self._lifetime.emit0
+        eq['energy_spread']   = self._lifetime.espread0
         eq['global_coupling'] = self._global_coupling
         return eq
 
@@ -1096,7 +1103,7 @@ class BoosterModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        if self._summary is None and not self.simulate_only_orbit:
+        if self._lifetime is None and not self.simulate_only_orbit:
             self._log(message1='cycle', message2='beam injection in {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             self._log(message1='cycle', message2='beam ejection from {0:s}: {1:.2f}% efficiency'.format(self.prefix, 0))
             return
@@ -1212,7 +1219,7 @@ class StorageRingModel(AcceleratorModel):
         self._m66 = None
         self._tunes = None
         self._transfer_matrices = None
-        self._summary = None
+        self._lifetime = None
         self._injection_efficiency = None
         # self._received_charge = False
 
@@ -1288,7 +1295,7 @@ class StorageRingModel(AcceleratorModel):
         # Optics
             self._log('calc', 'linear optics for '+self.model_module.lattice_version)
             self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-            self._tunes = pyaccel.optics.get_frac_tunes(m66=self._m66)
+            self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
         # Beam is lost
         except numpy.linalg.linalg.LinAlgError:
             self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
@@ -1303,27 +1310,32 @@ class StorageRingModel(AcceleratorModel):
         if self._m66 is None: return
         try:
             self._log('calc', 'equilibrium parameters for '+self.model_module.lattice_version)
-            self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
-                                         accelerator=self._accelerator,
-                                         twiss=self._twiss,
-                                         m66=self._m66,
-                                         closed_orbit=self._orbit)
+            # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
+            #                              accelerator=self._accelerator,
+            #                              twiss=self._twiss,
+            #                              m66=self._m66,
+            #                              closed_orbit=self._orbit)
+            self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
 
     def _calc_lifetimes(self):
-        if self._summary is None or self._beam_charge is None: return
+        if self._lifetime is None or self._beam_charge is None: return
 
         self._log('calc', 'beam lifetimes for '+self.model_module.lattice_version)
+        # Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
+        # coupling = self._global_coupling
+        # pressure_profile = self._pressure_profile
 
-        Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
-        coupling = self._global_coupling
-        pressure_profile = self._pressure_profile
-
-        e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
-                                           Ne1C, coupling, pressure_profile, self._twiss, self._summary)
-        self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
-                                        quantum=q_lifetime, touschek_coefficient=t_coeff)
+        # e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
+        #                                    Ne1C, coupling, pressure_profile, self._twiss, self._summary)
+        # self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
+        #                                 quantum=q_lifetime, touschek_coefficient=t_coeff)
+        lf = self._lifetime
+        lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
+        lft = float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
+        self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
+                                        quantum=lfq, touschek_coefficient=lft)
 
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return

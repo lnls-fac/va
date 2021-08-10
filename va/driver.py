@@ -48,7 +48,8 @@ class DriverThread(threading.Thread):
                 utils.process_and_wait_interval(self._driver.process,
                                                 self._interval)
         except Exception as ex:
-            utils.log('error', str(ex), 'red')
+            utils.log('error1', str(ex), 'red')
+            raise
             self.stop_event.set()
         finally:
             self._driver.close_others_queues()
@@ -105,7 +106,7 @@ class PCASDriver(Driver):
         elif cmd == 'sp':  # initialise setpoints
             self._set_sp_parameters_in_memory(data)
         elif cmd == 'a':  # anomalous condition signed by area_structure
-            utils.log('!error', data, c='red')
+            utils.log('!error3', data, c='red')
             self._stop_event.set()
         elif cmd == 'i':
             self._initialisation_sign_received(data)
@@ -114,7 +115,11 @@ class PCASDriver(Driver):
 
     def _set_parameter_in_memory(self, data):
         pv_name, value = data
-        self.setParam(pv_name, value)
+        try:
+            self.setParam(pv_name, value)
+        except:
+            print('error in setParam: ', pv_name, value)
+            raise
 
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
