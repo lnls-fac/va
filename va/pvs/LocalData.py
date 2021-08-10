@@ -397,18 +397,17 @@ class RecordNames:
     def _init_ti_record_names(self):
         self.ti_ro = []
         self.ti_rw = []
-        print('NOTE: delete return in init_ti_record_names')
-        return
         _device_names = self.device_names.get_device_names(self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
             parts = _PVName(device_name)
             if parts.dev == 'Timing':
-                ioc = TimingSimulation
-                db = ioc.get_database()
-                self.database.update(db)
-                devs = _device_names[device_name]
-                _record_names.update({p:devs for p in db.keys()})
+                print('NOTE: implement "Timing" dev in init_ti_record_names!')
+                # ioc = TimingSimulation
+                # db = ioc.get_database()
+                # self.database.update(db)
+                # devs = _device_names[device_name]
+                # _record_names.update({p:devs for p in db.keys()})
             else:
                 p = device_name + ':Enbl'
                 _record_names[p] = _device_names[device_name]
