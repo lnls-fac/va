@@ -50,7 +50,9 @@ class AcceleratorModel(area_structure.AreaStructure):
         if value is None:
             value = self._get_pv_not_implemented(pv_name, parts)
         if value is None:
-            raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
+            utils.log('warn', str('response to ' + pv_name + ' not implemented in model get_pv'), 'cyan')
+            value = 0
+            # raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
 
     def _get_pv_dynamic(self, pv_name, parts):
@@ -132,7 +134,7 @@ class AcceleratorModel(area_structure.AreaStructure):
             return None
         elif parts.dis == 'MO':
             if parts.dev == 'Lattice':
-                if part.propty == 'BPMPos-Cte':
+                if parts.propty == 'BPMPos-Cte':
                     indices = self._get_elements_indices('BPM', flat=False)
                     if isinstance(indices[0], int):
                         pos = pyaccel.lattice.find_spos(self._accelerator, indices)
@@ -175,10 +177,10 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _get_pv_timing(self, pv_name, parts):
         if parts.dis == 'TI':
-            if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
+            if parts.propty in ('Enbl-SP', 'Enbl-RB') and pv_name in self._enabled2magnet.keys():
                 magnet_name = self._enabled2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].enabled
-            elif parts.propty == 'Delay' and pv_name in self._delay2magnet.keys():
+            elif parts.propty in ('Delay-SP', 'Delay-RB') and pv_name in self._delay2magnet.keys():
                 magnet_name = self._delay2magnet[pv_name]
                 return self._pulsed_magnets[magnet_name].delay
             else:
@@ -203,16 +205,26 @@ class AcceleratorModel(area_structure.AreaStructure):
             if parts.dev.startswith(('ICT','FCT','Scrn','HSlit','VSlit')):
                 return 1
 
-
     # --- methods implementing response of model to set requests
 
     def _set_pv(self, pv_name, value):
         parts = _SiriusPVName(pv_name)
+        if self._set_pv_vaca(pv_name, value, parts): return
         if self._set_pv_magnets(pv_name, value, parts): return
         if self._set_pv_di(pv_name, value, parts): return
         if self._set_pv_rf(pv_name, value, parts): return
         if self._set_pv_fake(pv_name, value, parts): return
         if self._set_pv_timing(pv_name, value, parts): return
+
+    def _set_pv_vaca(self, pv_name, value, parts):
+        if parts.dis == 'VA':
+            if parts.propty == 'BeamCurrentAdd-SP':
+                time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+                nr_bunches = self._beam_charge.nr_bunches
+                charge_delta = _u.mA * (value/nr_bunches) * time_interval * numpy.ones(nr_bunches)
+                self._beam_inject(charge=charge_delta)
+            elif parts.propty == 'BeamCurrentDump-Cmd':
+                self._beam_eject()
 
     def _set_pv_di(self, pv_name, value, parts):
         if parts.dis == 'DI':
@@ -290,12 +302,12 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _set_pv_timing(self, pv_name, value, parts):
         if not parts.dis == 'TI': return False
-        if parts.propty == 'Enbl' and pv_name in self._enabled2magnet.keys():
+        if parts.propty == 'Enbl-SP' and pv_name in self._enabled2magnet.keys():
             magnet_name = self._enabled2magnet[pv_name]
             self._pulsed_magnets[magnet_name].enabled = value
             self._state_deprecated = True
             return True
-        elif parts.propty == 'Delay' and pv_name in self._delay2magnet.keys():
+        elif parts.propty == 'Delay-SP' and pv_name in self._delay2magnet.keys():
             magnet_name = self._delay2magnet[pv_name]
             self._pulsed_magnets[magnet_name].delay = value
             self._state_deprecated = True
@@ -482,8 +494,8 @@ class LinacModel(AcceleratorModel):
 
         if not parts.dis == 'TI': return None
         if parts.dev == 'EGun':
-            if parts.propty == 'Enbl': return self._egun_enabled
-            elif parts.propty =='Delay':
+            if parts.propty in ('Enbl-SP', 'Enbl-RB'): return self._egun_enabled
+            elif parts.propty in ('Delay-SP', 'Delay-RB'):
                 if not hasattr(self, '_egun_delay'):
                     return UNDEF_VALUE
                 return self._egun_delay
@@ -505,8 +517,8 @@ class LinacModel(AcceleratorModel):
 
         if not parts.dis == 'TI': return False
         if parts.dev == 'EGun':
-            if parts.propty == 'Enbl': self._egun_enabled = value
-            elif parts.propty == 'Delay': self._egun_delay = value
+            if parts.propty == 'Enbl-SP': self._egun_enabled = value
+            elif parts.propty == 'Delay-SP': self._egun_delay = value
             else: return False
             return True
         return False
@@ -590,7 +602,7 @@ class LinacModel(AcceleratorModel):
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        pv_name = self.device_names.join_name('01','TI','EGun','1',proper='Delay')
+        pv_name = self.device_names.join_name('01','TI','EGun',proper='Delay-SP')
         self._others_queue['driver'].put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self, **kwargs):
@@ -776,10 +788,10 @@ class BoosterModel(AcceleratorModel):
         if super()._set_pv_timing(pv_name, value, parts): return
 
         if parts.dis == 'TI':
-            if 'RampPS:Enbl' in pv_name:
+            if 'RampPS:Enbl-SP' in pv_name:
                 self._rampps_enabled = value
                 return True
-            elif 'RampPS:Delay' in pv_name:
+            elif 'RampPS:Delay-SP' in pv_name:
                 self._rampps_delay = value
                 return True
             else:
@@ -856,7 +868,8 @@ class BoosterModel(AcceleratorModel):
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
         if message1 or message2:
             self._log(message1, message2, c=c, a=a)
-        if self._beam_charge: self._beam_charge.dump()
+        if self._beam_charge:
+            self._beam_charge.dump()
         self._orbit = None
         self._twiss = None
         self._m66 = None
@@ -867,7 +880,7 @@ class BoosterModel(AcceleratorModel):
         self._injection_efficiency = None
         self._ejection_efficiency  = None
 
-   # --- auxiliary methods
+    # --- auxiliary methods
 
     def _set_pulsed_magnets_parameters(self, **kwargs):
         if 'total_length' in kwargs:
@@ -987,7 +1000,7 @@ class BoosterModel(AcceleratorModel):
 
         lf = self._lifetime
         lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
-        lft = float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
+        lft = 0.0  # float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
         self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
                                         quantum=lfq, touschek_coefficient=lft)
 
@@ -1150,10 +1163,10 @@ class StorageRingModel(AcceleratorModel):
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if parts.propty == 'PosX-Mon':
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                if self._orbit is None or charge == 0.0: return UNDEF_VALUE
                 return orbit_unit*self._orbit[0,idx]
             elif parts.propty == 'PosY-Mon':
-                if self._orbit is None or charge == 0.0: return [UNDEF_VALUE]*len(idx)
+                if self._orbit is None or charge == 0.0: return UNDEF_VALUE
                 return orbit_unit*self._orbit[2,idx]
             return None
         else:
@@ -1223,7 +1236,7 @@ class StorageRingModel(AcceleratorModel):
         self._injection_efficiency = None
         # self._received_charge = False
 
-   # --- auxiliary methods
+    # --- auxiliary methods
 
     def _set_pulsed_magnets_parameters(self, **kwargs):
         if 'total_length' in kwargs:
@@ -1333,7 +1346,7 @@ class StorageRingModel(AcceleratorModel):
         #                                 quantum=q_lifetime, touschek_coefficient=t_coeff)
         lf = self._lifetime
         lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
-        lft = float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
+        lft = 0.0  # float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
         self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
                                         quantum=lfq, touschek_coefficient=lft)
 

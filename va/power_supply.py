@@ -1,7 +1,7 @@
 
 import math as _math
 import numpy as _np
-from siriuspy.pwrsupply.simul.model import PowerSupply as _PowerSupply
+from .pwrsupply.model import PowerSupply as _PowerSupply
 
 
 # These classes extend the base class PowerSupply in siriuspy

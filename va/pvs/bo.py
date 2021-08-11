@@ -43,7 +43,7 @@ device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_n
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
-accelerator = model.create_accelerator()
+accelerator = model.create_accelerator()   # [150 MeV]
 family_data = model.get_family_data(accelerator)
 # build record names
 record_names = RecordNames(device_names, model, family_data)

@@ -17,7 +17,7 @@ _el_names = { # All these Family names must be defined in family_data dictionary
            'Slnd14','Slnd15','Slnd16','Slnd17','Slnd18','Slnd19','Slnd20','Slnd21',
            'QF1','QF2','QD1','QD2','QF3','CH','CV','Spect','Lens'],
     'TI': ['EGun'],
-    'EG': ['EGun']
+    # 'EG': ['EGun']
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
 #     'PS': ['Slnd14','Slnd15','Slnd16','Slnd17','Slnd18','Slnd19','Slnd20',

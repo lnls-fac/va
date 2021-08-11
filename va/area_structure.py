@@ -9,7 +9,7 @@ SIMUL_ONLY_ORBIT = False
 
 class AreaStructureProcess(multiprocessing.Process):
 
-    def __init__(self, area_structure, interval, stop_event, finalisation):
+    def __init__(self, area_structure_cls, interval, stop_event, finalisation):
         """Initialize, start and manage area_structure and area_structure processing.
 
         Keyword arguments: see start_and_run_area_structure
@@ -17,13 +17,13 @@ class AreaStructureProcess(multiprocessing.Process):
         my_queue = multiprocessing.Queue()
         self.others_queue = dict()
         self.my_queue = my_queue
-        self.area_structure = area_structure
-        self.area_structure_prefix = area_structure.prefix
+        self.area_structure = area_structure_cls
+        self.area_structure_prefix = area_structure_cls.prefix
 
         super().__init__(
             target=self.start_and_run_area_structure,
             kwargs={
-                'area_structure': area_structure,
+                'area_structure_cls': area_structure_cls,
                 'interval': interval,
                 'stop_event': stop_event,
                 # Queues are supposed to be exchanged
@@ -31,7 +31,7 @@ class AreaStructureProcess(multiprocessing.Process):
                 'my_queue': my_queue,
                 'finalisation': finalisation,
                 },
-            name = 'Thread-' + area_structure.prefix
+            name = 'Thread-' + area_structure_cls.prefix
             )
 
     def set_others_queue(self,queues):
@@ -39,17 +39,17 @@ class AreaStructureProcess(multiprocessing.Process):
             if pr == self.area_structure_prefix: continue
             self.others_queue[pr] = q
 
-    def start_and_run_area_structure(self, area_structure, interval, stop_event, finalisation, **kwargs):
+    def start_and_run_area_structure(self, area_structure_cls, interval, stop_event, finalisation, **kwargs):
         """Start periodic processing of area_structure
 
         Keyword arguments:
-        area_structure -- area_structure class
+        area_structure_cls -- area_structure class
         interval -- processing interval [s]
         stop_event -- event to stop processing
         finalization -- barrier to wait before finalization
         **kwargs -- extra arguments to area_structure __init__
         """
-        As = area_structure(**kwargs)
+        As = area_structure_cls(**kwargs)
         # prctl.set_name(self.name) # For debug
 
         try:

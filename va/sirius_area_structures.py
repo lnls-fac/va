@@ -1,16 +1,18 @@
 """Definition of all Sirius Area Structures."""
 
-from siriuspy.timesys_orig.time_simul import TimingSimulation
 from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
-from va.pvs import As as _pvs_As
-from va.pvs import li as _pvs_li
-from va.pvs import tb as _pvs_tb
-from va.pvs import bo as _pvs_bo
-from va.pvs import ts as _pvs_ts
-from va.pvs import si as _pvs_si
+
+from .timesys.time_simul import TimingSimulation
+from .pvs import As as _pvs_As
+from .pvs import li as _pvs_li
+from .pvs import tb as _pvs_tb
+from .pvs import bo as _pvs_bo
+from .pvs import ts as _pvs_ts
+from .pvs import si as _pvs_si
 from va import accelerators_model
 from va import area_structure
+from va import utils
 
 
 class ASModel(area_structure.AreaStructure):
@@ -32,7 +34,7 @@ class ASModel(area_structure.AreaStructure):
         self._init_sp_pv_values()
 
     def _init_timing_devices(self):
-        print('ASModel _init_timing_devices commented!')
+        utils.log('NOTE', '_init_timing_devices commented out in ASModel!', 'cyan')
         return
         self._timing = TimingSimulation(self._rf_frequency,
                                         callbacks={self._uuid: self._callback})

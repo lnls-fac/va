@@ -11,7 +11,7 @@ from va import utils
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
-INIT_TIMEOUT = 20.0
+INIT_TIMEOUT = 60.0
 
 
 def run(prefix, only_orbit=False, print_pvs=True):
@@ -71,19 +71,28 @@ def get_area_structures():
         sirius_area_structures.ASModel,
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
-        # sirius_area_structures.BoModel,
-        # sirius_area_structures.TsModel,
-        # sirius_area_structures.SiModel,
+        sirius_area_structures.BoModel,
+        sirius_area_structures.TsModel,
+        sirius_area_structures.SiModel,
     )
 
     return area_structures
 
 
+def get_virtual_pv_database():
+    pv_database = {}
+    pv_database['AS-Glob:VA-Control:Quit-Cmd'] = {'type':'int', 'value':0}
+    pv_database['BO-Glob:VA-Control:BeamCurrentAdd-SP'] = {'type':'float', 'value':0}
+    pv_database['BO-Glob:VA-Control:BeamCurrentDump-Cmd'] = {'type':'int', 'value':0}
+    pv_database['SI-Glob:VA-Control:BeamCurrentAdd-SP'] = {'type':'float', 'value':0}
+    pv_database['SI-Glob:VA-Control:BeamCurrentDump-Cmd'] = {'type':'int', 'value':0}
+    return pv_database
+
 def get_pv_database(area_structures):
     pv_database = {}
     for As in area_structures:
         pv_database.update(As.database)
-    pv_database['QUIT'] = {'type':'float', 'value':0, 'count':1}
+    pv_database.update(get_virtual_pv_database())
     return pv_database
 
 
@@ -93,18 +102,17 @@ def get_pv_names(area_structures):
         # Too low level?
         area_structure_pv_names = {As.prefix.lower()+'_pv_names': As.database.keys()}
         pv_names.update(area_structure_pv_names)
-
+    pv_names.update({'va_pv_names': get_virtual_pv_database().keys()})
     return pv_names
 
 
 def create_and_start_processes_and_threads(area_structures, start_event, stop_event, finalisation_barrier):
     processes = []
     all_queues = dict()
-    for As in area_structures:
-        Asp = area_structure.AreaStructureProcess(As, WAIT_TIMEOUT, stop_event,
-            finalisation_barrier)
-        all_queues[Asp.area_structure_prefix] = Asp.my_queue
-        processes.append(Asp)
+    for as_ in area_structures:
+        asp = area_structure.AreaStructureProcess(as_, WAIT_TIMEOUT, stop_event, finalisation_barrier)
+        all_queues[asp.area_structure_prefix] = asp.my_queue
+        processes.append(asp)
 
     driver_thread = driver.DriverThread(
         processes,

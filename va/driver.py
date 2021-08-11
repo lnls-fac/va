@@ -125,8 +125,9 @@ class PCASDriver(Driver):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             if value is None:
-                print(pv_name)
-            self.setParam(pv_name, value)
+                utils.log('warn', 'Value for {} is None!'.format(pv_name), 'cyan')
+            else:
+                self.setParam(pv_name, value)
 
     def _initialisation_sign_received(self, data):
         prefix = data
@@ -158,16 +159,10 @@ class PCASDriver(Driver):
 
     def write(self, reason, value):
         """Write PV value to database."""
+        # process VACA pvs first
+        if self._write_vaca_pvs(reason, value):
+            return True
         try:
-            if reason == 'QUIT':
-                if value == 0:
-                    utils.log('quit', 'command received with zero value',
-                              c='yellow', a=['bold'])
-                    return True
-                utils.log('quit', 'quiting virtual machine',
-                          c='red', a=['bold'])
-                self._stop_event.set()
-                return True
             process = self._get_pv_process(reason)
             if self._isValid(process, reason, value):
                 self.setParam(reason, value)
@@ -189,10 +184,20 @@ class PCASDriver(Driver):
             utils.log('!write', reason, c='red', a=['bold'])
             return False
 
+    def _write_vaca_pvs(self, reason, value):
+        if reason == 'AS-Glob:VA-Control:Quit-Cmd':
+            utils.log('quit', 'quitting virtual machine', c='red', a=['bold'])
+            self._stop_event.set()
+            return True
+        return False
+
     def _isValid(self, process, reason, value):
         if reason.endswith(('-Sts', '-RB', '-Mon')):
             return False
         db = self._processes_database[process.area_structure_prefix]
+        if reason not in db:
+            # for VACA pvs.
+            return True
         enums = (db[reason].get('enums') or db[reason].get('Enums'))
         if enums is not None:
             if isinstance(value, int):

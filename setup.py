@@ -20,6 +20,6 @@ setup(
     ],
     packages=['va'],
     package_data={'va': ['VERSION', 'pvs/*.py']},
-    scripts=['scripts/sirius-ioc-as-vaca.py', 'scripts/sirius-state-save.py', 'scripts/sirius-state-load.py'],
+    scripts=['scripts/vaca-ioc.py', 'scripts/vaca-state-save.py', 'scripts/vaca-state-load.py'],
     zip_safe=False
 )

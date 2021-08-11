@@ -19,7 +19,8 @@ def print_banner(prefix, li_pv_names=None,
                          ts_pv_names=None,
                          si_pv_names=None,
                          ti_pv_names=None,
-                         as_pv_names=None):
+                         as_pv_names=None,
+                         va_pv_names=None):
 
     def c(msg,color=None,attrs=None):
         if not attrs:
@@ -46,6 +47,8 @@ def print_banner(prefix, li_pv_names=None,
         print(r"      "+c("\|/ ",'green')  + "         | " + c("Number of TS pvs: {0}".format(len(ts_pv_names))))
     if as_pv_names is not None:
         print(c(r"                  ",'white') + " | " + c("Number of AS pvs: {0}".format(len(as_pv_names))))
+    if va_pv_names is not None:
+        print(c(r"                  ",'white') + " | " + c("Number of VA pvs: {0}".format(len(va_pv_names))))
     print(r"")
 
 

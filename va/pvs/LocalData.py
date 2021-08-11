@@ -4,7 +4,8 @@ from siriuspy.namesys import SiriusPVName as _PVName
 from siriuspy.namesys import join_name as _join_name
 from siriuspy.pwrsupply import csdev as _pwrsupply_csdev
 
-from siriuspy.timesys_orig.time_simul import TimingSimulation
+from .. import utils
+from ..timesys.time_simul import TimingSimulation
 
 
 
@@ -149,7 +150,8 @@ class DeviceNames:
             ins = parts.idx
             dev += '-'+ins if ins else ins
             ti = [i for i in tis_dev if dev in i][0]
-            mapping[pm] = ti + delay_or_enbl
+            mapping[pm] = ti + delay_or_enbl + '-SP'
+            mapping[pm] = ti + delay_or_enbl + '-RB'
 
         inverse_mapping = dict()
         for key, value in mapping.items():
@@ -231,12 +233,14 @@ class RecordNames:
         'OpMode-Sel',
         'OpMode-Sts',
         'PwrState-Sel',
-        'PwrState-Sts'
+        'PwrState-Sts',
         'Current-SP',
         'Current-RB',
+        'CurrentRef-Mon',
         'Current-Mon',
         'Voltage-SP',
         'Voltage-RB',
+        'VoltageRef-Mon',
         'Voltage-Mon',
         )
 
@@ -326,6 +330,7 @@ class RecordNames:
                 self.di_ro.append(rec)
 
     def _init_ps_record_names(self):
+        utils.log('NOTE', 'properties being simulated are limited in _init_ps_record_names!', 'cyan')
         _device_names = self.device_names.get_device_names(self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
@@ -402,17 +407,23 @@ class RecordNames:
         for device_name in _device_names.keys():
             parts = _PVName(device_name)
             if parts.dev == 'Timing':
-                print('NOTE: implement "Timing" dev in init_ti_record_names!')
+                utils.log('NOTE', 'implement "Timing" dev in init_ti_record_names!', 'cyan')
                 # ioc = TimingSimulation
                 # db = ioc.get_database()
                 # self.database.update(db)
                 # devs = _device_names[device_name]
                 # _record_names.update({p:devs for p in db.keys()})
             else:
-                p = device_name + ':Enbl'
+                p = device_name + ':Enbl-SP'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
-                p = device_name + ':Delay'
+                p = device_name + ':Enbl-RB'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
+                p = device_name + ':Delay-SP'
+                _record_names[p] = _device_names[device_name]
+                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                p = device_name + ':Delay-RB'
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         self.all_record_names.update(_record_names)
