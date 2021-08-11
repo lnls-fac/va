@@ -28,10 +28,12 @@ class ASModel(area_structure.AreaStructure):
     def __init__(self, **kwargs):
         """Initialize the instance."""
         super().__init__(**kwargs)
-        # self._init_timing_devices()
+        self._init_timing_devices()
         self._init_sp_pv_values()
 
     def _init_timing_devices(self):
+        print('ASModel _init_timing_devices commented!')
+        return
         self._timing = TimingSimulation(self._rf_frequency,
                                         callbacks={self._uuid: self._callback})
         self._timing.add_injection_callback(self._uuid, self._injection_cycle)
