@@ -1,7 +1,7 @@
 
 import numpy as _numpy
 import os as _os
-# from siriuspy.envars import folder_lnls_sirius_csconstants
+from siriuspy.clientweb import magnets_excitation_data_read
 
 
 _HEADER_CHAR = '#'
@@ -9,16 +9,8 @@ _HEADER_CHAR = '#'
 
 class PulseCurve:
 
-    def __init__(self, fname, method='filename'):
-
-        if method == 'filename':
-            pass
-            # _pulse_curves_dir = _os.path.join(folder_lnls_sirius_csconstants, 'magnet', 'pulse-curve-data')
-            # filename = _os.path.join(_pulse_curves_dir, fname)
-            # self._load_pulse_curve(filename)
-        elif method == 'filename_web':
-            self._load_pulse_curve_web(fname)
-
+    def __init__(self, fname):
+        # self._load_pulse_curve_web(fname)
         self._rise_time = 0
 
     @property
@@ -32,16 +24,13 @@ class PulseCurve:
     def get_pulse_shape(self, time):
         return _numpy.interp(time, self._pulse_time, self._pulse_shape, left=0, right=0)
 
-    def _load_pulse_curve(self, magnet):
-        self._read_pulse_curve_from_file(file_name=magnet)
-
-    def _load_pulse_curve_web(filename):
-        raise NotImplemented
-
-    def _read_pulse_curve_from_file(self, file_name):
-        with open(file_name, encoding='latin-1') as f:
-            lines = [line.strip() for line in f]
-
+    def _load_pulse_curve_web(self, filename):
+        try:
+            text = magnets_excitation_data_read(filename)
+        except:
+            print('Error trying to read excdata {}'.format(filename))
+            raise
+        lines = text.split('\n')
         self._process_pulse_curve_file_lines(lines)
 
     def _process_pulse_curve_file_lines(self, lines):

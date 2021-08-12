@@ -1,36 +1,25 @@
 
 import numpy as _numpy
-# from siriuspy.envars import folder_lnls_sirius_csconstants
 from siriuspy.clientweb import magnets_excitation_data_read
 import os as _os
 
 
 class ExcitationCurve:
 
-    def __init__(self, fname, polarity=1, method='filename'): # generalise: pass label name
+    def __init__(self, fname, polarity=1): # generalise: pass label name
         """Conversion between current and field
 
         Keyword argument:
         fname -- magnet excitation curve file name
         """
-
-        if method == 'filename':
-            pass
-        #     _excitation_curves_dir = _os.path.join(folder_lnls_sirius_csconstants, 'magnets', 'excitation-data')
-        #     filename = _os.path.join(_excitation_curves_dir, fname)
-        #     with open(filename, encoding='latin-1') as f:
-        #         lines = f.readlines()
-        #     self._load_excitation_curve(lines,polarity)
-
-        elif method == 'filename_web':
-            self._filename = fname
-            try:
-                text = magnets_excitation_data_read(fname)
-            except:
-                print('Error trying to read excdata {}'.format(fname))
-                raise
-            lines = text.split('\n')
-            self._load_excitation_curve(lines,polarity)
+        self._filename = fname
+        try:
+            text = magnets_excitation_data_read(fname)
+        except:
+            print('Error trying to read excdata {}'.format(fname))
+            raise
+        lines = text.split('\n')
+        self._load_excitation_curve(lines, polarity)
 
 
     @property

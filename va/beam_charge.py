@@ -25,16 +25,12 @@ class BeamCharge:
     def get_lifetimes(self):
         return [self._elastic_lifetime, self._inelastic_lifetime, self._quantum_lifetime, self._touschek_coefficient]
 
-    def set_lifetimes(self, elastic=None, inelastic=None, quantum=None, touschek_coefficient=None):
-        self.value # updates values
-        if elastic is not None:
-            self._elastic_lifetime = elastic
-        if inelastic is not None:
-            self._inelastic_lifetime = inelastic
-        if quantum is not None:
-            self._quantum_lifetime = quantum
-        if touschek_coefficient is not None:
-            self._touschek_coefficient = touschek_coefficient
+    def set_lifetimes(self, lifetime):
+        total_charge = self.total_value # updates values
+        self._elastic_lifetime = lifetime.lifetime_elastic
+        self._inelastic_lifetime = lifetime.lifetime_inelastic
+        self._quantum_lifetime = lifetime.lifetime_quantum
+        self._touschek_coefficient = lifetime.lossrate_touschek / total_charge if total_charge > 0 else 0
 
     @property
     def nr_bunches(self):
@@ -43,7 +39,8 @@ class BeamCharge:
     @property
     def loss_rate(self):
         charge = self.value # updates values
-        current_loss_rate = [self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1) + self._touschek_coefficient * charge for charge in self._charge]
+        sp_loss_rate = self._elastic_lifetime**(-1) + self._inelastic_lifetime**(-1) + self._quantum_lifetime**(-1)
+        current_loss_rate = sp_loss_rate + self._touschek_coefficient * self._charge
         return current_loss_rate, charge
 
     @property

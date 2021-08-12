@@ -2,8 +2,6 @@
 import time
 import datetime
 from termcolor import colored
-import pyaccel
-import mathphys
 from va import __version__ as VERSION
 
 

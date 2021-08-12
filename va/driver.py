@@ -4,7 +4,6 @@ import queue
 import threading
 import multiprocessing
 import numpy as _np
-# import prctl #Used in debugging
 from pcaspy import Driver
 from va import utils
 
@@ -48,8 +47,7 @@ class DriverThread(threading.Thread):
                 utils.process_and_wait_interval(self._driver.process,
                                                 self._interval)
         except Exception as ex:
-            utils.log('error1', str(ex), 'red')
-            raise
+            utils.log('error', 'in driver main: ' + str(ex), 'red')
             self.stop_event.set()
         finally:
             self._driver.close_others_queues()
@@ -57,7 +55,6 @@ class DriverThread(threading.Thread):
             self._driver.empty_my_queue()
             self._finalisation.wait()
             self._driver.finalise()
-
 
 class PCASDriver(Driver):
     """Driver Definition."""
@@ -83,21 +80,24 @@ class PCASDriver(Driver):
 
     def process(self):
         """Function that run continuously."""
-        self._process_writes()
-        self._process_requests()
-        self.updatePVs()
+        statusw = self._process_writes()
+        statusr = self._process_requests()
+        if statusw or statusr:
+            self.updatePVs()
 
     def _process_writes(self):
         size = self._internal_queue.qsize()
-        for i in range(size):
+        for _ in range(size):
             process, reason, value = self._internal_queue.get()
             process.my_queue.put(('s', (reason, value)))
+        return size > 0
 
     def _process_requests(self):
         size = self._my_queue.qsize()
         for _ in range(size):
             request = self._my_queue.get()
             self._process_request(request)
+        return size > 0
 
     def _process_request(self, request):
         cmd, data = request
@@ -108,7 +108,7 @@ class PCASDriver(Driver):
         elif cmd == 'a':  # anomalous condition signed by area_structure
             utils.log('!error3', data, c='red')
             self._stop_event.set()
-        elif cmd == 'i':
+        elif cmd == 'i':  # initialization signaling
             self._initialisation_sign_received(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
@@ -125,13 +125,16 @@ class PCASDriver(Driver):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             if value is None:
-                utils.log('warn', 'Value for {} is None!'.format(pv_name), 'cyan')
+                utils.log('warn', 'Value for {} is None!'.format(pv_name), 'yellow')
             else:
                 self.setParam(pv_name, value)
 
     def _initialisation_sign_received(self, data):
         prefix = data
+        if self._processes_initialisation[prefix]:
+            return
         self._processes_initialisation[prefix] = True
+        utils.log('init', 'area_structure {} initialized (requests in driver queue: {})'.format(prefix, self._my_queue.qsize()), 'green')
         if not self._start_event.is_set():
             if all(self._processes_initialisation.values()):
                 self._start_event.set()
@@ -213,8 +216,3 @@ class PCASDriver(Driver):
         prefix = reason[:PREFIX_LEN]
         process = self._processes[prefix]
         return process
-
-    # def _is_process_pv_writable(self, process, reason):
-    #     read_only_pvs = process.area_structure.pv_module.get_read_only_pvs()
-    #     dynamic_pvs = process.area_structure.pv_module.get_dynamical_pvs()
-    #     return reason not in read_only_pvs + dynamic_pvs

@@ -11,7 +11,7 @@ from va import utils
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
-INIT_TIMEOUT = 60.0
+INIT_TIMEOUT = 60*5
 
 
 def run(prefix, only_orbit=False, print_pvs=True):
@@ -136,13 +136,15 @@ def wait_for_initialisation():
     global start_event
     global stop_event
     t0 = time.time()
-    utils.log('start', 'waiting area structure initialization')
+    utils.log('init', 'waiting area structure initialization', 'green')
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
-        if (t-t0) > INIT_TIMEOUT: break
+        if (t-t0) > INIT_TIMEOUT: 
+            utils.log('init', 'initialization timeout!', 'red')
+            break
     if not stop_event.is_set():
-        utils.log('start', 'starting server', 'green')
+        utils.log('init', 'server ready!', 'green', a=['bold'])
 
 
 def print_stop_event_message():
@@ -155,9 +157,3 @@ def join_processes(processes,driver_thread):
         process.join(JOIN_TIMEOUT)
     driver_thread.join(JOIN_TIMEOUT)
     utils.log('join', 'done')
-
-
-def old_wait_for_initialisation(interval):
-    utils.log('start', 'waiting %d s for area structure initialization' % interval)
-    time.sleep(JOIN_TIMEOUT)
-    utils.log('start', 'starting server')

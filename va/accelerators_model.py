@@ -14,11 +14,12 @@ from va import utils
 
 _u = mathphys.units
 _light_speed = mathphys.constants.light_speed
-UNDEF_VALUE = utils.UNDEF_VALUE
+_meter_2_nm = _u.meter_2_mm**3 # model to control system orbit conversion
+_undef_value = utils.UNDEF_VALUE
+
 TRACK6D = True
-calc_injection_eff = True
-calc_timing_eff = True
-orbit_unit = 1e9 # in meters m
+CALC_INJECTION_EFF = True
+CALC_TIMING_EFF = True
 
 class Plane(enum.IntEnum):
     horizontal = 0
@@ -32,7 +33,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._injection_parameters = None
         self._dcct = {} # encapsulate DCCTs data structures within private methods, just as for magnets and ps...
         super().__init__(**kwargs)
-        self._reset('start', self.model_module.lattice_version)
+        self._reset('reset', 'model {}'.format(self.model_module.lattice_version))
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
 
@@ -50,7 +51,7 @@ class AcceleratorModel(area_structure.AreaStructure):
         if value is None:
             value = self._get_pv_not_implemented(pv_name, parts)
         if value is None:
-            utils.log('warn', str('response to ' + pv_name + ' not implemented in model get_pv'), 'cyan')
+            utils.log('warn', str('response to ' + pv_name + ' not implemented in model get_pv'), 'yellow', a=['bold'])
             value = 0
             # raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
         return value
@@ -85,13 +86,11 @@ class AcceleratorModel(area_structure.AreaStructure):
             if parts.dev == 'BPM':
                 idx = self._get_elements_indices(pv_name)
                 if parts.propty == 'PosX-Mon':
-                    # if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                    if self._orbit is None: return UNDEF_VALUE
-                    return orbit_unit*self._orbit[0,idx]
+                    if self._orbit is None: return _undef_value
+                    return _meter_2_nm*self._orbit[0,idx]
                 elif parts.propty == 'PosY-Mon':
-                    # if self._orbit is None: return [UNDEF_VALUE]*len(idx)
-                    if self._orbit is None: return UNDEF_VALUE
-                    return orbit_unit*self._orbit[2,idx]
+                    if self._orbit is None: return _undef_value
+                    return _meter_2_nm*self._orbit[2,idx]
                 return None
             elif parts.dev in ('SlitH', 'SlitV'):
                 return 0.0
@@ -122,15 +121,15 @@ class AcceleratorModel(area_structure.AreaStructure):
                 return self._accelerator[idx[0]].voltage
             return None
         elif parts.dis == 'AP':
-            return UNDEF_VALUE
+            return _undef_value
             if 'Chrom' in pv_name:
-                return UNDEF_VALUE
+                return _undef_value
             elif 'Chrom' in pv_name:
-                return UNDEF_VALUE
+                return _undef_value
             elif 'Emit' in pv_name:
-                return UNDEF_VALUE
+                return _undef_value
             elif 'BeamSz' in pv_name:
-                return UNDEF_VALUE
+                return _undef_value
             return None
         elif parts.dis == 'MO':
             if parts.dev == 'Lattice':
@@ -497,7 +496,7 @@ class LinacModel(AcceleratorModel):
             if parts.propty in ('Enbl-SP', 'Enbl-RB'): return self._egun_enabled
             elif parts.propty in ('Delay-SP', 'Delay-RB'):
                 if not hasattr(self, '_egun_delay'):
-                    return UNDEF_VALUE
+                    return _undef_value
                 return self._egun_delay
         else:
             return None
@@ -565,7 +564,7 @@ class LinacModel(AcceleratorModel):
             'global_coupling': self._global_coupling,
             'init_twiss': self._twiss_at_match}
 
-        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
+        self._log('calc', '{}: transport efficiency'.format(self.model_module.lattice_version))
         _dict = {}
         _dict.update(inj_params)
         _dict.update(self._get_vacuum_chamber())
@@ -623,7 +622,7 @@ class LinacModel(AcceleratorModel):
 
         charge_time = [(kwargs['injection_bunch']+ i)*kwargs['bunch_separation'] + self._egun_delay for i in range(len(charge))]
 
-        if calc_injection_eff and not self.simulate_only_orbit:
+        if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
             self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
@@ -719,7 +718,7 @@ class TLineModel(AcceleratorModel):
 
     def _calc_transport_efficiency(self):
         if self._injection_parameters is None: return
-        self._log('calc', 'transport efficiency for ' + self.model_module.lattice_version)
+        self._log('calc', '{}: transport efficiency'.format(self.model_module.lattice_version))
         _dict = {}
 
         _dict.update(self._injection_parameters)
@@ -745,14 +744,14 @@ class TLineModel(AcceleratorModel):
         self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
         self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
 
-        if calc_timing_eff and not self.simulate_only_orbit:
+        if CALC_TIMING_EFF and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        if calc_injection_eff and not self.simulate_only_orbit:
+        if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
             charge = [bunch_charge * efficiency for bunch_charge in charge]
@@ -764,7 +763,28 @@ class TLineModel(AcceleratorModel):
                                                       _dict  = {'injection_cycle' : kwargs})
 
 
-class BoosterModel(AcceleratorModel):
+class RingModel(AcceleratorModel):
+    """Ring models."""
+
+    def _calc_lifetimes(self):
+        if self._lifetime is None or self._beam_charge is None: return
+
+        time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+        charge_total = self._beam_charge.total_value
+        current_total = charge_total / time_interval
+        self._lifetime.curr_per_bunch = current_total / self._beam_charge.nr_bunches
+        self._beam_charge.set_lifetimes(self._lifetime)
+        le, li, lq, tc = \
+            self._beam_charge.get_lifetimes()
+        s2h = 1/3600
+        tlossrate = tc * charge_total
+        lt = 1/tlossrate if tlossrate > 0 else float('inf')
+        ltot = self._beam_charge.total_lifetime
+        strf = '{}: beam lifetimes [h] (e:{:.2f}, i:{:.2f}, q:{:.2f}, t:{:.2f}, tot:{:.2f})'
+        self._log('calc', strf.format(self.model_module.lattice_version, le*s2h, li*s2h, lq*s2h, lt*s2h, ltot*s2h))
+
+
+class BoosterModel(RingModel):
 
     # --- methods implementing response of model to get requests
 
@@ -938,14 +958,14 @@ class BoosterModel(AcceleratorModel):
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
-        if charge == 0.0 or self._tunes == None: return UNDEF_VALUE
+        if charge == 0.0 or self._tunes == None: return _undef_value
         real_tune = self._tunes[plane].real
         return real_tune
 
     def _calc_closed_orbit(self):
         # Calculate closed orbit when there is beam
         try:
-            self._log('calc', 'closed orbit for '+self.model_module.lattice_version)
+            self._log('calc', '{}: closed orbit'.format(self.model_module.lattice_version))
             if TRACK6D:
                 self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
             else:
@@ -960,7 +980,7 @@ class BoosterModel(AcceleratorModel):
         if self._orbit is None: return
         try:
         # Optics
-            self._log('calc', 'linear optics for '+self.model_module.lattice_version)
+            self._log('calc', '{}: linear optics'.format(self.model_module.lattice_version))
             self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
             self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
         # Beam is lost
@@ -974,7 +994,7 @@ class BoosterModel(AcceleratorModel):
     def _calc_equilibrium_parameters(self):
         if self._m66 is None: return
         try:
-            self._log('calc', 'equilibrium parameters for '+self.model_module.lattice_version)
+            self._log('calc', '{}: equilibrium parameters'.format(self.model_module.lattice_version))
             # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
             #                              accelerator=self._accelerator,
             #                              twiss=self._twiss,
@@ -983,26 +1003,6 @@ class BoosterModel(AcceleratorModel):
             self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
-
-    def _calc_lifetimes(self):
-        if self._lifetime is None or self._beam_charge is None: return
-
-        self._log('calc', 'beam lifetimes for '+self.model_module.lattice_version)
-
-        # Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
-        # coupling = self._global_coupling
-        # pressure_profile = self._pressure_profile
-
-        # e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
-        #                                    Ne1C, coupling, pressure_profile, self._twiss, self._summary)
-        # self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
-        #                                 quantum=q_lifetime, touschek_coefficient=t_coeff)
-
-        lf = self._lifetime
-        lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
-        lft = 0.0  # float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
-        self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
-                                        quantum=lfq, touschek_coefficient=lft)
 
     def _get_equilibrium_at_maximum_energy(self):
         eq = dict()
@@ -1016,7 +1016,7 @@ class BoosterModel(AcceleratorModel):
         if self.simulate_only_orbit: return
         if self._injection_parameters is None: return
 
-        self._log('calc', 'injection efficiency for  ' + self.model_module.lattice_version)
+        self._log('calc', '{}: injection efficiency'.format(self.model_module.lattice_version))
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._injection_efficiency = None
@@ -1040,7 +1040,7 @@ class BoosterModel(AcceleratorModel):
 
     def _calc_ejection_efficiency(self):
         if self.simulate_only_orbit: return
-        self._log('calc', 'ejection efficiency for ' + self.model_module.lattice_version)
+        self._log('calc', '{}: ejection efficiency'.format(self.model_module.lattice_version))
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._ejection_efficiency = None
@@ -1123,14 +1123,14 @@ class BoosterModel(AcceleratorModel):
 
         charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        if calc_timing_eff and not self.simulate_only_orbit:
+        if CALC_TIMING_EFF and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
             efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnet in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        if calc_injection_eff and not self.simulate_only_orbit:
+        if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             # Injection
             efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]
@@ -1154,7 +1154,7 @@ class BoosterModel(AcceleratorModel):
                                                       _dict  = {'injection_cycle' : kwargs})
 
 
-class StorageRingModel(AcceleratorModel):
+class StorageRingModel(RingModel):
 
     # --- methods implementing response of model to get requests
 
@@ -1163,11 +1163,11 @@ class StorageRingModel(AcceleratorModel):
             charge = self._beam_charge.total_value
             idx = self._get_elements_indices(pv_name)
             if parts.propty == 'PosX-Mon':
-                if self._orbit is None or charge == 0.0: return UNDEF_VALUE
-                return orbit_unit*self._orbit[0,idx]
+                if self._orbit is None or charge == 0.0: return _undef_value
+                return _meter_2_nm*self._orbit[0,idx]
             elif parts.propty == 'PosY-Mon':
-                if self._orbit is None or charge == 0.0: return UNDEF_VALUE
-                return orbit_unit*self._orbit[2,idx]
+                if self._orbit is None or charge == 0.0: return _undef_value
+                return _meter_2_nm*self._orbit[2,idx]
             return None
         else:
             return super()._get_pv_static(pv_name, parts)
@@ -1284,14 +1284,14 @@ class StorageRingModel(AcceleratorModel):
 
     def _get_tune_component(self, plane):
         charge = self._beam_charge.total_value
-        if charge == 0.0 or self._tunes == None: return UNDEF_VALUE
+        if charge == 0.0 or self._tunes == None: return _undef_value
         real_tune = self._tunes[plane].real
         return real_tune
 
     def _calc_closed_orbit(self):
         # Calculate closed orbit when there is beam
         try:
-            self._log('calc', 'closed orbit for '+self.model_module.lattice_version)
+            self._log('calc', '{}: closed orbit'.format(self.model_module.lattice_version))
             if TRACK6D:
                 self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
             else:
@@ -1306,7 +1306,7 @@ class StorageRingModel(AcceleratorModel):
         if self._orbit is None: return
         try:
         # Optics
-            self._log('calc', 'linear optics for '+self.model_module.lattice_version)
+            self._log('calc', '{}: linear optics'.format(self.model_module.lattice_version))
             self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
             self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
         # Beam is lost
@@ -1322,7 +1322,7 @@ class StorageRingModel(AcceleratorModel):
     def _calc_equilibrium_parameters(self):
         if self._m66 is None: return
         try:
-            self._log('calc', 'equilibrium parameters for '+self.model_module.lattice_version)
+            self._log('calc', '{}: equilibrium parameters'.format(self.model_module.lattice_version))
             # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
             #                              accelerator=self._accelerator,
             #                              twiss=self._twiss,
@@ -1331,24 +1331,6 @@ class StorageRingModel(AcceleratorModel):
             self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
-
-    def _calc_lifetimes(self):
-        if self._lifetime is None or self._beam_charge is None: return
-
-        self._log('calc', 'beam lifetimes for '+self.model_module.lattice_version)
-        # Ne1C = 1.0/mathphys.constants.elementary_charge # number of electrons in 1 coulomb
-        # coupling = self._global_coupling
-        # pressure_profile = self._pressure_profile
-
-        # e_lifetime, i_lifetime, q_lifetime, t_coeff = pyaccel.lifetime.calc_lifetimes(self._accelerator,
-        #                                    Ne1C, coupling, pressure_profile, self._twiss, self._summary)
-        # self._beam_charge.set_lifetimes(elastic=e_lifetime, inelastic=i_lifetime,
-        #                                 quantum=q_lifetime, touschek_coefficient=t_coeff)
-        lf = self._lifetime
-        lfq = float('Inf') if lf.lossrate_quantum == 0 else 1/lf.lossrate_quantum
-        lft = 0.0  # float('Inf') if lf.lossrate_touschek == 0 else 1/lf.lossrate_touschek
-        self._beam_charge.set_lifetimes(elastic=lf.lifetime_elastic, inelastic=lf.lifetime_inelastic,
-                                        quantum=lfq, touschek_coefficient=lft)
 
     def _calc_injection_efficiency(self):
         if self._injection_parameters is None: return
@@ -1365,7 +1347,7 @@ class StorageRingModel(AcceleratorModel):
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
-            self._log('calc', 'nlk injection efficiency for ' + self.model_module.lattice_version)
+            self._log('calc', '{}: nlk injection efficiency'.format(self.model_module.lattice_version))
             for psname, ps in self._pulsed_power_supplies.items():
                 if 'InjNLK' in psname and ps.enabled: ps.pwrstate_sel = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
@@ -1375,7 +1357,7 @@ class StorageRingModel(AcceleratorModel):
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
-            self._log('calc', 'on axis injection efficiency for '+self.model_module.lattice_version)
+            self._log('calc', '{}: on axis injection efficiency'.format(self.model_module.lattice_version))
             for psname, ps in self._pulsed_power_supplies.items():
                 if 'InjDpK' in psname and ps.enabled: ps.pwrstate_sel = 1
             injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
@@ -1413,7 +1395,7 @@ class StorageRingModel(AcceleratorModel):
 
         charge, charge_time = self._change_injection_bunch(charge, charge_time, kwargs['master_delay'], kwargs['bunch_separation'])
 
-        if calc_timing_eff and not self.simulate_only_orbit:
+        if CALC_TIMING_EFF and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
                 if magnet.enabled:
@@ -1421,7 +1403,7 @@ class StorageRingModel(AcceleratorModel):
             efficiency = 100*( sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, efficiency))
 
-        if calc_injection_eff and not self.simulate_only_orbit:
+        if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             # Injection
             efficiency = self._injection_efficiency if self._injection_efficiency is not None else 0
             charge = [bunch_charge * efficiency for bunch_charge in charge]

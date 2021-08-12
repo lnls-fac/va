@@ -32,6 +32,7 @@ class ASModel(area_structure.AreaStructure):
         super().__init__(**kwargs)
         self._init_timing_devices()
         self._init_sp_pv_values()
+        self._send_initialisation_sign()  # NOTE: without it CTRL+C ends up without BrokenPipeError
 
     def _init_timing_devices(self):
         utils.log('NOTE', '_init_timing_devices commented out in ASModel!', 'cyan')
@@ -56,6 +57,9 @@ class ASModel(area_structure.AreaStructure):
         else:
             return False
         return True
+
+    def _send_initialisation_sign(self):
+        self._others_queue['driver'].put(('i', self.prefix))
 
     # Not used in the moment.
     def _single_pulse_synchronism(self, triggers):

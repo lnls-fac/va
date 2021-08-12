@@ -70,7 +70,6 @@ class AreaStructureProcess(multiprocessing.Process):
             finalisation.wait()
             As.finalise()
 
-
 class AreaStructure:
 
     def __init__(self, others_queue, my_queue, log_func=utils.log, **kwargs):
@@ -110,11 +109,17 @@ class AreaStructure:
 
     def _update_pvs(self):
         pvs = []
+
+        # update dynamical PVs (if not simulating only orbit)
         if not self.simulate_only_orbit:
             pvs = pvs + self.pv_module.get_dynamical_pvs()
+        
+        # if model changes, also update all read-only PVs
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
             self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))
+
+        # signal that model state change has already been propagated to epics driver
         self._state_changed = False
 
     def close_others_queues(self):
@@ -149,7 +154,7 @@ class AreaStructure:
             # self._received_charge = False
 
     def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
+        utils.log('epics', '{}: setting database for setpoint pvs'.format(self.prefix))
         sp_pv_list = []
         for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)

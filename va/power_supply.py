@@ -1,6 +1,5 @@
 
 import math as _math
-import numpy as _np
 from .pwrsupply.model import PowerSupply as _PowerSupply
 
 
