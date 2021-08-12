@@ -12,20 +12,22 @@ This is a ressurect version of VACA that employs the current state of sirius' py
 
 ## dependencies (repos):
 
- - siriuspy: https://github.com/lnls-sirius/dev-packages]
- - mathphys: https://github.com/lnls-fac/mathphys]
- - lnls:     https://github.com/lnls-fac/lnls]
- - pymodels: https://github.com/lnls-fac/pymodels/tree/vaca-ilsf]
- - pyaccel:  https://github.com/lnls-fac/pyaccel]
- - trackcpp: https://github.com/lnls-fac/trackcpp]
+ - siriuspy: https://github.com/lnls-sirius/dev-packages
+ - mathphys: https://github.com/lnls-fac/mathphys
+ - lnls:     https://github.com/lnls-fac/lnls
+ - pymodels: https://github.com/lnls-fac/pymodels/tree/vaca-ilsf
+ - pyaccel:  https://github.com/lnls-fac/pyaccel
+ - trackcpp: https://github.com/lnls-fac/trackcpp
+ - csconst:  https://github.com/lnls-sirius/control-system-constants
 
 ## Installation
 
-To install `va` python package and `vaca-ioc.py` script in the system, run `./setup.py develop` or `./setup.py install`. 
+To install `va` python package and `vaca-ioc.py` script in the system, run `./setup.py develop` or `./setup.py install`. A web server should be running in order to provide static data files for VACA. Files from `csconst` repository should be located in the top of the web server public folder.
 
 ## Running VACA
 
-Run `vaca-ioc.py --pvs`: this will save PV files in the local folder. PVs being served with VACA can be looked up in these files.
+- Environment variable `SIRIUS_URL_CONSTS`should be set to point to the web server top URL. (for example, `export SIRIUS_URL_CONST=https://127.0.0.1`).
+- Run `vaca-ioc.py --pvs`: this will save PV files in the local folder. PVs being served with VACA can be looked up in these files.
 
 ## Virtual machine
 
