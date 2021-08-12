@@ -16,7 +16,7 @@ This is a ressurect version of VACA that employs the current state of sirius' py
  - mathphys: https://github.com/lnls-fac/mathphys]
  - lnls:     https://github.com/lnls-fac/lnls]
  - pymodels: https://github.com/lnls-fac/pymodels/tree/vaca-ilsf]
- - pyaccel:  https://github.com/lnls-fac/pyaccel/tree/vaca-ilsf]
+ - pyaccel:  https://github.com/lnls-fac/pyaccel]
  - trackcpp: https://github.com/lnls-fac/trackcpp]
 
 ## Installation
