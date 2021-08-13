@@ -1,7 +1,7 @@
-from pymodels import tb as model
+from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
-_section = 'TB'
+model = lab_models.tb
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'PS': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
@@ -32,7 +32,7 @@ _pulse_curve_mapping= {
     'InjSept':'tb-injseptum.txt' # INJECTION SEPTUM
 }
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
+device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 

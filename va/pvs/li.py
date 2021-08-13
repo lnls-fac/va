@@ -1,7 +1,7 @@
-from pymodels import li as model
+from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
-_section = 'LI'
+model = lab_models.li
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'RF': model.families.families_rf(),
@@ -41,7 +41,7 @@ _excitation_curves_mapping = (
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= dict()
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
+device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 

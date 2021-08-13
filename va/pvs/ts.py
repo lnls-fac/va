@@ -1,7 +1,7 @@
-from pymodels import ts as model
+from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
-_section = 'TS'
+model = lab_models.ts
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'PS': ['CH','CV','QF1A','QF1B','QD2','QF2','QF3',
@@ -44,7 +44,7 @@ _pulse_curve_mapping= {
     'EjeSeptG':'ts-septum-ejes.txt',
 }
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
+device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 

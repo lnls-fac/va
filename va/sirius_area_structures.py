@@ -1,6 +1,11 @@
 """Definition of all Sirius Area Structures."""
 
+import os as _os
 from siriuspy.namesys import SiriusPVName as _PVName
+
+VACA_LAB = _os.environ.get('VACA_LAB', default='sirius')
+VACA_LAB = 'VA-' if VACA_LAB == '' else VACA_LAB
+
 import pymodels as _pymodels
 
 from .timesys.time_simul import TimingSimulation

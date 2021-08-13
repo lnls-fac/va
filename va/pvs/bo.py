@@ -1,7 +1,7 @@
-from pymodels import bo as model
+from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
-_section = 'BO'
+model = lab_models.bo
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
     'RF': model.families.families_rf(),
@@ -39,7 +39,7 @@ _pulse_curve_mapping= {
     'InjKckr':'bo-kicker-injk.txt',
 }
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
+device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
             _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 

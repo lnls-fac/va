@@ -7,7 +7,7 @@ from va import driver
 from va import area_structure
 from va import sirius_area_structures
 from va import utils
-
+from va.pvs.models import laboratory
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
@@ -30,7 +30,7 @@ def run(prefix, only_orbit=False, print_pvs=True):
     area_structures = get_area_structures()
     pv_database = get_pv_database(area_structures)
     pv_names = get_pv_names(area_structures)
-    utils.print_banner(prefix, **pv_names)
+    utils.print_banner(laboratory, prefix, **pv_names)
     if print_pvs:
         for sec, pvs in pv_names.items():
             with open('{}.txt'.format(sec), 'w') as fp:

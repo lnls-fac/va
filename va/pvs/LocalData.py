@@ -330,7 +330,10 @@ class RecordNames:
                 self.di_ro.append(rec)
 
     def _init_ps_record_names(self):
-        utils.log('NOTE', 'properties being simulated are limited in _init_ps_record_names!', 'cyan')
+        utils.log(
+            'NOTE',
+            ('{}: properties being simulated are limited in'
+             ' _init_ps_record_names!').format(self.device_names.section), 'cyan')
         _device_names = self.device_names.get_device_names(self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
             _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
