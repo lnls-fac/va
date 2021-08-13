@@ -152,7 +152,7 @@ class ExcitationCurve:
         elif self._is_strictly_decreasing(x_array):
             x, y = self._reverse(x_array, y_array)
         else:
-            msg = 'x array must be strictly increasing or decreasing'
+            msg = '{}: x array must be strictly increasing or decreasing'.format(self._filename)
             raise ValueError(msg)
 
         return x, y

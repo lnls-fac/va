@@ -114,7 +114,7 @@ class DeviceNames:
                     mag_ind_dict[idx]  = set()
                 mag_ind_dict[idx] |= {mag_name}
 
-            #Use this mapping to see if the power supply is attached to the same element
+            # use this mapping to see if the power supply is attached to the same element
             for ps_name, ps_prop in self.get_device_names(accelerator,power).items():
                 ps = _PVName(ps_name).dev
                 idx = list(ps_prop.values())[0]
@@ -129,7 +129,7 @@ class DeviceNames:
                             mapping[mag_name]  = set()
                         mapping[mag_name] |= {ps_name}
 
-        # Finally find the inverse map
+        # finally find the inverse map
         inverse_mapping = dict()
         for key, value in mapping.items():
             for v in value:
