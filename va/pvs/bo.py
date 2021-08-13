@@ -1,6 +1,39 @@
 from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
+
+# PVs not connecting to real machine:
+# ===================================
+# BO-35D:DI-DCCT:HwFlt-Mon
+# BO-35D:DI-DCCT:BbBCurrent-Mon
+# BO-35D:DI-DCCT:CurrThold
+# BO-01D:DI-Scrn-2
+# BO-02U:DI-Scrn
+# BO-01D:DI-Scrn-1
+# BO-04D:DI-TunePkup:Freq1-Mon
+# BO-04D:DI-TunePkup:Freq2-Mon
+# BO-04D:DI-TunePkup:Freq3-Mon
+# BO-02D:DI-TuneShkr
+# BO-04U:DI-GSL
+# BO-Glob:AP-Chrom
+# BO-Glob:AP-CurrLT:CurrLT-Mon
+# BO-Glob:AP-CurrLT:BbBCurrLT-Mon
+# BO-Glob:AP-Size
+# BO-05D:RF-P5Cav:Freq-SP
+# BO-05D:RF-P5Cav:Freq-RB
+# BO-05D:RF-P5Cav:Volt-RB
+# BO-05D:RF-P5Cav:Volt-SP
+# BO-01D:TI-InjKckr:Enbl-SP
+# BO-Glob:AP-Emitt
+# BO-01D:TI-InjKckr:Enbl-RB
+# BO-48D:TI-EjeKckr:Enbl-SP
+# BO-48D:TI-EjeKckr:Enbl-RB
+# BO-Glob:TI-STDMOE:Enbl-SP
+# BO-Glob:TI-STDMOE:Enbl-RB
+# BO-Glob:TI-STDMOE:Delay-SP
+# BO-Glob:TI-STDMOE:Delay-RB
+
+
 model = lab_models.bo
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),

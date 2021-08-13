@@ -1,9 +1,18 @@
 from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
+
+# PVs not connecting to real machine:
+# ===================================
+# TB-01:DI-BPM-3:PosX-Mon
+# TB-01:DI-BPM-3:PosY-Mon
+# TB-04:TI-InjSept:Enbl-RB
+# TB-04:TI-InjSept:Enbl-SP
+
+
 model = lab_models.tb
 _el_names = { # All these Family names must be defined in family_data dictionary
-    'DI': model.families.families_di(),
+    'DI': ['BPM', ],  # model.families.families_di(),
     'PS': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
            'QD2B','QF3','QD3','QF4','QD4'],
     'MA': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',

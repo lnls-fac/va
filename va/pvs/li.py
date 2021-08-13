@@ -1,10 +1,19 @@
 from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
+
+# PVs not connecting to real machine:
+# ===================================
+# LI-01:TI-EGun:Enbl-SP
+# LI-01:TI-EGun:Enbl-RB
+# LI-01:TI-EGun:Delay-SP
+# LI-01:TI-EGun:Delay-RB
+
+
 model = lab_models.li
 _el_names = { # All these Family names must be defined in family_data dictionary
-    'DI': model.families.families_di(),
-    'RF': model.families.families_rf(),
+    'DI': [],  # model.families.families_di(),
+    'RF': [],  # model.families.families_rf(),
 #     'PS': ['Slnd01','Slnd02','Slnd03','Slnd04','Slnd05','Slnd06','Slnd07',
 #            'Slnd08','Slnd09','Slnd10','Slnd11','Slnd12','Slnd13',
 #            'QD1','QD2','QF3','CH','CV','Spect','Lens'],

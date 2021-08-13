@@ -2,6 +2,9 @@
 
 from .LocalData import DeviceNames, RecordNames
 
+# PVs not connecting to real machine:
+# ===================================
+
 _section = 'AS'
 _el_names = dict()  # All these Family names must be defined in family_data
 _fam_names = dict()  # All these Family names must be defined in family_data

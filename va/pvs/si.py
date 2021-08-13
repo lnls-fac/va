@@ -1,6 +1,33 @@
 from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
+
+# PVs not connecting to real machine:
+# ===================================
+# SI-13C4:DI-DCCT:BbBCurrent-Mon
+# SI-13C4:DI-DCCT:HwFlt-Mon
+# SI-13C4:DI-DCCT:CurrThold
+# SI-14C4:DI-DCCT:BbBCurrent-Mon
+# SI-14C4:DI-DCCT:HwFlt-Mon
+# SI-14C4:DI-DCCT:CurrThold
+# SI-Glob:AP-Tune
+# SI-Glob:AP-Chrom
+# SI-Glob:AP-CurrLT:CurrLT-Mon
+# SI-Glob:AP-CurrLT:BbBCurrLT-Mon
+# SI-Glob:AP-BeamSz
+# SI-Glob:AP-Emit
+# SI-03SP:RF-SRFCav:Freq-SP
+# SI-03SP:RF-SRFCav:Freq-RB
+# SI-03SP:RF-SRFCav:Volt-SP
+# SI-03SP:RF-SRFCav:Volt-RB
+# SI-01SA:TI-InjDpKckr:Enbl-SP
+# SI-01SA:TI-InjDpKckr:Enbl-RB
+# SI-01SA:TI-InjNLKckr:Enbl-SP
+# SI-01SA:TI-InjNLKckr:Enbl-RB
+# SI-01SA:TI-PingH:Enbl-SP
+# SI-01SA:TI-PingH:Enbl-RB
+
+
 model = lab_models.si
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': ['BPM', 'DCCT', # 'ScrapH', 'ScrapV', 'GSL15', 'GSL07',

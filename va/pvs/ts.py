@@ -1,6 +1,30 @@
 from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
+
+# PVs not connecting to real machine:
+# ===================================
+# TS-01:DI-ICT
+# TS-04:DI-ICT
+# TS-04:DI-FCT
+# TS-01:DI-Scrn
+# TS-02:DI-Scrn
+# TS-03:DI-Scrn
+# TS-04:DI-Scrn-1
+# TS-04:DI-Scrn-2
+# TS-04:DI-Scrn-3
+# TS-04:TI-InjSeptF:Enbl-SP
+# TS-04:TI-InjSeptF:Enbl-RB
+# TS-04:TI-InjSeptG-1:Enbl-SP
+# TS-04:TI-InjSeptG-1:Enbl-RB
+# TS-04:TI-InjSeptG-2:Enbl-SP
+# TS-04:TI-InjSeptG-2:Enbl-RB
+# TS-01:TI-EjeSeptF:Enbl-SP
+# TS-01:TI-EjeSeptF:Enbl-RB
+# TS-01:TI-EjeSeptG:Enbl-SP
+# TS-01:TI-EjeSeptG:Enbl-RB
+
+
 model = lab_models.ts
 _el_names = { # All these Family names must be defined in family_data dictionary
     'DI': model.families.families_di(),
