@@ -242,6 +242,12 @@ class RecordNames:
         'Voltage-RB',
         'VoltageRef-Mon',
         'Voltage-Mon',
+        'Version-Cte',
+        'CtrlMode-Mon',
+        'CtrlLoop-Sel',
+        'CtrlLoop-Sts',
+        'IntlkSoft-Mon',
+        'IntlkHard-Mon',
         )
 
     def __init__(self, device_names, model=None, family_data = None):
