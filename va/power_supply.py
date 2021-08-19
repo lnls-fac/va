@@ -4,8 +4,6 @@ from .pwrsupply.model import PowerSupply as _PowerSupply
 
 
 # These classes extend the base class PowerSupply in siriuspy
-
-
 class PowerSupply(_PowerSupply):
 
     def __init__(self, magnets, model, psname):
@@ -57,32 +55,38 @@ class PowerSupply(_PowerSupply):
 
     def set_pv(self, pv_name, value, parts):
         propty = parts.propty
-        if not propty.endswith(('-SP','-Sel','-Cmd')) or not propty in self.propties.keys(): return
+        if not propty.endswith(('-SP', '-Sel', '-Cmd')) or \
+                propty not in self.propties.keys():
+            return
 
         old_values = {}
-        for k,v in self.propties.items():
-            if k.startswith(('WfmData','WfmLabels-Mon')): continue
-            old_values[k] = getattr(self,v)
+        for k, v in self.propties.items():
+            if k.startswith(('WfmData', 'WfmLabels-Mon')):
+                continue
+            old_values[k] = getattr(self, v)
 
-        setattr(self,self.propties[propty],value)
+        setattr(self, self.propties[propty], value)
         self.process()
 
         deprecated = {}
         if propty == 'WfmData-SP':
             deprecated[propty] = value
-        for k,v in old_values.items():
+        for k, v in old_values.items():
             new_v = getattr(self, self.propties[k])
-            if v != new_v:   deprecated[k] = new_v
+            if v != new_v:
+                deprecated[k] = new_v
         if 'WfmData-SP' in deprecated or 'WfmLoad-Sel' in deprecated:
-            deprecated['WfmData-RB'] = getattr(self,self.propties['WfmData-RB'])
+            deprecated['WfmData-RB'] = getattr(
+                self, self.propties['WfmData-RB'])
         if 'WfmLabel-SP' in deprecated:
-            deprecated['WfmLabels-Mon'] = getattr(self, self.propties['WfmLabels-Mon'])
+            deprecated['WfmLabels-Mon'] = getattr(
+                self, self.propties['WfmLabels-Mon'])
 
         deprec = {}
-        for k,v in deprecated.items():
-            if k.endswith(('-SP','-Sel')): continue
-            deprec[pv_name.replace(propty,k)] = v
-
+        for k, v in deprecated.items():
+            if k.endswith(('-SP', '-Sel')):
+                continue
+            deprec[pv_name.replace(propty, k)] = v
         return deprec
 
 
@@ -115,7 +119,8 @@ class IndividualPowerSupply(PowerSupply):
             ps_current = 0.0
             for ps in power_supplies:
                 ps_current += ps.current_mon
-            self.current_sp = (total_current - ps_current) if _math.fabs((total_current - ps_current))> 1e-10 else 0.0
+            self.current_sp = (total_current - ps_current) \
+                if _math.fabs((total_current - ps_current)) > 1e-10 else 0.0
         else:
             self.current_sp = 0.0
 
@@ -124,7 +129,8 @@ class PulsedMagnetPowerSupply(IndividualPowerSupply):
 
     def __init__(self, magnets, model, psname, current=None):
         super().__init__(magnets, model=model, psname=psname)
-        if current is not None: self.current_sp = current
+        if current is not None:
+            self.current_sp = current
 
     @property
     def enabled(self):

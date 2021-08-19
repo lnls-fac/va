@@ -8,14 +8,15 @@ from .. import utils
 from ..timesys.time_simul import TimingSimulation
 
 
-
 class DeviceNames:
     pvnaming_glob = 'Glob'
-    pvnaming_fam  = 'Fam'
-    pvnaming_inj  = 'Inj'
+    pvnaming_fam = 'Fam'
+    pvnaming_inj = 'Inj'
 
-    def __init__(self, section, el_names, fam_names, glob_names, inj_names,
-                excitation_curves_mapping, pulse_curve_mapping, get_family_data=None):
+    def __init__(
+            self, section, el_names, fam_names, glob_names, inj_names,
+            excitation_curves_mapping, pulse_curve_mapping,
+            get_family_data=None):
         self.section = section
         # All these Family names must be defined in family_data dictionary:
         self.el_names = el_names
@@ -32,12 +33,19 @@ class DeviceNames:
         # #### Family Data Function #####
         self.get_family_data = get_family_data
 
-    def join_name(self, subsection, discipline, device,
-                  instance=None, proper=None, field=None):
-        
-        name = _join_name(sec=self.section, sub=subsection, dis=discipline, dev=device, idx=instance, propty=proper, field=field)
-        # name = _join_name(self.section, subsection, discipline, device, instance, proper, field)
-        # print(name, self.section, subsection, discipline, device, instance, proper, field)
+    def join_name(
+            self, subsection, discipline, device, instance=None, proper=None,
+            field=None):
+
+        name = _join_name(
+            sec=self.section, sub=subsection, dis=discipline, dev=device,
+            idx=instance, propty=proper, field=field)
+        # name = _join_name(
+        #     self.section, subsection, discipline, device, instance, proper,
+        #     field)
+        # print(
+        #     name, self.section, subsection, discipline, device, instance,
+        #     proper, field)
 
         return name
 
@@ -107,26 +115,34 @@ class DeviceNames:
         for mag, power in zip(['ma', 'pm'], ['ps', 'pu']):
             # create a mapping of index in the lattice and magnet name
             mag_ind_dict = dict()
-            for mag_name, mag_prop in self.get_device_names(accelerator,mag).items():
-                if self.pvnaming_fam in mag_name: continue
+            for mag_name, mag_prop in \
+                    self.get_device_names(accelerator, mag).items():
+                if self.pvnaming_fam in mag_name:
+                    continue
                 idx = list(mag_prop.values())[0][0]
-                if mag_ind_dict.get(idx) is None: # there could be more than one magnet per index
-                    mag_ind_dict[idx]  = set()
+                # there could be more than one magnet per index
+                if mag_ind_dict.get(idx) is None:
+                    mag_ind_dict[idx] = set()
                 mag_ind_dict[idx] |= {mag_name}
 
-            # use this mapping to see if the power supply is attached to the same element
-            for ps_name, ps_prop in self.get_device_names(accelerator,power).items():
+            # use this mapping to see if the power supply is attached to the
+            # same element
+            for ps_name, ps_prop in \
+                    self.get_device_names(accelerator, power).items():
                 ps = _PVName(ps_name).dev
                 idx = list(ps_prop.values())[0]
-                idx = [idx[0]] if self.pvnaming_fam not in ps_name else [i[0] for i in idx] # if Fam then indices are list of lists
+                idx = [idx[0]] if self.pvnaming_fam not in ps_name else \
+                    [i[0] for i in idx]  # if Fam then indcs are list of lists
                 for i in idx:
                     mag_names = mag_ind_dict[i]
                     for mag_name in mag_names:
                         m = _PVName(mag_name).dev
                         if (m not in ps) and (ps not in m):
-                            continue  # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
+                            # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT
+                            # HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
+                            continue
                         if mapping.get(mag_name) is None:
-                            mapping[mag_name]  = set()
+                            mapping[mag_name] = set()
                         mapping[mag_name] |= {ps_name}
 
         # finally find the inverse map
@@ -140,7 +156,7 @@ class DeviceNames:
         return mapping, inverse_mapping
 
     ####### Pulsed Magnets #########
-    def _get_pulsed_magnet_mapping(self, accelerator,delay_or_enbl):
+    def _get_pulsed_magnet_mapping(self, accelerator, delay_or_enbl):
         mapping = {}
         tis_dev = set(self.get_device_names(accelerator, 'TI').keys())
         pms_dev = set(self.get_device_names(accelerator, 'PM').keys())
@@ -164,14 +180,14 @@ class DeviceNames:
 
         Returns dict.
         """
-        return self._get_pulsed_magnet_mapping(accelerator,':Delay')
+        return self._get_pulsed_magnet_mapping(accelerator, ':Delay')
 
     def get_magnet_enabled_mapping(self, accelerator):
         """Get mapping from pulsed magnet to timing enabled
 
         Returns dict.
         """
-        return self._get_pulsed_magnet_mapping(accelerator,':Enbl')
+        return self._get_pulsed_magnet_mapping(accelerator, ':Enbl')
 
     def get_pulse_curve_mapping(self, accelerator):
         """Get mapping from pulsed magnet to pulse curve file names
@@ -187,7 +203,7 @@ class DeviceNames:
         return mapping
 
     ####### Excitation Curves #########
-    def get_excitation_curve_mapping(self,accelerator):
+    def get_excitation_curve_mapping(self, accelerator):
         """Get mapping from magnet to excitation curve file names
 
         Returns dict.
@@ -196,18 +212,21 @@ class DeviceNames:
 
         ec = dict()
         for fams, curve in self.excitation_curves_mapping:
-            if isinstance(fams[0],tuple):
+            if isinstance(fams[0], tuple):
                 for name in magnets:
                     parts = _PVName(name)
                     device = parts.dev
-                    sub    = parts.sub
-                    inst   = parts.idx
-                    if sub.endswith(fams[0][0]) and device.startswith(fams[0][1]) and inst.endswith(fams[0][2]):
+                    sub = parts.sub
+                    inst = parts.idx
+                    if sub.endswith(fams[0][0]) and \
+                            device.startswith(fams[0][1]) and \
+                            inst.endswith(fams[0][2]):
                         ec[name] = curve
             else:
                 for name in magnets:
                     parts = _PVName(name)
-                    if parts.dev.startswith(fams): ec[name] = curve
+                    if parts.dev.startswith(fams):
+                        ec[name] = curve
         return ec
 
     def _particular_dev_renaming(self, dev_name):
@@ -227,9 +246,14 @@ class DeviceNames:
 
 
 class RecordNames:
+    """RecordNames Class.
 
+    Returns:
+        [type]: [description]
+    """
+
+    # TEMP!: limit properties of PS devices!
     limited_ps_propties = (
-        # TEMP!: limit properties of PS devices!
         'OpMode-Sel',
         'OpMode-Sts',
         'PwrState-Sel',
@@ -250,7 +274,7 @@ class RecordNames:
         'IntlkHard-Mon',
         )
 
-    def __init__(self, device_names, model=None, family_data = None):
+    def __init__(self, device_names, model=None, family_data=None):
         self.family_data = family_data
         self.database = dict()
         self.model = model
@@ -289,43 +313,48 @@ class RecordNames:
         self._init_fk_record_names()
 
     def _init_di_record_names(self):
-        _device_names = self.device_names.get_device_names(self.family_data, 'DI')
+        _device_names = self.device_names.get_device_names(
+            self.family_data, 'DI')
         _record_names = {}
         for dev_name in _device_names.keys():
             parts = _PVName(dev_name)
-            if parts.dev== 'BPM':
+            if parts.dev == 'BPM':
                 p1 = dev_name + ':PosX-Mon'
                 _record_names[p1] = _device_names[dev_name]
-                self.database[p1] = {'type' : 'float', 'unit':'nm', 'value': 0.0}
+                self.database[p1] = {
+                    'type': 'float', 'unit':'nm', 'value': 0.0}
                 p2 = dev_name + ':PosY-Mon'
                 _record_names[p2] = _device_names[dev_name]
-                self.database[p2] = {'type' : 'float', 'unit':'nm', 'value': 0.0}
+                self.database[p2] = {
+                    'type': 'float', 'unit':'nm', 'value': 0.0}
             elif 'TuneP' in parts.dev:
                 p = dev_name + ':Freq1-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
                 p = dev_name + ':Freq2-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
                 p = dev_name + ':Freq3-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
-            elif parts.dev== 'DCCT':
+                self.database[p] = {'type': 'float', 'value': 0.0}
+            elif parts.dev == 'DCCT':
                 p = dev_name + ':Current-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
                 p = dev_name + ':BbBCurrent-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'unit':'mA', 'count': self.model.harmonic_number}
+                self.database[p] = {
+                    'type': 'float', 'unit': 'mA',
+                    'count': self.model.harmonic_number}
                 p = dev_name + ':HwFlt-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
                 p = dev_name + ':CurrThold'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
             else:
                 _record_names[dev_name] = _device_names[dev_name]
-                self.database[dev_name] = {'type' : 'float', 'value': 0.0}
+                self.database[dev_name] = {'type': 'float', 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.di_ro = []
         self.di_rw = []
@@ -339,10 +368,13 @@ class RecordNames:
         utils.log(
             'NOTE',
             ('{}: properties being simulated are limited in'
-             ' _init_ps_record_names!').format(self.device_names.section), 'cyan')
-        _device_names = self.device_names.get_device_names(self.family_data, 'PS')
+             ' _init_ps_record_names!').format(self.device_names.section),
+            'cyan')
+        _device_names = self.device_names.get_device_names(
+            self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
-            _device_names.update(self.device_names.get_device_names(self.family_data, 'PU'))
+            _device_names.update(self.device_names.get_device_names(
+                self.family_data, 'PU'))
         _record_names = {}
         for device_name in _device_names.keys():
             db = _pwrsupply_csdev.get_ps_propty_database(psname=device_name)
@@ -360,48 +392,57 @@ class RecordNames:
         self.ps_ro = []
         self.ps_rw = []
         for rec in _record_names.keys():
-            if rec.endswith(('-RB','-Sts','-Mon')):
+            if rec.endswith(('-RB', '-Sts', '-Mon')):
                 self.ps_ro.append(rec)
             else:
                 self.ps_rw.append(rec)
 
     def _init_ap_record_names(self):
         _record_names = dict()
-        _device_names = self.device_names.get_device_names(self.family_data, 'AP')
+        _device_names = self.device_names.get_device_names(
+            self.family_data, 'AP')
         for dev_name in _device_names.keys():
             parts = _PVName(dev_name)
-            if parts.dev== 'CurrLT':
+            if parts.dev == 'CurrLT':
                 p = dev_name + ':CurrLT-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'value': 0.0}
+                self.database[p] = {'type': 'float', 'value': 0.0}
                 p = dev_name + ':BbBCurrLT-Mon'
                 _record_names[p] = _device_names[dev_name]
-                self.database[p] = {'type' : 'float', 'count': self.model.harmonic_number, 'value': 0.0}
+                self.database[p] = {
+                    'type': 'float', 'count': self.model.harmonic_number,
+                    'value': 0.0}
             else:
                 _record_names[dev_name] = _device_names[dev_name]
-                self.database[dev_name] = {'type' : 'float', 'count': 1, 'value': 0.0}
+                self.database[dev_name] = {
+                    'type': 'float', 'count': 1, 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.ap = list(_record_names.keys())
 
     def _init_rf_record_names(self):
-        _device_names = self.device_names.get_device_names(self.family_data, 'RF')
+        _device_names = self.device_names.get_device_names(
+            self.family_data, 'RF')
         _record_names = {}
         for device_name in _device_names.keys():
             parts = _PVName(device_name)
-            #if parts.dev.endswith('Cav'):
-            if parts.dev in ('P5Cav','SRFCav'):
+            # if parts.dev.endswith('Cav'):
+            if parts.dev in ('P5Cav', 'SRFCav'):
                 p = device_name + ':Freq-SP'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
                 p = device_name + ':Freq-RB'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
                 p = device_name + ':Volt-SP'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
                 p = device_name + ':Volt-RB'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
             else:
                 _record_names[device_name] = _device_names[device_name]
                 self.database[device_name] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
@@ -411,45 +452,52 @@ class RecordNames:
     def _init_ti_record_names(self):
         self.ti_ro = []
         self.ti_rw = []
-        _device_names = self.device_names.get_device_names(self.family_data, 'TI')
+        _device_names = self.device_names.get_device_names(
+            self.family_data, 'TI')
         _record_names = {}
         for device_name in _device_names.keys():
             parts = _PVName(device_name)
             if parts.dev == 'Timing':
-                utils.log('NOTE', 'implement "Timing" dev in init_ti_record_names!', 'cyan')
-                # ioc = TimingSimulation
-                # db = ioc.get_database()
-                # self.database.update(db)
-                # devs = _device_names[device_name]
-                # _record_names.update({p:devs for p in db.keys()})
+                utils.log(
+                    'NOTE', 'implement "Timing" dev in init_ti_record_names!',
+                    'cyan')
+                ioc = TimingSimulation
+                db = ioc.get_database()
+                self.database.update(db)
+                devs = _device_names[device_name]
+                _record_names.update({p: devs for p in db.keys()})
             else:
                 p = device_name + ':Enbl-SP'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
+                self.database[p] = {
+                    'type': 'enum', 'enums': ('Dsbl', 'Enbl'), 'value': 1}
                 p = device_name + ':Enbl-RB'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'enum', 'enums':('Dsbl','Enbl'), 'value':1}
+                self.database[p] = {
+                    'type': 'enum', 'enums': ('Dsbl', 'Enbl'), 'value': 1}
                 p = device_name + ':Delay-SP'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
                 p = device_name + ':Delay-RB'
                 _record_names[p] = _device_names[device_name]
-                self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+                self.database[p] = {
+                    'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
         self.all_record_names.update(_record_names)
-        
+
         for rec_name in _record_names.keys():
-            if rec_name.endswith(('-RB','-Sts','-Mon')):
+            if rec_name.endswith(('-RB', '-Sts', '-Mon')):
                 self.ti_ro.append(rec_name)
             else:
                 self.ti_rw.append(rec_name)
 
     def _init_fk_record_names(self):
-        _record_names = dict() # get_fake_record_names(self.family_data)
+        _record_names = dict()  # get_fake_record_names(self.family_data)
         for p in _record_names.keys():
-            self.database[p] = {'type' : 'float', 'count': 1, 'value': 0.0}
+            self.database[p] = {'type': 'float', 'count': 1, 'value': 0.0}
         self.all_record_names.update(_record_names)
         self.fk = []
-        self.fk_pos  = []
+        self.fk_pos = []
 
     def _init_dynamical_pvs(self):
         self.dynamical_pvs = []
@@ -469,10 +517,11 @@ class RecordNames:
         return _copy.deepcopy(self.database)
 
     def get_read_only_pvs(self):
-        return self.di_ro + self.ap + self.ps_ro + self.ti_ro # a copy!
+        return self.di_ro + self.ap + self.ps_ro + self.ti_ro  # a copy!
 
     def get_read_write_pvs(self):
-        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti_rw # a copy!
+        # a copy!
+        return self.di_rw + self.ps_rw + self.fk + self.rf + self.ti_rw
 
     def get_dynamical_pvs(self):
         return _copy.deepcopy(self.dynamical_pvs)

@@ -70,6 +70,7 @@ class AreaStructureProcess(multiprocessing.Process):
             finalisation.wait()
             As.finalise()
 
+
 class AreaStructure:
 
     def __init__(self, others_queue, my_queue, log_func=utils.log, **kwargs):
@@ -113,7 +114,7 @@ class AreaStructure:
         # update dynamical PVs (if not simulating only orbit)
         if not self.simulate_only_orbit:
             pvs = pvs + self.pv_module.get_dynamical_pvs()
-        
+
         # if model changes, also update all read-only PVs
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
@@ -141,7 +142,8 @@ class AreaStructure:
 
     def _get_parameters_from_other_area_structure(self, _dict):
         if 'pulsed_magnet_parameters' in _dict.keys():
-            self._set_pulsed_magnets_parameters(**_dict['pulsed_magnet_parameters'])
+            self._set_pulsed_magnets_parameters(
+                **_dict['pulsed_magnet_parameters'])
         elif 'update_delays' in _dict.keys():
             self._update_pulsed_magnets_delays(_dict['update_delays'])
         elif 'injection_parameters' in _dict.keys():
@@ -154,9 +156,10 @@ class AreaStructure:
             # self._received_charge = False
 
     def _init_sp_pv_values(self):
-        utils.log('epics', '{}: setting database for setpoint pvs'.format(self.prefix))
+        utils.log('epics', '{}: setting database for setpoint pvs'.format(
+            self.prefix))
         sp_pv_list = []
         for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)
-            sp_pv_list.append((pv,value))
-        self._others_queue['driver'].put(('sp', sp_pv_list ))
+            sp_pv_list.append((pv, value))
+        self._others_queue['driver'].put(('sp', sp_pv_list))

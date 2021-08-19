@@ -1,8 +1,8 @@
 """Definition of all Sirius Area Structures."""
 
 import os as _os
-from siriuspy.namesys import SiriusPVName as _PVName
 
+from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
 
 from .timesys.time_simul import TimingSimulation
@@ -12,9 +12,12 @@ from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
 from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
-from va import accelerators_model
-from va import area_structure
-from va import utils
+from . import accelerators_model
+from . import area_structure
+from . import utils
+
+VACA_LAB = _os.environ.get('VACA_LAB', default='sirius')
+VACA_LAB = 'VA-' if VACA_LAB == '' else VACA_LAB
 
 
 class ASModel(area_structure.AreaStructure):
@@ -34,13 +37,12 @@ class ASModel(area_structure.AreaStructure):
         super().__init__(**kwargs)
         self._init_timing_devices()
         self._init_sp_pv_values()
-        self._send_initialisation_sign()  # NOTE: without it CTRL+C ends up without BrokenPipeError
+        # NOTE: without it CTRL+C ends up without BrokenPipeError
+        self._send_initialisation_sign()
 
     def _init_timing_devices(self):
-        utils.log('NOTE', '_init_timing_devices commented out in ASModel!', 'cyan')
-        return
-        self._timing = TimingSimulation(self._rf_frequency,
-                                        callbacks={self._uuid: self._callback})
+        self._timing = TimingSimulation(
+            self._rf_frequency, callbacks={self._uuid: self._callback})
         self._timing.add_injection_callback(self._uuid, self._injection_cycle)
 
     def _callback(self, propty, value, **kwargs):
@@ -48,9 +50,10 @@ class ASModel(area_structure.AreaStructure):
 
     def _get_pv(self, pv_name):
         parts = _PVName(pv_name)
+        var = None
         if parts.dis == 'TI':
-            return self._timing.get_propty(pv_name)
-        return None
+            var = self._timing.get_propty(pv_name)
+        return var
 
     def _set_pv(self, pv_name, value):
         parts = _PVName(pv_name)
@@ -64,14 +67,15 @@ class ASModel(area_structure.AreaStructure):
     # Not used in the moment.
     def _single_pulse_synchronism(self, triggers):
         self._log(message1='cycle', message2='--')
-        self._log(message1='cycle',
-                  message2='Sending Synchronism Triggers' +
-                           ' from Events in Single Mode.')
+        self._log(
+            message1='cycle',
+            message2='Sending Synchronism Triggers' +
+                     ' from Events in Single Mode.')
         self._log(message1='cycle', message2='-- ' + self.prefix + ' --')
         _dict = {'single_cycle': {'triggers': triggers}}
         for acc in ('LI', 'TB', 'BO', 'TS', 'SI'):
-            self._send_parameters_to_other_area_structure(prefix=acc,
-                                                          _dict=_dict)
+            self._send_parameters_to_other_area_structure(
+                prefix=acc, _dict=_dict)
 
     def _injection_cycle(self, injection_bunch, triggers):
         self._log(message1='cycle', message2='--')
@@ -79,13 +83,12 @@ class ASModel(area_structure.AreaStructure):
         self._log(message1='cycle', message2='-- ' + self.prefix + ' --')
         master_delay = injection_bunch * self._bunch_separation
         _dict = {'injection_cycle': {
-                    'triggers': triggers,
-                    'master_delay': master_delay,
-                    'injection_bunch': injection_bunch,
-                    'bunch_separation': self._bunch_separation}}
+            'triggers': triggers,
+            'master_delay': master_delay,
+            'injection_bunch': injection_bunch,
+            'bunch_separation': self._bunch_separation}}
         self._send_parameters_to_other_area_structure(
-            prefix=self._first_accelerator_prefix,
-            _dict=_dict)
+            prefix=self._first_accelerator_prefix, _dict=_dict)
 
 
 class LiModel(accelerators_model.LinacModel):

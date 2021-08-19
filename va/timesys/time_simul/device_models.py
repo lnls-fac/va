@@ -4,16 +4,14 @@ import time as _time
 import copy as _copy
 import uuid as _uuid
 from threading import Thread as _Thread
-from ..time_data import Events, Clocks, Triggers
-from ..time_data import AC_FREQUENCY as _PwrFreq
-from ..time_data import FINE_DELAY as _FINE_DELAY_STEP
 
-_CLOCK_SIM_TMP = 'Cl{0:1d}'
+from siriuspy.timesys.csdev import Const
+
 _OPT_SIM_TMP = 'IntTrig{0:02d}'
 _OUT_SIM_TMP = 'OUT{0:d}'
 
 
-class CallBack:
+class Callback:
     """Base Class for all Timing Simulation."""
 
     def __init__(self, callbacks=None, prefix=None):
@@ -43,7 +41,7 @@ class CallBack:
         self._callbacks.pop(uuid)
 
 
-class _BaseSim(CallBack):
+class _BaseSim(Callback):
 
     _attributes = {}
 
@@ -64,7 +62,7 @@ class _BaseSim(CallBack):
             super().__setattr__(name, value)
 
 
-class _BaseIOC(CallBack):
+class _BaseIOC(Callback):
 
     @classmethod
     def get_database(cls, prefix=''):
@@ -73,8 +71,8 @@ class _BaseIOC(CallBack):
     def __init__(self, control, callbacks=None, prefix=None):
         super().__init__(callbacks, prefix=prefix)
         self.uuid = _uuid.uuid4()
-        self._pvname2attr = {value: key
-                             for key, value in self._attr2pvname.items()}
+        self._pvname2attr = {
+            value: key for key, value in self._attr2pvname.items()}
         self._control = control
         self._control.add_callback({self.uuid: self._callback})
         self.base_freq = self._control.base_freq
@@ -149,7 +147,7 @@ class _EventSim(_BaseSim):
     def __init__(self, base_freq, callbacks=None):
         super().__init__(callbacks)
         self.base_freq = base_freq
-        self._delay_type = None
+        self._delay_type = 0
         self._delay = 0
         self._mode = 0
 
@@ -175,10 +173,10 @@ class _EVGSim(_BaseSim):
         self._repetition_rate = 30
         self._rf_division = 4
         self.events = list()
-        for _ in Events.LL_CODES:
+        for _ in Const.EvtLL:
             self.events.append(_EventSim(self.base_freq/self._rf_division))
         self.clocks = list()
-        for _ in sorted(Clocks.LL2HL_MAP.keys()):
+        for _ in Const.ClkLL:
             self.clocks.append(_ClockSim(self.base_freq/self._rf_division))
 
     def __setattr__(self, attr, value):
@@ -221,7 +219,7 @@ class _EVGSim(_BaseSim):
                     triggers.update(callback(i, evnts))
                 for callback in self._injection_callbacks.values():
                     callback(i, triggers)
-                _time.sleep(self._repetition_rate/_PwrFreq)
+                _time.sleep(self._repetition_rate/Const.AC_FREQUENCY)
             if not self._cyclic_injection:
                 self._injection = 0
                 self._call_callbacks('injection', 0)
@@ -237,7 +235,7 @@ class _EVGSim(_BaseSim):
         tables = tables if isinstance(tables, (list, tuple)) else (tables,)
         events = dict()
         for i, ev in enumerate(self.events):
-            lab = Events.LL_EVENTS[i]
+            lab = Const.EvtLL._fields[i]
             if ev.mode not in tables:
                 continue
             dic = ev.generate()
@@ -248,15 +246,12 @@ class _EVGSim(_BaseSim):
             dic = cl.generate()
             if not dic:
                 continue
-            lab = _CLOCK_SIM_TMP.format(i)
+            lab = Const.ClkLL._fields[i]
             events.update({lab: dic})
         return events
 
 
 class _EventIOC(_BaseIOC):
-
-    _modes = Events.MODES
-    _delay_types = Events.DELAY_TYPES
 
     _attr2pvname = {
         'delay_sp': 'Delay-SP',
@@ -277,13 +272,13 @@ class _EventIOC(_BaseIOC):
         db[prefix + 'Delay-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'Delay-RB'] = dic_
         db[prefix + 'Mode-Sel'] = {
-            'type': 'enum', 'enums': _EventIOC._modes, 'value': 1}
+            'type': 'enum', 'enums': Const.EvtModes._fields, 'value': 1}
         db[prefix + 'Mode-Sts'] = {
-            'type': 'enum', 'enums': _EventIOC._modes, 'value': 1}
+            'type': 'enum', 'enums': Const.EvtModes._fields, 'value': 1}
         db[prefix + 'DelayType-Sel'] = {
-            'type': 'enum', 'enums': _EventIOC._delay_types, 'value': 1}
+            'type': 'enum', 'enums': Const.EvtDlyTyp._fields, 'value': 1}
         db[prefix + 'DelayType-Sts'] = {
-            'type': 'enum', 'enums': _EventIOC._delay_types, 'value': 1}
+            'type': 'enum', 'enums': Const.EvtDlyTyp._fields, 'value': 1}
         db[prefix + 'ExtTrig-Cmd'] = {
             'type': 'int', 'value': 0}
         return db
@@ -313,8 +308,6 @@ class _EventIOC(_BaseIOC):
 
 class _ClockIOC(_BaseIOC):
 
-    _states = ('Dsbl', 'Enbl')
-
     _attr2pvname = {
         'frequency_sp': 'MuxDiv-SP',
         'frequency_rb': 'MuxDiv-RB',
@@ -331,9 +324,9 @@ class _ClockIOC(_BaseIOC):
         db[prefix + 'MuxDiv-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'MuxDiv-RB'] = dic_
         db[prefix + 'MuxEnbl-Sel'] = {
-            'type': 'enum', 'enums': _ClockIOC._states, 'value': 0}
+            'type': 'enum', 'enums': Const.ClockStates._fields, 'value': 0}
         db[prefix + 'MuxEnbl-Sts'] = {
-            'type': 'enum', 'enums': _ClockIOC._states, 'value': 0}
+            'type': 'enum', 'enums': Const.ClockStates._fields, 'value': 0}
         return db
 
     def __init__(self, base_freq, callbacks=None, prefix=None, control=None):
@@ -381,17 +374,17 @@ class EVGIOC(_BaseIOC):
         db = dict()
         p = prefix
         db[p + 'InjectionState-Sel'] = {
-            'type': 'enum', 'enums': EVGIOC._states, 'value': 0}
+            'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 0}
         db[p + 'InjectionState-Sts'] = {
-            'type': 'enum', 'enums': EVGIOC._states, 'value': 0}
+            'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 0}
         db[p + 'InjectionCyc-Sel'] = {
-            'type': 'enum', 'enums': EVGIOC._cyclic_types, 'value': 0}
+            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
         db[p + 'InjectionCyc-Sts'] = {
-            'type': 'enum', 'enums': EVGIOC._cyclic_types, 'value': 0}
+            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
         db[p + 'ContinuousState-Sel'] = {
-            'type': 'enum', 'enums': EVGIOC._states, 'value': 1}
+            'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 1}
         db[p + 'ContinuousState-Sts'] = {
-            'type': 'enum', 'enums': EVGIOC._states, 'value': 1}
+            'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 1}
         db[p + 'BucketList-SP'] = {
             'type': 'int', 'count': 864, 'value': 864*[0]}
         db[p + 'BucketList-RB'] = {
@@ -406,10 +399,10 @@ class EVGIOC(_BaseIOC):
                 'hilim': 10, 'high': 20, 'hihi': 20}
         db[p + 'RFDiv-SP'] = _copy.deepcopy(dic_)
         db[p + 'RFDiv-RB'] = dic_
-        for clc in Clocks.LL2HL_MAP.keys():
+        for clc in Const.ClkLL._fields:
             p = prefix + clc
             db.update(_ClockIOC.get_database(p))
-        for ev in Events.LL_EVENTS:
+        for ev in Const.EvtLL._fields:
             p = prefix + ev
             db.update(_EventIOC.get_database(p))
 
@@ -436,7 +429,7 @@ class EVGIOC(_BaseIOC):
         super().__init__(control, callbacks=callbacks, prefix=prefix)
 
         self.events = dict()
-        for i, ev in enumerate(Events.LL_EVENTS):
+        for i, ev in enumerate(Const.EvtLL._fields):
             cntler = self._control.events[i]
             self.events[ev] = _EventIOC(
                 self.base_freq/self._control._rf_division,
@@ -444,7 +437,7 @@ class EVGIOC(_BaseIOC):
                 prefix=ev,
                 control=cntler)
         self.clocks = dict()
-        for i, clc in enumerate(sorted(Clocks.LL2HL_MAP.keys())):
+        for i, clc in enumerate(Const.ClkLL._fields):
             cntler = self._control.clocks[i]
             self.clocks[clc] = _ClockIOC(
                 self.base_freq/self._control._rf_division,
@@ -501,12 +494,13 @@ class EVGIOC(_BaseIOC):
     def get_propty(self, reason):
         """Get propty."""
         reason2 = reason[len(self.prefix):]
+        print(reason2)
         if reason2.startswith(tuple(self.clocks.keys())):
-            leng = len(Clocks.LL_TMP.format(0))
-            return self.clocks[reason2[: leng]].get_propty(reason2)
+            leng = len(Const.ClkLL._fields[0])
+            return self.clocks[reason2[:leng]].get_propty(reason2)
         elif reason2.startswith(tuple(self.events.keys())):
-            leng = len(Events.LL_TMP.format(0))
-            return self.events[reason2[: leng]].get_propty(reason2)
+            leng = len(Const.EvtLL._fields[0])
+            return self.events[reason2[:leng]].get_propty(reason2)
         else:
             return super().get_propty(reason)
 
@@ -514,10 +508,10 @@ class EVGIOC(_BaseIOC):
         """Set propty."""
         reason2 = reason[len(self.prefix):]
         if reason2.startswith(tuple(self.clocks.keys())):
-            leng = len(Clocks.LL_TMP.format(0))
+            leng = len(Const.ClkLL._fields[0])
             return self.clocks[reason2[: leng]].set_propty(reason2, value)
         elif reason2.startswith(tuple(self.events.keys())):
-            leng = len(Events.LL_TMP.format(0))
+            leng = len(Const.EvtLL._fields[0])
             return self.events[reason2[: leng]].set_propty(reason2, value)
         else:
             return super().set_propty(reason, value)
@@ -541,8 +535,8 @@ class _OutputSim(_BaseSim):
         dic = opts.get(self._optic_channel, None)
         if dic is None:
             return
-        dic['delay'] += (self._delay/self.base_freq +
-                         self._fine_delay * _FINE_DELAY_STEP)
+        dic['delay'] += (
+            self._delay/self.base_freq + self._fine_delay * Const.FINE_DELAY)
         return dic
 
 
@@ -567,9 +561,10 @@ class _InternTrigSim(_BaseSim):
         if ev is None:
             return
         delay = ev['delay'] + self._delay/self.base_freq
-        return dict({'pulses': self._pulses,
-                     'width': self._width/self.base_freq,
-                     'delay': delay})
+        return {
+            'pulses': self._pulses,
+            'width': self._width/self.base_freq,
+            'delay': delay}
 
 
 class _EVRSim(_BaseSim):
@@ -615,7 +610,7 @@ class _EVRSim(_BaseSim):
 
 class _EVESim(_EVRSim):
     _ClassOutSim = _OutputSim
-    _NR_INTERNAL_OPT_CHANNELS = 16
+    _NR_INTERNAL_OPT_CHANNELS = 24
     _NR_OPT_CHANNELS = 0
     _NR_OUT_CHANNELS = 8
 
@@ -638,21 +633,21 @@ class _EVROutputIOC(_BaseIOC):
         'optic_channel_rb': 'IntChan-Sts',
         }
 
-    _int_chan_enums = (['IntTrig{0:02d}'.format(i) for i in range(24)] +
-                       sorted(Clocks.LL2HL_MAP.keys()))
+    _int_chan_enums = ['IntTrig{0:02d}'.format(i) for i in range(24)]
+    _int_chan_enums += Const.ClkLL._fields
 
     @classmethod
     def get_database(cls, prefix=''):
         db = dict()
-        dic_ = {'type': 'int', 'value': 0,
-                'lolo': 0, 'low': 0, 'lolim': 0,
-                'hilim': 200, 'high': 200, 'hihi': 200}
+        dic_ = {
+            'type': 'int', 'value': 0, 'lolo': 0, 'low': 0, 'lolim': 0,
+            'hilim': 200, 'high': 200, 'hihi': 200}
         db[prefix + 'FineDelay-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'FineDelay-RB'] = dic_
 
-        dic_ = {'type': 'int', 'value': 0,
-                'lolo': 0, 'low': 0, 'lolim': 0,
-                'hilim': 30, 'high': 31, 'hihi': 31}
+        dic_ = {
+            'type': 'int', 'value': 0, 'lolo': 0, 'low': 0, 'lolim': 0,
+            'hilim': 30, 'high': 31, 'hihi': 31}
         db[prefix + 'RFDelay-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'RFDelay-RB'] = dic_
 
@@ -688,15 +683,13 @@ class _EVROutputIOC(_BaseIOC):
 
 class _EVEOutputIOC(_EVROutputIOC):
 
-    _int_chan_enums = (['IntTrig{0:02d}'.format(i) for i in range(16)] +
-                       sorted(Clocks.LL2HL_MAP.keys()))
+    _int_chan_enums = ['IntTrig{0:02d}'.format(i) for i in range(16)]
+    _int_chan_enums += Const.ClkLL._fields
 
 
 class _InternTrigIOC(_BaseIOC):
 
-    _states = Triggers.STATES
-    _polarities = Triggers.POLARITIES
-    _event_enums = Events.LL_EVENTS.copy()
+    _event_enums = Const.EvtLL._fields
 
     _attr2pvname = {
         'state_sp': 'State-Sel',
@@ -717,33 +710,34 @@ class _InternTrigIOC(_BaseIOC):
     def get_database(cls, prefix=''):
         db = dict()
         db[prefix + 'State-Sel'] = {
-            'type': 'enum', 'enums': cls._states, 'value': 0}
+            'type': 'enum', 'enums': Const.TrigStates._fields, 'value': 0}
         db[prefix + 'State-Sts'] = {
-            'type': 'enum', 'enums': cls._states, 'value': 0}
+            'type': 'enum', 'enums': Const.TrigStates._fields, 'value': 0}
 
-        dic_ = {'type': 'int', 'value': 1,
-                'lolo': 1, 'low': 1, 'lolim': 1,
-                'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
+        dic_ = {
+            'type': 'int', 'value': 1, 'lolo': 1, 'low': 1, 'lolim': 1,
+            'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
         db[prefix + 'Width-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'Width-RB'] = dic_
 
-        dic_ = {'type': 'int', 'value': 0,
-                'lolo': 0.0, 'low': 0.0, 'lolim': 0.0,
-                'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
+        dic_ = {
+            'type': 'int', 'value': 0, 'lolo': 0.0, 'low': 0.0, 'lolim': 0.0,
+            'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
         db[prefix + 'Delay-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'Delay-RB'] = dic_
         db[prefix + 'Polrty-Sel'] = {
-            'type': 'enum', 'enums': cls._polarities, 'value': 0}
+            'type': 'enum', 'enums': Const.TrigPol._fields, 'value': 0}
         db[prefix + 'Polrty-Sts'] = {
-            'type': 'enum', 'enums': cls._polarities, 'value': 0}
+            'type': 'enum', 'enums': Const.TrigPol._fields, 'value': 0}
         db[prefix + 'Event-Sel'] = {
-            'type': 'string', 'value': 'Event00', 'Enums': cls._event_enums}
+            'type': 'string', 'value': 'Evt01', 'Enums': cls._event_enums}
         db[prefix + 'Event-Sts'] = {
-            'type': 'string', 'value': 'Event00', 'Enums': cls._event_enums}
+            'type': 'string', 'value': 'Evt01', 'Enums': cls._event_enums}
 
-        dic_ = {'type': 'int', 'unit': 'numer of pulses',
-                'value': 1, 'lolo': 1, 'low': 1, 'lolim': 1,
-                'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
+        dic_ = {
+            'type': 'int', 'unit': 'numer of pulses', 'value': 1,
+            'lolo': 1, 'low': 1, 'lolim': 1,
+            'hilim': 4294967295, 'high': 4294967295, 'hihi': 4294967295}
         db[prefix + 'Pulses-SP'] = _copy.deepcopy(dic_)
         db[prefix + 'Pulses-RB'] = dic_
         return db
@@ -791,8 +785,6 @@ class EVRIOC(_BaseIOC):
     _OUTTMP = 'OUT{0:d}'
     _INTTMP = 'IntTrig{0:02d}'
 
-    _states = ('Dsbl', 'Enbl')
-
     _attr2pvname = {
         'state_sp': 'State-Sel',
         'state_rb': 'State-Sts',
@@ -804,9 +796,9 @@ class EVRIOC(_BaseIOC):
         db = dict()
         p = prefix
         db[p + 'State-Sel'] = {
-            'type': 'enum', 'enums': cls._states, 'value': 0}
+            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
         db[p + 'State-Sts'] = {
-            'type': 'enum', 'enums': cls._states, 'value': 0}
+            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
         for i in range(cls._ClassSim._NR_INTERNAL_OPT_CHANNELS):
             p = prefix + cls._INTTMP.format(i)
             db.update(cls._ClassIntTrigIOC.get_database(p))
@@ -870,12 +862,12 @@ class EVRIOC(_BaseIOC):
         reason2 = reason[len(self.prefix):]
         if reason2.startswith(tuple(self.main_outputs.keys())):
             leng = len(self._OUTTMP.format(0))
-            return self.main_outputs[reason2[:leng]].set_propty(reason2,
-                                                                value)
+            return self.main_outputs[reason2[:leng]].set_propty(
+                reason2, value)
         elif reason2.startswith(tuple(self.internal_triggers.keys())):
             leng = len(self._INTTMP.format(0))
-            return self.internal_triggers[reason2[:leng]].set_propty(reason2,
-                                                                     value)
+            return self.internal_triggers[reason2[:leng]].set_propty(
+                reason2, value)
         else:
             return super().set_propty(reason, value)
 
@@ -893,7 +885,7 @@ class EVEIOC(EVRIOC):
 
 class _AFCTrigIOC(_InternTrigIOC):
 
-    _event_enums = Events.LL_EVENTS.copy() + sorted(Clocks.LL2HL_MAP.keys())
+    _event_enums = Const.EvtLL._fields + Const.ClkLL._fields
     _attr2pvname = {
         'state_sp': 'State-Sel',
         'state_rb': 'State-Sts',

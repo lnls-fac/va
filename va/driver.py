@@ -125,7 +125,8 @@ class PCASDriver(Driver):
         sp_pv_list = data
         for pv_name, value in sp_pv_list:
             if value is None:
-                utils.log('warn', 'Value for {} is None!'.format(pv_name), 'yellow')
+                utils.log(
+                    'warn', 'Value for {} is None!'.format(pv_name), 'yellow')
             else:
                 self.setParam(pv_name, value)
 

@@ -23,7 +23,7 @@ def run(laboratory, prefix, only_orbit=False, print_pvs=True):
     global start_event
     global stop_event
     start_event = multiprocessing.Event()
-    stop_event = multiprocessing.Event() # signals a stop request
+    stop_event = multiprocessing.Event()  # signals a stop request
     set_sigint_handler(set_global_stop_event)
 
     area_structures = get_area_structures()
@@ -34,27 +34,24 @@ def run(laboratory, prefix, only_orbit=False, print_pvs=True):
         for sec, pvs in pv_names.items():
             with open('{}.txt'.format(sec), 'w') as fp:
                 fp.write('\n'.join(pvs))
-        
 
     server = pcaspy.SimpleServer()
     prefix_ = prefix + '-' if prefix else prefix
     server.createPV(prefix_, pv_database)
 
-    num_parties = len(area_structures) + 1 # number of parties for barrier
-    finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
+    num_parties = len(area_structures) + 1  # number of parties for barrier
+    finalisation_barrier = multiprocessing.Barrier(
+        num_parties, timeout=JOIN_TIMEOUT)
 
     processes, driver_thread = create_and_start_processes_and_threads(
-                                area_structures,
-                                start_event,
-                                stop_event,
-                                finalisation_barrier)
+        area_structures, start_event, stop_event, finalisation_barrier)
 
     wait_for_initialisation()
     while not stop_event.is_set():
         server.process(WAIT_TIMEOUT)
 
     print_stop_event_message()
-    join_processes(processes,driver_thread)
+    join_processes(processes, driver_thread)
 
 
 def set_sigint_handler(handler):
@@ -75,17 +72,21 @@ def get_area_structures():
         sirius_area_structures.TsModel,
         sirius_area_structures.SiModel,
     )
-
     return area_structures
 
 
 def get_virtual_pv_database():
     pv_database = {}
-    pv_database['AS-Glob:VA-Control:Quit-Cmd'] = {'type':'int', 'value':0}
-    pv_database['BO-Glob:VA-Control:BeamCurrentAdd-SP'] = {'type':'float', 'value':0}
-    pv_database['BO-Glob:VA-Control:BeamCurrentDump-Cmd'] = {'type':'int', 'value':0}
-    pv_database['SI-Glob:VA-Control:BeamCurrentAdd-SP'] = {'type':'float', 'value':0}
-    pv_database['SI-Glob:VA-Control:BeamCurrentDump-Cmd'] = {'type':'int', 'value':0}
+    pv_database['AS-Glob:VA-Control:Quit-Cmd'] = {
+        'type': 'int', 'value': 0}
+    pv_database['BO-Glob:VA-Control:BeamCurrentAdd-SP'] = {
+        'type': 'float', 'value': 0}
+    pv_database['BO-Glob:VA-Control:BeamCurrentDump-Cmd'] = {
+        'type': 'int', 'value': 0}
+    pv_database['SI-Glob:VA-Control:BeamCurrentAdd-SP'] = {
+        'type': 'float', 'value': 0}
+    pv_database['SI-Glob:VA-Control:BeamCurrentDump-Cmd'] = {
+        'type': 'int', 'value': 0}
     return pv_database
 
 
@@ -101,17 +102,20 @@ def get_pv_names(area_structures):
     pv_names = {}
     for As in area_structures:
         # Too low level?
-        area_structure_pv_names = {As.prefix.lower()+'_pv_names': As.database.keys()}
+        area_structure_pv_names = {
+            As.prefix.lower()+'_pv_names': As.database.keys()}
         pv_names.update(area_structure_pv_names)
     pv_names.update({'va_pv_names': get_virtual_pv_database().keys()})
     return pv_names
 
 
-def create_and_start_processes_and_threads(area_structures, start_event, stop_event, finalisation_barrier):
+def create_and_start_processes_and_threads(
+        area_structures, start_event, stop_event, finalisation_barrier):
     processes = []
     all_queues = dict()
     for as_ in area_structures:
-        asp = area_structure.AreaStructureProcess(as_, WAIT_TIMEOUT, stop_event, finalisation_barrier)
+        asp = area_structure.AreaStructureProcess(
+            as_, WAIT_TIMEOUT, stop_event, finalisation_barrier)
         all_queues[asp.area_structure_prefix] = asp.my_queue
         processes.append(asp)
 
@@ -123,7 +127,7 @@ def create_and_start_processes_and_threads(area_structures, start_event, stop_ev
         finalisation_barrier
     )
     all_queues['driver'] = driver_thread.my_queue
-    #Start processes and threads
+    # Start processes and threads
     for proc in processes:
         proc.set_others_queue(all_queues)
         proc.start()
@@ -141,7 +145,7 @@ def wait_for_initialisation():
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
-        if (t-t0) > INIT_TIMEOUT: 
+        if (t-t0) > INIT_TIMEOUT:
             utils.log('init', 'initialization timeout!', 'red')
             break
     if not stop_event.is_set():
@@ -152,7 +156,7 @@ def print_stop_event_message():
     utils.log('exit', 'stop_event was set', 'red')
 
 
-def join_processes(processes,driver_thread):
+def join_processes(processes, driver_thread):
     utils.log('join', 'joining processes...')
     for process in processes:
         process.join(JOIN_TIMEOUT)

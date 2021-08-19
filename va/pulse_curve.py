@@ -22,7 +22,8 @@ class PulseCurve:
         return self._flat_top
 
     def get_pulse_shape(self, time):
-        return _numpy.interp(time, self._pulse_time, self._pulse_shape, left=0, right=0)
+        return _numpy.interp(
+            time, self._pulse_time, self._pulse_shape, left=0, right=0)
 
     def _load_pulse_curve_web(self, filename):
         try:
@@ -65,4 +66,4 @@ class PulseCurve:
     def _build_interpolation_tables_from_conversion_data(self, data):
         data = _numpy.array(data)
         self._pulse_time = data[:, 0]
-        self._pulse_shape = data[:, 1]/max(data[:,1])
+        self._pulse_shape = data[:, 1]/max(data[:, 1])

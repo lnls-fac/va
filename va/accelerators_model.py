@@ -21,6 +21,7 @@ TRACK6D = True
 CALC_INJECTION_EFF = True
 CALC_TIMING_EFF = True
 
+
 class Plane(enum.IntEnum):
     horizontal = 0
     vertical = 1
@@ -31,9 +32,12 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def __init__(self, **kwargs):
         self._injection_parameters = None
-        self._dcct = {} # encapsulate DCCTs data structures within private methods, just as for magnets and ps...
+        # encapsulate DCCTs data structures within private methods,
+        # just as for magnets and ps...
+        self._dcct = {}
         super().__init__(**kwargs)
-        self._reset('reset', 'model {}'.format(self.model_module.lattice_version))
+        self._reset('reset', 'model {}'.format(
+            self.model_module.lattice_version))
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
 
@@ -51,19 +55,24 @@ class AcceleratorModel(area_structure.AreaStructure):
         if value is None:
             value = self._get_pv_not_implemented(pv_name, parts)
         if value is None:
-            utils.log('warn', str('response to ' + pv_name + ' not implemented in model get_pv'), 'yellow', a=['bold'])
+            utils.log(
+                'warn', str('response to ' + pv_name +
+                    ' not implemented in model get_pv'), 'yellow', a=['bold'])
             value = 0
-            # raise Exception('response to ' + pv_name + ' not implemented in model get_pv')
+            # raise Exception(
+            #     'response to '+pv_name+' not implemented in model get_pv')
         return value
 
     def _get_pv_dynamic(self, pv_name, parts):
         if parts.dis == 'DI' and parts.propty == 'BbBCurrent-Mon':
-            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+            time_interval = pyaccel.optics.get_revolution_period(
+                self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return currents_mA
         elif parts.dis == 'DI' and parts.propty == 'Current-Mon':
-            time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+            time_interval = pyaccel.optics.get_revolution_period(
+                self._accelerator)
             currents = self._beam_charge.current(time_interval)
             currents_mA = [bunch_current / _u.mA for bunch_current in currents]
             return sum(currents_mA)
@@ -77,20 +86,24 @@ class AcceleratorModel(area_structure.AreaStructure):
             return None
 
     def _get_pv_static(self, pv_name, parts):
-        if parts.dis in ('PS','PU'):
-            if parts.dis == 'PS': dev = self._power_supplies[parts.device_name]
-            elif parts.dis == 'PU': dev = self._pulsed_power_supplies[parts.device_name]
+        if parts.dis in ('PS', 'PU'):
+            if parts.dis == 'PS':
+                dev = self._power_supplies[parts.device_name]
+            elif parts.dis == 'PU':
+                dev = self._pulsed_power_supplies[parts.device_name]
             value = dev.get_pv(pv_name, parts)
             if value is not None: return value
         elif parts.dis == 'DI':
             if parts.dev == 'BPM':
                 idx = self._get_elements_indices(pv_name)
                 if parts.propty == 'PosX-Mon':
-                    if self._orbit is None: return _undef_value
-                    return _meter_2_nm*self._orbit[0,idx]
+                    if self._orbit is None:
+                        return _undef_value
+                    return _meter_2_nm*self._orbit[0, idx]
                 elif parts.propty == 'PosY-Mon':
-                    if self._orbit is None: return _undef_value
-                    return _meter_2_nm*self._orbit[2,idx]
+                    if self._orbit is None:
+                        return _undef_value
+                    return _meter_2_nm*self._orbit[2, idx]
                 return None
             elif parts.dev in ('SlitH', 'SlitV'):
                 return 0.0
@@ -218,7 +231,8 @@ class AcceleratorModel(area_structure.AreaStructure):
     def _set_pv_vaca(self, pv_name, value, parts):
         if parts.dis == 'VA':
             if parts.propty == 'BeamCurrentAdd-SP':
-                time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
+                time_interval = pyaccel.optics.get_revolution_period(
+                    self._accelerator)
                 nr_bunches = self._beam_charge.nr_bunches
                 charge_delta = _u.mA * (value/nr_bunches) * time_interval * numpy.ones(nr_bunches)
                 self._beam_inject(charge=charge_delta)
@@ -317,7 +331,8 @@ class AcceleratorModel(area_structure.AreaStructure):
     # --- auxiliary methods
 
     def _beam_inject(self, charge=None):
-        if charge is None: return
+        if charge is None:
+            return
 
         initial_charge = self._beam_charge.total_value
         self._beam_charge.inject(charge)
@@ -572,36 +587,43 @@ class LinacModel(AcceleratorModel):
 
         idx = pyaccel.lattice.find_indices(self._accelerator,'fam_name','twiss_at_match')
         acc = self._accelerator[idx:]
-        loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(acc, **_dict)
+        loss_fraction, self._twiss, self._m66 = \
+            injection.calc_charge_loss_fraction_in_line(acc, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
-        self._orbit = self._twiss.co
+
+        if self._twiss is not None:
+            self._orbit = self._twiss.co
+            twi = self._twiss[-1]
 
         args_dict = {}
+        # picklable object
+        args_dict['init_twiss'] = self._twiss[-1].make_dict()
         args_dict.update(inj_params)
-        args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'injection_parameters' : args_dict})
+        self._send_parameters_to_other_area_structure(
+            prefix=self._downstream_accelerator_prefix,
+            _dict = {'injection_parameters': args_dict})
 
     def _set_pulsed_magnets_parameters(self):
         _dict = { 'pulsed_magnet_parameters' : {
-            'total_length'      : self._accelerator.length,
-            'magnet_pos'        : 0,
-            'nominal_delays'    : {'EGun' : self._egun_delay},}
+            'total_length': self._accelerator.length,
+            'magnet_pos': 0, 'nominal_delays': {'EGun' : self._egun_delay}}
         }
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = _dict)
+        self._send_parameters_to_other_area_structure(
+            prefix=self._downstream_accelerator_prefix, _dict=_dict)
 
     def _update_pulsed_magnets_delays(self, delays):
         for magnet_name, delay in delays.items():
             if 'EGun' in magnet_name:
                 self._egun_delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'update_delays' : delays})
+        self._send_parameters_to_other_area_structure(
+            prefix=self._downstream_accelerator_prefix,
+            _dict={'update_delays' : delays})
         self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
-        pv_name = self.device_names.join_name('01','TI','EGun',proper='Delay-SP')
+        pv_name = self.device_names.join_name(
+            '01', 'TI', 'EGun', proper='Delay-SP')
         self._others_queue['driver'].put(('s', (pv_name, self._egun_delay)))
 
     def _injection_cycle(self, **kwargs):
@@ -612,15 +634,24 @@ class LinacModel(AcceleratorModel):
             else:
                 charge = [self._multi_bunch_charge/self.nr_bunches]*self.nr_bunches
         else:
-            self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
-            self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(0.0))
-            self._log(message1 = 'cycle', message2 = 'Stoping injection')
+            self._log(message1='cycle', message2='-- '+self.prefix+' --')
+            self._log(
+                message1='cycle',
+                message2='electron gun providing charge: {0:.5f} nC'.format(
+                    0.0))
+            self._log(message1='cycle', message2='Stoping injection')
             return
-        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
-        self._log(message1 = 'cycle', message2 = 'electron gun providing charge: {0:.5f} nC'.format(sum(charge)*1e9))
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+        self._log(message1='cycle', message2='-- '+self.prefix+' --')
+        self._log(
+            message1='cycle',
+            message2='electron gun providing charge: {0:.5f} nC'.format(
+                sum(charge)*1e9))
+        self._log(
+            message1='cycle',
+            message2='beam injection in {0:s}: {1:.5f} nC'.format(
+                self.prefix, sum(charge)*1e9))
 
-        charge_time = [(kwargs['injection_bunch']+ i)*kwargs['bunch_separation'] + self._egun_delay for i in range(len(charge))]
+        charge_time = [(kwargs['injection_bunch'] + i)*kwargs['bunch_separation']+self._egun_delay for i in range(len(charge))]
 
         if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
@@ -729,25 +760,31 @@ class TLineModel(AcceleratorModel):
         loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._orbit = self._twiss.co
-        for ps in self._pulsed_power_supplies.values(): ps.pwrstate_sel = 0
+        for ps in self._pulsed_power_supplies.values():
+            ps.pwrstate_sel = 0
 
         args_dict = {}
         args_dict.update(self._injection_parameters)
         args_dict['init_twiss'] = self._twiss[-1].make_dict() # picklable object
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'injection_parameters' : args_dict})
+        self._send_parameters_to_other_area_structure(
+            prefix=self._downstream_accelerator_prefix,
+            _dict={'injection_parameters': args_dict})
 
     def _injection_cycle(self, **kwargs):
         charge = kwargs['charge']
         charge_time = kwargs['charge_time']
 
-        self._log(message1 = 'cycle', message2 = '-- '+self.prefix+' --')
-        self._log(message1 = 'cycle', message2 = 'beam injection in {0:s}: {1:.5f} nC'.format(self.prefix, sum(charge)*1e9))
+        self._log(message1='cycle', message2='-- '+self.prefix+' --')
+        self._log(
+            message1='cycle',
+            message2='beam injection in {0:s}: {1:.5f} nC'.format(
+                self.prefix, sum(charge)*1e9))
 
         if CALC_TIMING_EFF and not self.simulate_only_orbit:
             prev_charge = sum(charge)
             for magnet in self._get_sorted_pulsed_magnets():
-                charge, charge_time = magnet.pulsed_magnet_pass(charge, charge_time, kwargs['master_delay'])
+                charge, charge_time = magnet.pulsed_magnet_pass(
+                    charge, charge_time, kwargs['master_delay'])
             efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
             self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
@@ -977,7 +1014,8 @@ class BoosterModel(RingModel):
 
     def _calc_linear_optics(self):
         # Calculate linear optics when there is beam
-        if self._orbit is None: return
+        if self._orbit is None:
+            return
         try:
         # Optics
             self._log('calc', '{}: linear optics'.format(self.model_module.lattice_version))
