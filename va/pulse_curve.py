@@ -10,7 +10,7 @@ _HEADER_CHAR = '#'
 class PulseCurve:
 
     def __init__(self, fname):
-        # self._load_pulse_curve_web(fname)
+        self._load_pulse_curve_web(fname)
         self._rise_time = 0
 
     @property
@@ -27,7 +27,8 @@ class PulseCurve:
 
     def _load_pulse_curve_web(self, filename):
         try:
-            text = magnets_excitation_data_read(filename)
+            text = magnets_excitation_data_read(
+                '../pulse-curve-data/'+filename)
         except:
             print('Error trying to read excdata {}'.format(filename))
             raise
@@ -39,8 +40,11 @@ class PulseCurve:
         for line in lines:
             if line.startswith(_HEADER_CHAR):
                 self._process_header_line(line)
+            elif not line:
+                continue
             else:
-                conversion_data.append([float(word) for word in line.split()])
+                data = [float(word) for word in line.strip().split()]
+                conversion_data.append(data)
 
         self._build_interpolation_tables_from_conversion_data(conversion_data)
 

@@ -24,7 +24,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     coupling = kwargs['global_coupling']
 
     if len(accelerator) == 0:
-        loss_fraction = 1.0
+        loss_fraction = 0.0
         return (loss_fraction, pyaccel.optics.TwissArray(init_twiss), None)
     try:
         twiss, m66 = pyaccel.optics.calc_twiss(

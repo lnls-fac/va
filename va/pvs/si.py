@@ -116,14 +116,15 @@ _excitation_curves_mapping = (
 )
 ##### Pulsed Magnets #######
 _pulse_curve_mapping= {
-    'PingH' :'si-hping.txt',
-    # 'PingV' :'si-vping.txt',
-    'InjDpKckr':'si-injdpk.txt',
-    'InjNLKckr':'si-injnlk.txt',
+    'PingH' :'si-kicker-hping.txt',
+    # 'PingV' :'si-kicker-vping.txt',
+    'InjDpKckr':'si-kicker-injdpk.txt',
+    'InjNLKckr':'si-kicker-injnlk.txt',
 }
 
-device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
-            _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
+device_names  = DeviceNames(
+    model.section, _el_names, _fam_names, _glob_names, _inj_names,
+    _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
 accelerator = model.create_accelerator()

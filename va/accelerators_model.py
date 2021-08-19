@@ -56,8 +56,9 @@ class AcceleratorModel(area_structure.AreaStructure):
             value = self._get_pv_not_implemented(pv_name, parts)
         if value is None:
             utils.log(
-                'warn', str('response to ' + pv_name +
-                    ' not implemented in model get_pv'), 'yellow', a=['bold'])
+                'warn',
+                'response to '+pv_name+' not implemented in model get_pv',
+                'yellow', a=['bold'])
             value = 0
             # raise Exception(
             #     'response to '+pv_name+' not implemented in model get_pv')
@@ -149,28 +150,37 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if parts.propty == 'BPMPos-Cte':
                     indices = self._get_elements_indices('BPM', flat=False)
                     if isinstance(indices[0], int):
-                        pos = pyaccel.lattice.find_spos(self._accelerator, indices)
+                        pos = pyaccel.lattice.find_spos(
+                            self._accelerator, indices)
                     else:
-                        pos = [pyaccel.lattice.find_spos(self._accelerator, idx[0]) for idx in indices]
-                    start = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'start')[0]
-                    start_spos = pyaccel.lattice.find_spos(self._accelerator, start)
-                    pos = (pos-start_spos)%(pyaccel.lattice.length(self._accelerator))
+                        pos = [pyaccel.lattice.find_spos(
+                            self._accelerator, idx[0]) for idx in indices]
+                    start = pyaccel.lattice.find_indices(
+                        self._accelerator, 'fam_name', 'start')[0]
+                    start_spos = pyaccel.lattice.find_spos(
+                        self._accelerator, start)
+                    pos = (pos-start_spos) % pyaccel.lattice.length(
+                        self._accelerator)
                     return pos
         return None
 
     def _get_pv_fake(self, pv_name, parts):
-        if parts.dis != 'FK': return None
+        if parts.dis != 'FK':
+            return None
         if 'ErrX' in pv_name:
             idx = self._get_elements_indices(pv_name)
-            error = pyaccel.lattice.get_error_misalignment_x(self._accelerator, idx[0])
+            error = pyaccel.lattice.get_error_misalignment_x(
+                self._accelerator, idx[0])
             return error
         if 'ErrY' in pv_name:
             idx = self._get_elements_indices(pv_name)
-            error = pyaccel.lattice.get_error_misalignment_y(self._accelerator, idx[0])
+            error = pyaccel.lattice.get_error_misalignment_y(
+                self._accelerator, idx[0])
             return error
         if 'ErrR' in pv_name:
             idx = self._get_elements_indices(pv_name)
-            error = pyaccel.lattice.get_error_rotation_roll(self._accelerator, idx[0])
+            error = pyaccel.lattice.get_error_rotation_roll(
+                self._accelerator, idx[0])
             return error
         if 'SaveFlatfile' in pv_name:
             return 0
@@ -179,24 +189,31 @@ class AcceleratorModel(area_structure.AreaStructure):
             if isinstance(indices[0], int):
                 pos = pyaccel.lattice.find_spos(self._accelerator, indices)
             else:
-                pos = [pyaccel.lattice.find_spos(self._accelerator, idx[0]) for idx in indices]
-            start = pyaccel.lattice.find_indices(self._accelerator, 'fam_name', 'start')[0]
+                pos = [
+                    pyaccel.lattice.find_spos(self._accelerator, idx[0])
+                    for idx in indices]
+            start = pyaccel.lattice.find_indices(
+                self._accelerator, 'fam_name', 'start')[0]
             start_spos = pyaccel.lattice.find_spos(self._accelerator, start)
-            pos = (pos-start_spos)%(pyaccel.lattice.length(self._accelerator))
+            pos = (pos-start_spos) % pyaccel.lattice.length(self._accelerator)
             return pos
         else:
             return None
 
     def _get_pv_timing(self, pv_name, parts):
-        if parts.dis == 'TI':
-            if parts.propty in ('Enbl-SP', 'Enbl-RB') and pv_name in self._enabled2magnet.keys():
-                magnet_name = self._enabled2magnet[pv_name]
-                return self._pulsed_magnets[magnet_name].enabled
-            elif parts.propty in ('Delay-SP', 'Delay-RB') and pv_name in self._delay2magnet.keys():
-                magnet_name = self._delay2magnet[pv_name]
-                return self._pulsed_magnets[magnet_name].delay
-            else:
-                return None
+
+        if not parts.dis == 'TI':
+            return None
+        if parts.propty not in ('Enbl-SP', 'Enbl-RB', 'Delay-SP', 'Delay-RB'):
+            return None
+
+        pvname = parts.substitute(propty_suffix='RB')
+        if pvname in self._enabled2magnet:
+            magnet_name = self._enabled2magnet[pvname]
+            return self._pulsed_magnets[magnet_name].enabled
+        elif pvname in self._delay2magnet:
+            magnet_name = self._delay2magnet[pvname]
+            return self._pulsed_magnets[magnet_name].delay
         else:
             return None
 
@@ -221,12 +238,18 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _set_pv(self, pv_name, value):
         parts = _SiriusPVName(pv_name)
-        if self._set_pv_vaca(pv_name, value, parts): return
-        if self._set_pv_magnets(pv_name, value, parts): return
-        if self._set_pv_di(pv_name, value, parts): return
-        if self._set_pv_rf(pv_name, value, parts): return
-        if self._set_pv_fake(pv_name, value, parts): return
-        if self._set_pv_timing(pv_name, value, parts): return
+        if self._set_pv_vaca(pv_name, value, parts):
+            return
+        if self._set_pv_magnets(pv_name, value, parts):
+            return
+        if self._set_pv_di(pv_name, value, parts):
+            return
+        if self._set_pv_rf(pv_name, value, parts):
+            return
+        if self._set_pv_fake(pv_name, value, parts):
+            return
+        if self._set_pv_timing(pv_name, value, parts):
+            return
 
     def _set_pv_vaca(self, pv_name, value, parts):
         if parts.dis == 'VA':
@@ -360,10 +383,14 @@ class AcceleratorModel(area_structure.AreaStructure):
         return indices
 
     def _set_vacuum_chamber(self):
-        self._hmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'hmin'))
-        self._hmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'hmax'))
-        self._vmin = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'vmin'))
-        self._vmax = numpy.array(pyaccel.lattice.get_attribute(self._accelerator, 'vmax'))
+        self._hmin = numpy.array(pyaccel.lattice.get_attribute(
+            self._accelerator, 'hmin'))
+        self._hmax = numpy.array(pyaccel.lattice.get_attribute(
+            self._accelerator, 'hmax'))
+        self._vmin = numpy.array(pyaccel.lattice.get_attribute(
+            self._accelerator, 'vmin'))
+        self._vmax = numpy.array(pyaccel.lattice.get_attribute(
+            self._accelerator, 'vmax'))
 
     def _get_vacuum_chamber(self, init_idx=None, final_idx=None):
         _dict = {}
@@ -381,20 +408,27 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     def _append_marker(self):
         marker = pyaccel.elements.marker('marker')
-        marker.hmin, marker.hmax = self._accelerator[-1].hmin, self._accelerator[-1].hmax
-        marker.vmin, marker.vmax = self._accelerator[-1].vmin, self._accelerator[-1].vmax
+        marker.hmin = self._accelerator[-1].hmin
+        marker.hmax = self._accelerator[-1].hmax
+        marker.vmin = self._accelerator[-1].vmin
+        marker.vmax = self._accelerator[-1].vmax
         self._accelerator.append(marker)
 
     def _init_magnets_and_power_supplies(self):
         mod = self.model_module
-        accelerator              = self._accelerator
-        magnet_names             = self.device_names.get_magnet_names(accelerator)
-        family_mapping           = self.model_module.family_mapping
-        excit_curv_polarity_map  = self.device_names.get_excitation_curve_mapping(accelerator)
-        pulse_curve_mapping      = self.device_names.get_pulse_curve_mapping(accelerator)
-        _, ps2magnet             = self.device_names.get_magnet2power_supply_mapping(accelerator)
-        self._magnet2delay, self._delay2magnet     = self.device_names.get_magnet_delay_mapping(accelerator)
-        self._magnet2enabled, self._enabled2magnet = self.device_names.get_magnet_enabled_mapping(accelerator)
+        accelerator = self._accelerator
+        magnet_names = self.device_names.get_magnet_names(accelerator)
+        family_mapping = self.model_module.family_mapping
+        excit_curv_polarity_map = \
+            self.device_names.get_excitation_curve_mapping(accelerator)
+        pulse_curve_mapping = self.device_names.get_pulse_curve_mapping(
+            accelerator)
+        _, ps2magnet = self.device_names.get_magnet2power_supply_mapping(
+            accelerator)
+        self._magnet2delay, self._delay2magnet = \
+            self.device_names.get_magnet_delay_mapping(accelerator)
+        self._magnet2enabled, self._enabled2magnet = \
+            self.device_names.get_magnet_enabled_mapping(accelerator)
 
         self._magnets = dict()
         self._pulsed_magnets = dict()
@@ -406,35 +440,51 @@ class AcceleratorModel(area_structure.AreaStructure):
 
             if family_type == 'dipole':
                 if self.prefix == 'BO':
-                    m = magnet.BoosterDipoleMagnet(accelerator, indices, excitation_curve, polarity)
+                    m = magnet.BoosterDipoleMagnet(
+                        accelerator, indices, excitation_curve, polarity)
                 else:
-                    m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
-                    #print(magnet_name)
-                    #print(m.value)
-                    #print(m.current_mon)
-                    #print()
-            elif family_type  == 'pulsed_magnet':
+                    m = magnet.NormalMagnet(
+                        accelerator, indices, excitation_curve, polarity)
+                    # print(magnet_name)
+                    # print(m.value)
+                    # print(m.current_mon)
+                    # print()
+            elif family_type == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
                 try:
-                    #pulse_curve_filename = os.path.join(self._pulse_curves_dir, pulse_curve)
+                    # pulse_curve_filename = os.path.join(
+                    #     self._pulse_curves_dir, pulse_curve)
                     pulse_curve_filename = pulse_curve
                 except:
-                    #pulse_curve_filename = os.path.join(self._pulse_curves_dir, 'not_found')
+                    # pulse_curve_filename = os.path.join(
+                    #     self._pulse_curves_dir, 'not_found')
                     pulse_curve_filename = pulse_curve
-                m = magnet.PulsedMagnet(accelerator, indices, excitation_curve, polarity, pulse_curve_filename)
+                m = magnet.PulsedMagnet(
+                    accelerator, indices, excitation_curve, polarity,
+                    pulse_curve_filename)
                 self._pulsed_magnets[magnet_name] = m
             elif family_type == 'quadrupole':
-                m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
+                m = magnet.NormalMagnet(
+                    accelerator, indices, excitation_curve, polarity)
             elif family_type == 'sextupole':
-                m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
-            elif family_type in ('slow_horizontal_corrector', 'fast_horizontal_corrector', 'horizontal_corrector'):
-                m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
-            elif family_type in ('slow_vertical_corrector', 'fast_vertical_corrector', 'vertical_corrector'):
-                m = magnet.SkewMagnet(accelerator, indices, excitation_curve, polarity)
+                m = magnet.NormalMagnet(
+                    accelerator, indices, excitation_curve, polarity)
+            elif family_type in (
+                    'slow_horizontal_corrector', 'fast_horizontal_corrector',
+                    'horizontal_corrector'):
+                m = magnet.NormalMagnet(
+                    accelerator, indices, excitation_curve, polarity)
+            elif family_type in (
+                'slow_vertical_corrector', 'fast_vertical_corrector',
+                'vertical_corrector'):
+                m = magnet.SkewMagnet(
+                    accelerator, indices, excitation_curve, polarity)
             elif family_type == 'skew_quadrupole':
-                m = magnet.SkewMagnet(accelerator, indices, excitation_curve, polarity)
+                m = magnet.SkewMagnet(
+                    accelerator, indices, excitation_curve, polarity)
             elif family_type in ('solenoid','magnetic_lens'):
-                m = magnet.NormalMagnet(accelerator, indices, excitation_curve, polarity)
+                m = magnet.NormalMagnet(
+                    accelerator, indices, excitation_curve, polarity)
             else:
                 m = None
 
@@ -450,7 +500,8 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
             if self.device_names.pvnaming_fam in psname:
-                ps = power_supply.FamilyPowerSupply(magnets, model=self, psname=psname)
+                ps = power_supply.FamilyPowerSupply(
+                    magnets, model=self, psname=psname)
                 ps.pwrstate_sel = _Const.OffOn.On
                 self._power_supplies[psname] = ps
 
@@ -460,13 +511,15 @@ class AcceleratorModel(area_structure.AreaStructure):
             for magnet_name in ps2magnet[psname]:
                 if magnet_name in self._magnets:
                     magnets.add(self._magnets[magnet_name])
-            if not self.device_names.pvnaming_fam in psname:
+            if self.device_names.pvnaming_fam not in psname:
                 if 'PU' in psname:
-                    ps = power_supply.PulsedMagnetPowerSupply(magnets, model=self, psname=psname)
+                    ps = power_supply.PulsedMagnetPowerSupply(
+                        magnets, model=self, psname=psname)
                     ps.pwrstate_sel = _Const.OffOn.On
                     self._pulsed_power_supplies[psname] = ps
                 else:
-                    ps = power_supply.IndividualPowerSupply(magnets, model=self, psname=psname)
+                    ps = power_supply.IndividualPowerSupply(
+                        magnets, model=self, psname=psname)
                     ps.pwrstate_sel = _Const.OffOn.On
                     self._power_supplies[psname] = ps
 
@@ -501,21 +554,22 @@ class LinacModel(AcceleratorModel):
             return self._single_bunch_mode
         return super()._get_pv_fake(pv_name, parts)
 
-
     def _get_pv_timing(self, pv_name, parts):
         value = super()._get_pv_timing(pv_name, parts)
-        if value is not None: return value
+        if value is not None:
+            return value
 
-        if not parts.dis == 'TI': return None
+        if not parts.dis == 'TI':
+            return None
         if parts.dev == 'EGun':
-            if parts.propty in ('Enbl-SP', 'Enbl-RB'): return self._egun_enabled
+            if parts.propty in ('Enbl-SP', 'Enbl-RB'):
+                return self._egun_enabled
             elif parts.propty in ('Delay-SP', 'Delay-RB'):
                 if not hasattr(self, '_egun_delay'):
                     return _undef_value
                 return self._egun_delay
         else:
             return None
-
 
     # --- methods implementing response of model to set requests
 
@@ -525,14 +579,16 @@ class LinacModel(AcceleratorModel):
             return True
         return super()._set_pv_fake(pv_name, value, parts)
 
-
     def _set_pv_timing(self, pv_name, value, parts):
         if super()._set_pv_timing(pv_name, value, parts): return
 
-        if not parts.dis == 'TI': return False
+        if not parts.dis == 'TI':
+            return False
         if parts.dev == 'EGun':
-            if parts.propty == 'Enbl-SP': self._egun_enabled = value
-            elif parts.propty == 'Delay-SP': self._egun_delay = value
+            if parts.propty == 'Enbl-SP':
+                self._egun_enabled = value
+            elif parts.propty == 'Delay-SP':
+                self._egun_delay = value
             else: return False
             return True
         return False

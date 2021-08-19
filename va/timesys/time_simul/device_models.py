@@ -1,5 +1,5 @@
 """Define Classes to simulate timing objects."""
-
+import re as _re
 import time as _time
 import copy as _copy
 import uuid as _uuid
@@ -181,6 +181,7 @@ class _EVGSim(_BaseSim):
 
     def __setattr__(self, attr, value):
         if attr == 'injection':
+            print('setting injection')
             if value:
                 if not self._injection and self._continuous:
                     self._injection = value
@@ -220,7 +221,7 @@ class _EVGSim(_BaseSim):
                 for callback in self._injection_callbacks.values():
                     callback(i, triggers)
                 _time.sleep(self._repetition_rate/Const.AC_FREQUENCY)
-            if not self._cyclic_injection:
+            if self._cyclic_injection:
                 self._injection = 0
                 self._call_callbacks('injection', 0)
                 return
@@ -354,12 +355,12 @@ class EVGIOC(_BaseIOC):
     _cyclic_types = ('Off', 'On')
 
     _attr2pvname = {
-        'injection_sp': 'InjectionState-Sel',
-        'injection_rb': 'InjectionState-Sts',
-        'cyclic_injection_sp': 'InjectionCyc-Sel',
-        'cyclic_injection_rb': 'InjectionCyc-Sts',
-        'continuous_sp': 'ContinuousState-Sel',
-        'continuous_rb': 'ContinuousState-Sts',
+        'injection_sp': 'InjectionEvt-Sel',
+        'injection_rb': 'InjectionEvt-Sts',
+        'cyclic_injection_sp': 'RepeatBucketList-SP',
+        'cyclic_injection_rb': 'RepeatBucketList-RB',
+        'continuous_sp': 'ContinuousEvt-Sel',
+        'continuous_rb': 'ContinuousEvt-Sts',
         'repetition_rate_sp': 'ACDiv-SP',
         'repetition_rate_rb': 'ACDiv-RB',
         'rf_division_sp': 'RFDiv-SP',
@@ -373,17 +374,19 @@ class EVGIOC(_BaseIOC):
         """Get the database."""
         db = dict()
         p = prefix
-        db[p + 'InjectionState-Sel'] = {
+        db[p + 'InjectionEvt-Sel'] = {
             'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 0}
-        db[p + 'InjectionState-Sts'] = {
+        db[p + 'InjectionEvt-Sts'] = {
             'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 0}
-        db[p + 'InjectionCyc-Sel'] = {
-            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
-        db[p + 'InjectionCyc-Sts'] = {
-            'type': 'enum', 'enums': Const.OffOn._fields, 'value': 0}
-        db[p + 'ContinuousState-Sel'] = {
+        db[p + 'RepeatBucketList-SP'] = {
+            'type': 'int', 'value': 0, 'lolo': 0, 'low': 0, 'lolim': 0,
+            'hilim': 100, 'high': 100, 'hihi': 100}
+        db[p + 'RepeatBucketList-RB'] = {
+            'type': 'int', 'value': 0, 'lolo': 0, 'low': 0, 'lolim': 0,
+            'hilim': 100, 'high': 100, 'hihi': 100}
+        db[p + 'ContinuousEvt-Sel'] = {
             'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 1}
-        db[p + 'ContinuousState-Sts'] = {
+        db[p + 'ContinuousEvt-Sts'] = {
             'type': 'enum', 'enums': Const.DsblEnbl._fields, 'value': 1}
         db[p + 'BucketList-SP'] = {
             'type': 'int', 'count': 864, 'value': 864*[0]}
@@ -473,7 +476,7 @@ class EVGIOC(_BaseIOC):
             self.injection_rb = value
             if value != self._injection_sp:
                 self._injection_sp = value
-                self._call_callbacks('InjectionState-Sel', value)
+                self._call_callbacks('InjectionEvt-Sel', value)
 
     def add_injection_callback(self, uuid, callback):
         """Add injection callback."""
@@ -494,13 +497,12 @@ class EVGIOC(_BaseIOC):
     def get_propty(self, reason):
         """Get propty."""
         reason2 = reason[len(self.prefix):]
-        print(reason2)
         if reason2.startswith(tuple(self.clocks.keys())):
-            leng = len(Const.ClkLL._fields[0])
-            return self.clocks[reason2[:leng]].get_propty(reason2)
+            reason3 = _re.findall('(Clk[0-7]{1}).*', reason2)[0]
+            return self.clocks[reason3].get_propty(reason2)
         elif reason2.startswith(tuple(self.events.keys())):
-            leng = len(Const.EvtLL._fields[0])
-            return self.events[reason2[:leng]].get_propty(reason2)
+            reason3 = _re.findall('(Evt[0-9]{2,3}).*', reason2)[0]
+            return self.events[reason3].get_propty(reason2)
         else:
             return super().get_propty(reason)
 
@@ -508,11 +510,11 @@ class EVGIOC(_BaseIOC):
         """Set propty."""
         reason2 = reason[len(self.prefix):]
         if reason2.startswith(tuple(self.clocks.keys())):
-            leng = len(Const.ClkLL._fields[0])
-            return self.clocks[reason2[: leng]].set_propty(reason2, value)
+            reason3 = _re.findall('(Clk[0-7]{1}).*', reason2)[0]
+            return self.clocks[reason3].set_propty(reason2, value)
         elif reason2.startswith(tuple(self.events.keys())):
-            leng = len(Const.EvtLL._fields[0])
-            return self.events[reason2[: leng]].set_propty(reason2, value)
+            reason3 = _re.findall('(Evt[0-9]{2,3}).*', reason2)[0]
+            return self.events[reason3].set_propty(reason2, value)
         else:
             return super().set_propty(reason, value)
 

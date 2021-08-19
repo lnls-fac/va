@@ -36,13 +36,14 @@ _excitation_curves_mapping = (
     (('CV',)           , ('tb-corrector-cv.txt',1)),
     (('InjSept',)      , ('tb-injseptum.txt',1)),
 )
-##### Pulsed Magnets #######
-_pulse_curve_mapping= {
-    'InjSept':'tb-injseptum.txt' # INJECTION SEPTUM
+# #### Pulsed Magnets #######
+_pulse_curve_mapping = {
+    'InjSept': 'tb-septum-injs.txt'  # INJECTION SEPTUM
 }
 
-device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
-            _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
+device_names = DeviceNames(
+    model.section, _el_names, _fam_names, _glob_names, _inj_names,
+    _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
 accelerator, *_ = model.create_accelerator()

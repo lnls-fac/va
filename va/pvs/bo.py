@@ -67,13 +67,14 @@ _excitation_curves_mapping = (
     (('EjeKckr',) , ('bo-ejekicker.txt',1)),
 )
 ##### Pulsed Magnets #######
-_pulse_curve_mapping= {
-    'EjeKckr':'bo-kicker-ejek.txt',
-    'InjKckr':'bo-kicker-injk.txt',
+_pulse_curve_mapping = {
+    'EjeKckr': 'bo-kicker-ejek.txt',
+    'InjKckr': 'bo-kicker-injk.txt',
 }
 
-device_names  = DeviceNames(model.section, _el_names, _fam_names, _glob_names, _inj_names,
-            _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
+device_names  = DeviceNames(
+    model.section, _el_names, _fam_names, _glob_names, _inj_names,
+    _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
 accelerator = model.create_accelerator()   # [150 MeV]

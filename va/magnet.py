@@ -214,7 +214,9 @@ class SkewMagnet(Magnet):
 
 class PulsedMagnet(NormalMagnet):
 
-    def __init__(self, accelerator, indices, exc_curve_filename, polarity, pulse_curve_filename):
+    def __init__(
+            self, accelerator, indices, exc_curve_filename, polarity,
+            pulse_curve_filename):
         super().__init__(accelerator, indices, exc_curve_filename, polarity)
         self._pulse_curve = PulseCurve(pulse_curve_filename)
         self._light_speed = mathphys.constants.light_speed
