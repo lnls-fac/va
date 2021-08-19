@@ -16,7 +16,7 @@ This is a ressurect version of VACA that employs the current state of sirius' py
  - mathphys: https://github.com/lnls-fac/mathphys
  - lnls:     https://github.com/lnls-fac/lnls
  - pymodels: https://github.com/lnls-fac/pymodels/tree/vaca-ilsf
- - pyaccel:  https://github.com/lnls-fac/pyaccel/tree/
+ - pyaccel:  https://github.com/lnls-fac/pyaccel/tree/fix-optics
  - trackcpp: https://github.com/lnls-fac/trackcpp
  - csconst:  https://github.com/lnls-sirius/control-system-constants
  - hla:      https://github.com/lnls-sirius/hla/tree/fix-ps-windows-prefix   
