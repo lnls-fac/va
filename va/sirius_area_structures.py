@@ -59,9 +59,7 @@ class ASModel(area_structure.AreaStructure):
         parts = _PVName(pv_name)
         if parts.dis == 'TI':
             return self._timing.set_propty(pv_name, value)
-        else:
-            return False
-        return True
+        return False
 
     def _send_initialisation_sign(self):
         self._others_queue['driver'].put(('i', self.prefix))

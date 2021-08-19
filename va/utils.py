@@ -31,7 +31,7 @@ def print_banner(lab, prefix,
     print(c(r"    _____(.oo)    ",'white') + " | " + c("Version {0}".format(VERSION)))
     print(c(r"  //     ' ",'white')+c("@@     ",'magenta') + " | " + c("LNLS/SIRIUS Accelerator Physics Group", attrs=['bold']))
     print(c(r" # \ ,",'white')+c("VACA")+c(" /      ",'white') + " | " + c("Documentation: https://github.com/lnls-fac/va"))
-    print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~~~",'green') + " | " + c("Prefix: {0}".format(prefix), attrs=['bold']))
+    print(c(" ~~~",'green') + c(r"\\",'white') + c("~~~",'green') + c(r"||",'white')+c("~~~~~~~",'green') + " | " + c("Prefix: '{0}'".format(prefix), attrs=['bold']))
     if si_pv_names is not None:
         print(c(r"    ^^   ^^       ",'white')     + " | " + c("Number of SI pvs: {0}".format(len(si_pv_names))))
     if bo_pv_names is not None:

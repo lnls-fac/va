@@ -1,12 +1,12 @@
 import os as _os
 
-VACA_LAB = _os.environ.get('VACA_LAB', default='sirius')
-VACA_LAB = 'VA-' if VACA_LAB == '' else VACA_LAB
+LAB_PREFIX = _os.environ.get('LAB_PREFIX', default='sirius')
+LAB_PREFIX = 'VA-' if LAB_PREFIX == '' else LAB_PREFIX
 
 lab_models = None
-if VACA_LAB.lower() == 'sirius':
+if LAB_PREFIX.lower() == 'sirius':
     import pymodels as lab_models
-elif VACA_LAB.lower() == 'ilsf':
+elif LAB_PREFIX.lower() == 'ilsf':
     import pymodels.ilsf as lab_models
 
 laboratory = lab_models.laboratory

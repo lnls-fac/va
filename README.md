@@ -22,19 +22,20 @@ This is a ressurect version of VACA that employs the current state of sirius' py
 
 ## Installation
 
-To install `va` python package and `vaca-ioc.py` script in the system, run `./setup.py develop` or `./setup.py install`. A web server should be running in order to provide static data files for VACA. Files from `csconst` repository should be located in the top of the web server public folder.
+To install `va` python package and `vaca-ioc.py` script in the system, run `./setup.py develop` or `./setup.py install`. A web server should be running in order to provide static data files for VACA. Files from `control-system-constants` repository should be located in the top of the web server public folder.
 
 ## Running VACA
 
 - Environment variable `SIRIUS_URL_CONSTS`should be set to point to the web server top URL. (for example, `export SIRIUS_URL_CONST=https://127.0.0.1`).
 - Run `vaca-ioc.py --pvs`: this will save PV files in the local folder. PVs being served with VACA can be looked up in these files.
+- One can select set of accelerator models to be used with environment variable `LAB_PREFIX`. It is overriden with command line option `--lab`. For example,  `vaca-ioc.py --lab ilsf`
 
 ## Virtual machine
 
 Currently timing subsystem is broken. No timing device/PV is available. Consequently the injection process is not working. But fake PVs (for `VA-Control` devices) were implemented to add beam currents to circular accelerators. Beam position readouts are working, as well as magnet power supplies current settings.
-`VA-` is the standard PV prefix. It can be overridden with `VACA_PREFIX` env variable. 
+`''` is the standard PV prefix. It can be overridden with `VACA_PREFIX` env variable. A `'-'` is postpended to the prefix so that `VACA_PREFIX='VA'` with generate PV names that start with `VA-`. Env variable `VACA_PREFIX` is overridden by VACA command line option `--prefix`.
 
-Examples:
+Examples on how to interact with virtual machine:
 
 - To read beam current in booster: `caget VA-BO-35D:DI-DCCT:Current-Mon`
 - To add 10 mA beam current to booster: `caput VA-BO-Glob:VA-Control:BeamCurrentAdd-SP 10`
@@ -47,5 +48,5 @@ Examples:
 - To read beam position in the ring: `caget VA-SI-01M2:DI-BPM:PosX-Mon`
 - To set 0.1 A to a ring corrector power supply: `caput VA-SI-01M2:PS-CH:Current-SP 0.1`
 - To read beam position in the ring (after kick): `caget VA-SI-01M2:DI-BPM:PosX-Mon`
-- To quit VACA: `caput VA-AS-Glob:VA-Control:Quit-Cmd`
+- To quit VACA: `caput VA-AS-Glob:VA-Control:Quit-Cmd 1`
 

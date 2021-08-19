@@ -7,14 +7,13 @@ from va import driver
 from va import area_structure
 from va import sirius_area_structures
 from va import utils
-from va.pvs.models import laboratory
 
 WAIT_TIMEOUT = 0.1
 JOIN_TIMEOUT = 10.0
 INIT_TIMEOUT = 60*5
 
 
-def run(prefix, only_orbit=False, print_pvs=True):
+def run(laboratory, prefix, only_orbit=False, print_pvs=True):
     """Start virtual accelerator with given PV prefix
 
     Keyword arguments:
@@ -35,10 +34,11 @@ def run(prefix, only_orbit=False, print_pvs=True):
         for sec, pvs in pv_names.items():
             with open('{}.txt'.format(sec), 'w') as fp:
                 fp.write('\n'.join(pvs))
-        # _util.save_ioc_pv_list('as-vaca', ('',prefix), pv_database)
+        
 
     server = pcaspy.SimpleServer()
-    server.createPV(prefix, pv_database)
+    prefix_ = prefix + '-' if prefix else prefix
+    server.createPV(prefix_, pv_database)
 
     num_parties = len(area_structures) + 1 # number of parties for barrier
     finalisation_barrier = multiprocessing.Barrier(num_parties, timeout=JOIN_TIMEOUT)
@@ -87,6 +87,7 @@ def get_virtual_pv_database():
     pv_database['SI-Glob:VA-Control:BeamCurrentAdd-SP'] = {'type':'float', 'value':0}
     pv_database['SI-Glob:VA-Control:BeamCurrentDump-Cmd'] = {'type':'int', 'value':0}
     return pv_database
+
 
 def get_pv_database(area_structures):
     pv_database = {}
