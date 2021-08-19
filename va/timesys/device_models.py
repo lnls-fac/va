@@ -181,7 +181,6 @@ class _EVGSim(_BaseSim):
 
     def __setattr__(self, attr, value):
         if attr == 'injection':
-            print('setting injection')
             if value:
                 if not self._injection and self._continuous:
                     self._injection = value

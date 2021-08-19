@@ -5,7 +5,7 @@ from siriuspy.namesys import join_name as _join_name
 from siriuspy.pwrsupply import csdev as _pwrsupply_csdev
 
 from .. import utils
-from ..timesys.time_simul import TimingSimulation
+from ..timesys import TimingSimulation
 
 
 class DeviceNames:

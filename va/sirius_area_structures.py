@@ -5,7 +5,7 @@ import os as _os
 from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
 
-from .timesys.time_simul import TimingSimulation
+from .timesys import TimingSimulation
 from .pvs import As as _pvs_As
 from .pvs import li as _pvs_li
 from .pvs import tb as _pvs_tb
