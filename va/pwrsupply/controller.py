@@ -937,6 +937,10 @@ class ControllerSim(Controller):
                 self._wfmdata_in_use = _np.array(wfm.data)
 
     def _load_waveform_from_slot(self, slot):
+        # NOTE: disable saving waveform state in files
+        wfm = _PSWaveForm.wfm_constant(
+                label=_default_wfmlabels[slot], filename='')
+        return wfm
         if self._psname is not None:
             fname = self._psname + ':' + _default_wfmlabels[slot]
         else:
