@@ -36,16 +36,10 @@ class DeviceNames:
     def join_name(
             self, subsection, discipline, device, instance=None, proper=None,
             field=None):
-
+        """."""
         name = _join_name(
             sec=self.section, sub=subsection, dis=discipline, dev=device,
             idx=instance, propty=proper, field=field)
-        # name = _join_name(
-        #     self.section, subsection, discipline, device, instance, proper,
-        #     field)
-        # print(
-        #     name, self.section, subsection, discipline, device, instance,
-        #     proper, field)
 
         return name
 
