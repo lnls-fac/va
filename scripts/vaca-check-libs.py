@@ -1,5 +1,6 @@
 #!/usr/local/bin/python-sirius
 
+import sys
 import va
 import siriuspy
 import mathphys
@@ -12,6 +13,7 @@ import pydm
 import epics
 import pcaspy
 
+print('python    version: {}'.format(sys.version))
 print('va        version: {}'.format(va.__version__))
 print('siriuspy  version: {}'.format(siriuspy.__version__))
 print('mathphys  version: {}'.format(mathphys.__version__))
