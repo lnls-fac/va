@@ -136,7 +136,7 @@ class PCASDriver(Driver):
             return
         self._processes_initialisation[prefix] = True
         # print(self._processes_initialisation)
-        utils.log('init', 'area_structure {} initialized (requests in driver queue: {})'.format(prefix, self._my_queue.qsize()), 'green')
+        utils.log('init', 'area_structure {} initialised (requests in driver queue: {})'.format(prefix, self._my_queue.qsize()), 'green')
         if not self._start_event.is_set():
             if all(self._processes_initialisation.values()):
                 self._start_event.set()
