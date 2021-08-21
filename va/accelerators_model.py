@@ -536,9 +536,6 @@ class AcceleratorModel(area_structure.AreaStructure):
                     sorted_magnets.append(magnet)
         return sorted_magnets
 
-    def _send_initialisation_sign(self):
-        self._others_queue['driver'].put(('i', self.prefix))
-
 
 class LinacModel(AcceleratorModel):
 
@@ -546,6 +543,7 @@ class LinacModel(AcceleratorModel):
         self._injection_bunch = 1
         super().__init__(**kwargs)
         self._set_pulsed_magnets_parameters()
+        self._send_initialisation_sign()
 
     # --- methods implementing response of model to get requests
 
@@ -722,6 +720,10 @@ class LinacModel(AcceleratorModel):
 
 class TLineModel(AcceleratorModel):
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._send_initialisation_sign()
+
     # --- methods that help updating the model state
 
     def _update_state(self, force=False):
@@ -795,7 +797,6 @@ class TLineModel(AcceleratorModel):
         self._update_delay_pvs_in_epics_memory()
         self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
                                                       _dict  = {'update_delays' : delays})
-        self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -852,12 +853,17 @@ class TLineModel(AcceleratorModel):
 
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'injection_cycle' : kwargs})
+        self._send_parameters_to_other_area_structure(
+            prefix = self._downstream_accelerator_prefix,
+            _dict  = {'injection_cycle' : kwargs})
 
 
 class RingModel(AcceleratorModel):
     """Ring models."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._send_initialisation_sign()
 
     def _calc_lifetimes(self):
         if self._lifetime is None or self._beam_charge is None: return
@@ -1039,9 +1045,9 @@ class BoosterModel(RingModel):
             if magnet_name in self._pulsed_magnets.keys():
                 self._pulsed_magnets[magnet_name].delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'update_delays' : delays})
-        self._send_initialisation_sign()
+        self._send_parameters_to_other_area_structure(
+            prefix = self._downstream_accelerator_prefix,
+            _dict  = {'update_delays' : delays})
 
     def _update_delay_pvs_in_epics_memory(self):
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -1182,8 +1188,9 @@ class BoosterModel(RingModel):
         args_dict.update(ejection_parameters)
         if twiss is not None:
             args_dict['init_twiss'] = twiss[-1].make_dict()
-            self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                          _dict  = {'injection_parameters' : args_dict})
+            self._send_parameters_to_other_area_structure(
+                prefix = self._downstream_accelerator_prefix,
+                _dict  = {'injection_parameters' : args_dict})
 
     def _change_injection_bunch(self, charge, charge_time, master_delay, bunch_separation):
         harmonic_number = self._accelerator.harmonic_number
@@ -1244,8 +1251,9 @@ class BoosterModel(RingModel):
         kwargs['charge'] = charge
         kwargs['charge_time'] = charge_time
         kwargs['ejection_efficiency'] = self._ejection_efficiency if self._ejection_efficiency is not None else 0
-        self._send_parameters_to_other_area_structure(prefix = self._downstream_accelerator_prefix,
-                                                      _dict  = {'injection_cycle' : kwargs})
+        self._send_parameters_to_other_area_structure(
+            prefix = self._downstream_accelerator_prefix,
+            _dict  = {'injection_cycle' : kwargs})
 
 
 class StorageRingModel(RingModel):
@@ -1368,7 +1376,6 @@ class StorageRingModel(RingModel):
             if magnet_name in self._pulsed_magnets.keys():
                 self._pulsed_magnets[magnet_name].delay = delay
         self._update_delay_pvs_in_epics_memory()
-        self._send_initialisation_sign()
 
     def _update_delay_pvs_in_epics_memory(self):
         for magnet_name, magnet in self._pulsed_magnets.items():

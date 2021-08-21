@@ -61,8 +61,6 @@ class ASModel(area_structure.AreaStructure):
             return self._timing.set_propty(pv_name, value)
         return False
 
-    def _send_initialisation_sign(self):
-        self._others_queue['driver'].put(('i', self.prefix))
 
     # Not used in the moment.
     def _single_pulse_synchronism(self, triggers):

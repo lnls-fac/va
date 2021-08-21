@@ -83,7 +83,7 @@ class PCASDriver(Driver):
         statusw = self._process_writes()
         statusr = self._process_requests()
         if statusw or statusr:
-            self.updatePVs()
+            self.updatePVs()  # NOTE: should we update all PVs?
 
     def _process_writes(self):
         size = self._internal_queue.qsize()
@@ -108,7 +108,7 @@ class PCASDriver(Driver):
         elif cmd == 'a':  # anomalous condition signed by area_structure
             utils.log('!error3', data, c='red')
             self._stop_event.set()
-        elif cmd == 'i':  # initialization signaling
+        elif cmd == 'i':  # initialisation signaling
             self._initialisation_sign_received(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])
@@ -135,6 +135,7 @@ class PCASDriver(Driver):
         if self._processes_initialisation[prefix]:
             return
         self._processes_initialisation[prefix] = True
+        # print(self._processes_initialisation)
         utils.log('init', 'area_structure {} initialized (requests in driver queue: {})'.format(prefix, self._my_queue.qsize()), 'green')
         if not self._start_event.is_set():
             if all(self._processes_initialisation.values()):
