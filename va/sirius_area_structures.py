@@ -105,8 +105,8 @@ class LiModel(accelerators_model.LinacModel):
     accelerator_data = model_module.accelerator_data
     pvs_fluctuation = PVFluctuation(
         database, {
-            '.*:PS-.*:Current-Mon': 0.005,
-            '.*:DI-.*:Pos(X|Y)-Mon': 500,
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
     # Injection parameters
@@ -135,8 +135,8 @@ class TbModel(accelerators_model.TLineModel):
     database = pv_module.get_database()
     pvs_fluctuation = PVFluctuation(
         database, {
-            '.*:PS-.*:Current-Mon': 0.005,
-            '.*:DI-.*:Pos(X|Y)-Mon': 500,
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
     # Injection parameters
@@ -155,8 +155,8 @@ class BoModel(accelerators_model.BoosterModel):
     database = pv_module.get_database()
     pvs_fluctuation = PVFluctuation(
         database, {
-            '.*:PS-.*:Current-Mon': 0.005,
-            '.*:DI-.*:Pos(X|Y)-Mon': 500,
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
     # Injection parameters
@@ -180,8 +180,8 @@ class TsModel(accelerators_model.TLineModel):
     database = pv_module.get_database()
     pvs_fluctuation = PVFluctuation(
         database, {
-            '.*:PS-.*:Current-Mon': 0.005,
-            '.*:DI-.*:Pos(X|Y)-Mon': 500,
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
     # Injection parameters
@@ -200,8 +200,8 @@ class SiModel(accelerators_model.StorageRingModel):
     database = pv_module.get_database()
     pvs_fluctuation = PVFluctuation(
         database, {
-            '.*:PS-.*:Current-Mon': 0.005,
-            '.*:DI-.*:Pos(X|Y)-Mon': 500,
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
     # Injection parameters
