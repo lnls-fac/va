@@ -1,6 +1,4 @@
-
 import numpy as _numpy
-import os as _os
 from siriuspy.clientweb import magnets_excitation_data_read
 
 

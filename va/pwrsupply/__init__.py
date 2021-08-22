@@ -1,3 +1,5 @@
+# NOTE: this subpackage is deprecated!
+
 from va.pwrsupply.waveform import *
 from va.pwrsupply.cycgen import *
 from va.pwrsupply.controller import *
