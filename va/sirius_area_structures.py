@@ -1,6 +1,7 @@
 """Definition of all Sirius Area Structures."""
 
 import os as _os
+import numpy as _np
 
 from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
@@ -14,7 +15,8 @@ from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
 from . import accelerators_model
 from . import area_structure
-from . import utils
+from .fluctuations import PVFluctuation
+
 
 VACA_LAB = _os.environ.get('VACA_LAB', default='sirius')
 VACA_LAB = 'VA-' if VACA_LAB == '' else VACA_LAB
@@ -31,6 +33,7 @@ class ASModel(area_structure.AreaStructure):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
+    pvs_fluctuation = PVFluctuation(database, dict())
 
     def __init__(self, **kwargs):
         """Initialize the instance."""
@@ -100,6 +103,11 @@ class LiModel(accelerators_model.LinacModel):
     prefix = device_names.section.upper()
     database = pv_module.get_database()
     accelerator_data = model_module.accelerator_data
+    pvs_fluctuation = PVFluctuation(
+        database, {
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            })
 
     # Injection parameters
     _downstream_accelerator_prefix = 'TB'
@@ -125,6 +133,11 @@ class TbModel(accelerators_model.TLineModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
+    pvs_fluctuation = PVFluctuation(
+        database, {
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            })
 
     # Injection parameters
     nr_bunches = LiModel.nr_bunches
@@ -140,6 +153,11 @@ class BoModel(accelerators_model.BoosterModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
+    pvs_fluctuation = PVFluctuation(
+        database, {
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            })
 
     # Injection parameters
     nr_bunches = model_module.harmonic_number
@@ -160,6 +178,11 @@ class TsModel(accelerators_model.TLineModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
+    pvs_fluctuation = PVFluctuation(
+        database, {
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            })
 
     # Injection parameters
     nr_bunches = BoModel.nr_bunches
@@ -175,6 +198,11 @@ class SiModel(accelerators_model.StorageRingModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
+    pvs_fluctuation = PVFluctuation(
+        database, {
+            '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            })
 
     # Injection parameters
     nr_bunches = model_module.harmonic_number
@@ -182,3 +210,8 @@ class SiModel(accelerators_model.StorageRingModel):
     _pressure_profile = model_module.accelerator_data['pressure_profile']
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
     _injection_point_label = 'InjSeptF'
+
+    @staticmethod
+    def get_model_independent_fluctuations():
+        randn = 0.005 * 2 * (_np.random.random() - 0.5)
+        return {'SI-Fam:PS-QFA:Current-Mon': randn}

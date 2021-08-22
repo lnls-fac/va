@@ -30,6 +30,7 @@ To install `va` python package and `vaca-ioc.py` script in the system, run `./se
 - Environment variable `SIRIUS_URL_CONSTS`should be set to point to the web server top URL. (for example, `export SIRIUS_URL_CONST=https://127.0.0.1`).
 - Run `vaca-ioc.py --pvs`: this will save PV files in the local folder. PVs being served with VACA can be looked up in these files.
 - One can select set of accelerator models to be used with environment variable `LAB_PREFIX`. It is overriden with command line option `--lab`. For example,  `vaca-ioc.py --lab ilsf`
+- To add fluctuation to PV values one can define update frequency in Hz with env variable `VACA_UPDATE` or argument `--update`.
 
 ## Virtual machine
 

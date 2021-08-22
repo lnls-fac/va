@@ -17,7 +17,7 @@ class AreaStructureProcess(multiprocessing.Process):
         my_queue = multiprocessing.Queue()
         self.others_queue = dict()
         self.my_queue = my_queue
-        self.area_structure = area_structure_cls
+        self.area_structure_cls = area_structure_cls
         self.area_structure_prefix = area_structure_cls.prefix
 
         super().__init__(
@@ -49,12 +49,12 @@ class AreaStructureProcess(multiprocessing.Process):
         finalization -- barrier to wait before finalization
         **kwargs -- extra arguments to area_structure __init__
         """
-        As = area_structure_cls(**kwargs)
+        area_structure = area_structure_cls(**kwargs)
         # prctl.set_name(self.name) # For debug
 
         try:
             while not stop_event.is_set():
-                utils.process_and_wait_interval(As.process, interval)
+                utils.process_and_wait_interval(area_structure.process, interval)
         except Exception as ex:
             exc_info = sys.exc_info()
             print('--- traceback ---')
@@ -64,11 +64,11 @@ class AreaStructureProcess(multiprocessing.Process):
             utils.log('error2', str(ex), 'red')
             stop_event.set()
         finally:
-            As.close_others_queues()
+            area_structure.close_others_queues()
             finalisation.wait()
-            As.empty_my_queue()
+            area_structure.empty_my_queue()
             finalisation.wait()
-            As.finalise()
+            area_structure.finalise()
 
 
 class AreaStructure:
