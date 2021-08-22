@@ -4,7 +4,7 @@ import time
 import numpy
 import mathphys
 import pyaccel
-from siriuspy.csdev import Const as _Const
+from siriuspy.pwrsupply.csdev import Const as _Const
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
 from va import area_structure
 from va import magnet
@@ -501,7 +501,7 @@ class AcceleratorModel(area_structure.AreaStructure):
             if self.device_names.pvnaming_fam in psname:
                 ps = power_supply.FamilyPowerSupply(
                     magnets, model=self, psname=psname)
-                ps.pwrstate_sel = _Const.OffOn.On
+                ps.initialise()
                 self._power_supplies[psname] = ps
 
         # It is necessary to initalise all family power supplies before
@@ -514,12 +514,12 @@ class AcceleratorModel(area_structure.AreaStructure):
                 if 'PU' in psname:
                     ps = power_supply.PulsedMagnetPowerSupply(
                         magnets, model=self, psname=psname)
-                    ps.pwrstate_sel = _Const.OffOn.On
+                    ps.initialise()
                     self._pulsed_power_supplies[psname] = ps
                 else:
                     ps = power_supply.IndividualPowerSupply(
                         magnets, model=self, psname=psname)
-                    ps.pwrstate_sel = _Const.OffOn.On
+                    ps.initialise()
                     self._power_supplies[psname] = ps
 
         utils.log('init',

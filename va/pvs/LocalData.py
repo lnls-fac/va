@@ -1,10 +1,11 @@
-import time
 import copy as _copy
+
 from siriuspy.namesys import SiriusPVName as _PVName
 from siriuspy.namesys import join_name as _join_name
 from siriuspy.pwrsupply import csdev as _pwrsupply_csdev
 
 from .. import utils
+from ..power_supply import PowerSupply
 from ..timesys import TimingSimulation
 
 
@@ -245,29 +246,6 @@ class RecordNames:
     Returns:
         [type]: [description]
     """
-
-    # TEMP!: limit properties of PS devices!
-    limited_ps_propties = (
-        'OpMode-Sel',
-        'OpMode-Sts',
-        'PwrState-Sel',
-        'PwrState-Sts',
-        'Current-SP',
-        'Current-RB',
-        'CurrentRef-Mon',
-        'Current-Mon',
-        'Voltage-SP',
-        'Voltage-RB',
-        'VoltageRef-Mon',
-        'Voltage-Mon',
-        'Version-Cte',
-        'CtrlMode-Mon',
-        'CtrlLoop-Sel',
-        'CtrlLoop-Sts',
-        'IntlkSoft-Mon',
-        'IntlkHard-Mon',
-        )
-
     def __init__(self, device_names, model=None, family_data=None):
         self.family_data = family_data
         self.database = dict()
@@ -373,7 +351,7 @@ class RecordNames:
         for device_name in _device_names.keys():
             db = _pwrsupply_csdev.get_ps_propty_database(psname=device_name)
             for propty in db:
-                if propty not in RecordNames.limited_ps_propties:
+                if propty not in PowerSupply.PROPERTIES_SUBSET:
                     continue
                 value = db[propty]
                 p = device_name + ':' + propty
