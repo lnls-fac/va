@@ -4,8 +4,9 @@ import time
 import numpy
 import mathphys
 import pyaccel
-from siriuspy.pwrsupply.csdev import Const as _Const
+
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
+
 from va import area_structure
 from va import magnet
 from va import power_supply
@@ -84,6 +85,8 @@ class AcceleratorModel(area_structure.AreaStructure):
         elif parts.dis == 'AP' and parts.propty == 'CurrLT-Mon':
             return self._beam_charge.total_lifetime
             # return self._beam_charge.total_lifetime / _u.hour
+        elif parts.dis == 'PS' and parts.propty == 'TimestampUpdate-Mon':
+            return time.time()
         else:
             return None
 

@@ -117,6 +117,8 @@ class AreaStructure:
             pvs = pvs + self.pv_module.get_dynamical_pvs()
 
         # if model changes, also update all read-only PVs
+        # NOTE: this can be improved. instead of sending all read_only_pvs to drive
+        # one can keep a list of changed PVs.
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
             self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))
