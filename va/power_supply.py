@@ -4,8 +4,8 @@ import math as _math
 from siriuspy.namesys.implementation import SiriusPVName
 
 from siriuspy.search import PSSearch as _PSSearch
-from siriuspy.pwrsupply.data import PSData as _PSData
 from siriuspy.pwrsupply.csdev import Const as _Const
+from siriuspy.pwrsupply.csdev import get_ps_propty_database as _get_ps_propty_database
 
 from va import __version__
 
@@ -76,7 +76,7 @@ class BeagleBones:
         return bbbname
 
 
-class PowerSupply(_PSData):
+class PowerSupply:
 
     beaglebones = BeagleBones()
 
@@ -114,13 +114,15 @@ class PowerSupply(_PSData):
         """Gets and sets current [A]
         Connected magnets are processed after current is set.
         """
-        super().__init__(psname=psname)
+        self.psname = psname
         if ':PU' in psname:
             self.pulsedps = True
         else:
             self.pulsedps = False
         self._model = model
         self._magnets = magnets
+        self._psmodel = _PSSearch.conv_psname_2_psmodel(psname)
+        self._pstype = _PSSearch.conv_psname_2_pstype(psname)
         self.properties = self._get_propty_subset_database()
         self.pulsedps = ':PU' in psname
         self.sofbps = 'SOFBMode-Sel' in self.properties
@@ -334,12 +336,14 @@ class PowerSupply(_PSData):
 
     def _get_propty_subset_database(self):
 
+        propty_database = _get_ps_propty_database(self._psmodel, self._pstype)
+
         # filter property subset
         if PowerSupply.PROPERTIES is None:
-            dbset =  self._propty_database
+            dbset =  propty_database
         else:
             dbset = dict()
-            pdbase = self._propty_database
+            pdbase = propty_database
             for propty, dic in pdbase.items():
                 if propty in PowerSupply.PROPERTIES:
                     dbset[propty] = dic
