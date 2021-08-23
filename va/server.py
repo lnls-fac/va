@@ -69,8 +69,8 @@ def get_area_structures():
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
         sirius_area_structures.BoModel,
-        sirius_area_structures.TsModel,
-        sirius_area_structures.SiModel,
+        # sirius_area_structures.TsModel,
+        # sirius_area_structures.SiModel,
     )
     return area_structures
 
