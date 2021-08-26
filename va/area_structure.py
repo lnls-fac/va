@@ -34,10 +34,11 @@ class AreaStructureProcess(multiprocessing.Process):
             name = 'Thread-' + area_structure_cls.prefix
             )
 
-    def set_others_queue(self,queues):
-        for pr, q in queues.items():
-            if pr == self.area_structure_prefix: continue
-            self.others_queue[pr] = q
+    def set_others_queue(self, queues):
+        for prefix, queue in queues.items():
+            if prefix == self.area_structure_prefix:
+                continue
+            self.others_queue[prefix] = queue
 
     def start_and_run_area_structure(self, area_structure_cls, interval, stop_event, finalisation, **kwargs):
         """Start periodic processing of area_structure
@@ -140,9 +141,11 @@ class AreaStructure:
 
     def _send_parameters_to_other_area_structure(self, prefix, _dict):
         if prefix in self._others_queue:
+            # print('{} sending to {}: '.format(self.prefix, prefix), _dict)
             self._others_queue[prefix].put(('p', _dict))
 
     def _get_parameters_from_other_area_structure(self, _dict):
+        # print('{} receiving: '.format(self.prefix), _dict)
         if 'pulsed_magnet_parameters' in _dict.keys():
             self._set_pulsed_magnets_parameters(
                 **_dict['pulsed_magnet_parameters'])
@@ -165,3 +168,7 @@ class AreaStructure:
             value = self._get_pv(pv)
             sp_pv_list.append((pv, value))
         self._others_queue['driver'].put(('sp', sp_pv_list))
+
+    def _send_initialisation_sign(self):
+        self.process()
+        self._others_queue['driver'].put(('i', self.prefix))

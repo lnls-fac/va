@@ -27,9 +27,9 @@ class PSWaveForm:
 
     def __init__(self, label=None, data=None, filename=None):
 
-        if not _os.path.exists(PSWaveForm.path):
-            _os.makedirs(PSWaveForm.path)
         if filename is not None:
+            if not _os.path.exists(PSWaveForm.path):
+                _os.makedirs(PSWaveForm.path)
             self.load_from_file(filename)
         else:
             self._label = label
