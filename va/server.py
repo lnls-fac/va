@@ -69,8 +69,8 @@ def get_area_structures():
         sirius_area_structures.LiModel,
         sirius_area_structures.TbModel,
         sirius_area_structures.BoModel,
-        sirius_area_structures.TsModel,
-        sirius_area_structures.SiModel,
+        # sirius_area_structures.TsModel,
+        # sirius_area_structures.SiModel,
     )
     return area_structures
 
@@ -141,12 +141,12 @@ def wait_for_initialisation():
     global start_event
     global stop_event
     t0 = time.time()
-    utils.log('init', 'waiting area structure initialization', 'green')
+    utils.log('init', 'waiting area structure initialisation', 'green')
     while not start_event.is_set() and not stop_event.is_set():
         time.sleep(WAIT_TIMEOUT)
         t = time.time()
         if (t-t0) > INIT_TIMEOUT:
-            utils.log('init', 'initialization timeout!', 'red')
+            utils.log('init', 'initialisation timeout!', 'red')
             break
     if not stop_event.is_set():
         utils.log('init', 'server ready!', 'green', a=['bold'])

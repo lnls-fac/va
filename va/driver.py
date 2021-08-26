@@ -120,7 +120,7 @@ class PCASDriver(Driver):
         elif cmd == 'a':  # anomalous condition signed by area_structure
             utils.log('!error3', data, c='red')
             self._stop_event.set()
-        elif cmd == 'i':  # initialization signaling
+        elif cmd == 'i':  # initialisation signaling
             self._initialisation_sign_received(data)
         else:
             utils.log('!cmd', cmd, c='red', a=['bold'])

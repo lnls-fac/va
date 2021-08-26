@@ -1,10 +1,11 @@
-import time
 import copy as _copy
+
 from siriuspy.namesys import SiriusPVName as _PVName
 from siriuspy.namesys import join_name as _join_name
 from siriuspy.pwrsupply import csdev as _pwrsupply_csdev
 
 from .. import utils
+from ..power_supply import PowerSupply as _PowerSupply
 from ..timesys import TimingSimulation
 
 
@@ -36,16 +37,10 @@ class DeviceNames:
     def join_name(
             self, subsection, discipline, device, instance=None, proper=None,
             field=None):
-
+        """."""
         name = _join_name(
             sec=self.section, sub=subsection, dis=discipline, dev=device,
             idx=instance, propty=proper, field=field)
-        # name = _join_name(
-        #     self.section, subsection, discipline, device, instance, proper,
-        #     field)
-        # print(
-        #     name, self.section, subsection, discipline, device, instance,
-        #     proper, field)
 
         return name
 
@@ -355,6 +350,7 @@ class RecordNames:
             else:
                 _record_names[dev_name] = _device_names[dev_name]
                 self.database[dev_name] = {'type': 'float', 'value': 0.0}
+
         self.all_record_names.update(_record_names)
         self.di_ro = []
         self.di_rw = []
@@ -379,7 +375,7 @@ class RecordNames:
         for device_name in _device_names.keys():
             db = _pwrsupply_csdev.get_ps_propty_database(psname=device_name)
             for propty in db:
-                if propty not in RecordNames.limited_ps_propties:
+                if propty not in _PowerSupply.PROPERTIES:
                     continue
                 value = db[propty]
                 p = device_name + ':' + propty
@@ -416,6 +412,7 @@ class RecordNames:
                 _record_names[dev_name] = _device_names[dev_name]
                 self.database[dev_name] = {
                     'type': 'float', 'count': 1, 'value': 0.0}
+
         self.all_record_names.update(_record_names)
         self.ap = list(_record_names.keys())
 
@@ -446,6 +443,7 @@ class RecordNames:
             else:
                 _record_names[device_name] = _device_names[device_name]
                 self.database[device_name] = {'type' : 'float', 'count': 1, 'value': 0.0, 'prec': 10}
+
         self.all_record_names.update(_record_names)
         self.rf = list(_record_names.keys())
 
@@ -483,8 +481,8 @@ class RecordNames:
                 _record_names[p] = _device_names[device_name]
                 self.database[p] = {
                     'type': 'float', 'count': 1, 'value': 0.0, 'prec': 10}
-        self.all_record_names.update(_record_names)
 
+        self.all_record_names.update(_record_names)
         for rec_name in _record_names.keys():
             if rec_name.endswith(('-RB', '-Sts', '-Mon')):
                 self.ti_ro.append(rec_name)
@@ -495,6 +493,7 @@ class RecordNames:
         _record_names = dict()  # get_fake_record_names(self.family_data)
         for p in _record_names.keys():
             self.database[p] = {'type': 'float', 'count': 1, 'value': 0.0}
+
         self.all_record_names.update(_record_names)
         self.fk = []
         self.fk_pos = []
@@ -509,6 +508,10 @@ class RecordNames:
             if 'CurrLT' in pv:
                 self.dynamical_pvs.append(pv)
                 self.ap.remove(pv)
+        for pv in self.ps_ro.copy():
+            if pv.endswith('TimestampUpdate-Mon'):
+                self.dynamical_pvs.append(pv)
+                self.ps_ro.remove(pv)
 
     def get_all_record_names(self):
         return _copy.deepcopy(self.all_record_names)
