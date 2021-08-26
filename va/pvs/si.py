@@ -35,7 +35,7 @@ _el_names = { # All these Family names must be defined in family_data dictionary
            # 'TuneShkrH', 'TuneShkrV', 'TunePkup',
           ],  # model.families.families_di(),
     'RF': model.families.families_rf(),
-    'MA': (['B1', 'B2', ] +  # model.families.families_dipoles() +
+    'MA': (['B1', 'B2', 'BC'] +  # model.families.families_dipoles() +
            model.families.families_quadrupoles() +
            model.families.families_sextupoles() +
            ['CH', ] +  #  model.families.families_horizontal_correctors() +
@@ -56,7 +56,7 @@ _fam_names = { # All these Family names must be defined in family_data dictionar
            model.families.families_quadrupoles() +
            model.families.families_sextupoles()
           ),
-    'MA': (['B1B2-1','B1B2-2']+
+    'MA': (['B1B2-1', 'B1B2-2', 'BC'] +
            model.families.families_quadrupoles() +
            model.families.families_sextupoles()
           ),
@@ -70,6 +70,7 @@ _excitation_curves_mapping = (
 # This relation should be implemented and available from siriuspy/magnet !
     (('B1',)                             , ('si-dipole-b1b2-fam.txt', +1)),
     (('B2',)                             , ('si-dipole-b1b2-fam.txt', +1)),
+    (('BC',)                             , ('si-dipole-bc.txt', +1)),
     (('QDA',)                            , ('si-quadrupole-q14-qda-fam.txt', +1)),
     (('QDB1',)                           , ('si-quadrupole-q14-qdb1-fam.txt', +1)),
     (('QDB2',)                           , ('si-quadrupole-q14-qdb2-fam.txt', +1)),

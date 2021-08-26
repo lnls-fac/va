@@ -44,7 +44,7 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     emitx = emittance * 1 / (1 + coupling)
     emity = emittance * coupling / (1 + coupling)
     sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
-    sigmay = numpy.sqrt(betay * emity + (etax * energy_spread)**2)
+    sigmay = numpy.sqrt(betay * emity + (etay * energy_spread)**2)
     hmax[hmax > 1e100] = 1e100
     hmin[hmin < -1e100] = -1e100
     vmax[vmax > 1e100] = 1e100
@@ -173,6 +173,12 @@ def _process_loss_fraction_args(accelerator, **kwargs):
     init_twiss = kwargs.get('init_twiss', init_twiss)
     delta_rx = kwargs.get('delta_rx', 0.0)
     delta_angle = kwargs.get('delta_angle', 0.0)
+
+    # print('init_twiss: ')
+    # print(init_twiss)
+    # print('delta_rx: ', delta_rx)
+    # print('delta_angle: ', delta_angle)
+
 
     if isinstance(init_twiss, dict):
         init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)

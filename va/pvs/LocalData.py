@@ -110,8 +110,8 @@ class DeviceNames:
         for mag, power in zip(['ma', 'pm'], ['ps', 'pu']):
             # create a mapping of index in the lattice and magnet name
             mag_ind_dict = dict()
-            for mag_name, mag_prop in \
-                    self.get_device_names(accelerator, mag).items():
+            magdevs = self.get_device_names(accelerator, mag)
+            for mag_name, mag_prop in magdevs.items():
                 if self.pvnaming_fam in mag_name:
                     continue
                 idx = list(mag_prop.values())[0][0]
@@ -122,8 +122,8 @@ class DeviceNames:
 
             # use this mapping to see if the power supply is attached to the
             # same element
-            for ps_name, ps_prop in \
-                    self.get_device_names(accelerator, power).items():
+            psdevs = self.get_device_names(accelerator, power)
+            for ps_name, ps_prop in psdevs.items():
                 ps = _PVName(ps_name).dev
                 idx = list(ps_prop.values())[0]
                 idx = [idx[0]] if self.pvnaming_fam not in ps_name else \
@@ -132,7 +132,7 @@ class DeviceNames:
                     mag_names = mag_ind_dict[i]
                     for mag_name in mag_names:
                         m = _PVName(mag_name).dev
-                        if (m not in ps) and (ps not in m):
+                        if (m not in ps) and (ps not in m): # and m != 'BC':
                             # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT
                             # HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
                             continue

@@ -8,7 +8,7 @@ import pyaccel
 from siriuspy.namesys import SiriusPVName as _SiriusPVName
 
 from va import area_structure
-from va import magnet
+from va import magnet as _magnet
 from va import power_supply
 from va import beam_charge
 from va import injection
@@ -436,20 +436,22 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._magnet2enabled, self._enabled2magnet = \
             self.device_names.get_magnet_enabled_mapping(accelerator)
 
+        # create magnet objects
         self._magnets = dict()
         self._pulsed_magnets = dict()
         for magnet_name in magnet_names.keys():
+            if '-Fam' in magnet_name:
+                continue
             excitation_curve, polarity = excit_curv_polarity_map[magnet_name]
             family, indices = magnet_names[magnet_name].popitem()
-            indices = indices[0]
             family_type = family_mapping[family]
 
             if family_type == 'dipole':
                 if self.prefix == 'BO':
-                    m = magnet.BoosterDipoleMagnet(
+                    m = _magnet.BoosterDipoleMagnet(
                         accelerator, indices, excitation_curve, polarity)
                 else:
-                    m = magnet.NormalMagnet(
+                    m = _magnet.NormalMagnet(
                         accelerator, indices, excitation_curve, polarity)
             elif family_type == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
@@ -461,31 +463,31 @@ class AcceleratorModel(area_structure.AreaStructure):
                     # pulse_curve_filename = os.path.join(
                     #     self._pulse_curves_dir, 'not_found')
                     pulse_curve_filename = pulse_curve
-                m = magnet.PulsedMagnet(
+                m = _magnet.PulsedMagnet(
                     accelerator, indices, excitation_curve, polarity,
                     pulse_curve_filename)
                 self._pulsed_magnets[magnet_name] = m
             elif family_type == 'quadrupole':
-                m = magnet.NormalMagnet(
+                m = _magnet.NormalMagnet(
                     accelerator, indices, excitation_curve, polarity)
             elif family_type == 'sextupole':
-                m = magnet.NormalMagnet(
+                m = _magnet.NormalMagnet(
                     accelerator, indices, excitation_curve, polarity)
             elif family_type in (
                     'slow_horizontal_corrector', 'fast_horizontal_corrector',
                     'horizontal_corrector'):
-                m = magnet.NormalMagnet(
+                m = _magnet.NormalMagnet(
                     accelerator, indices, excitation_curve, polarity)
             elif family_type in (
                 'slow_vertical_corrector', 'fast_vertical_corrector',
                 'vertical_corrector'):
-                m = magnet.SkewMagnet(
+                m = _magnet.SkewMagnet(
                     accelerator, indices, excitation_curve, polarity)
             elif family_type == 'skew_quadrupole':
-                m = magnet.SkewMagnet(
+                m = _magnet.SkewMagnet(
                     accelerator, indices, excitation_curve, polarity)
             elif family_type in ('solenoid','magnetic_lens'):
-                m = magnet.NormalMagnet(
+                m = _magnet.NormalMagnet(
                     accelerator, indices, excitation_curve, polarity)
             else:
                 m = None
@@ -493,7 +495,7 @@ class AcceleratorModel(area_structure.AreaStructure):
             if m is not None:
                 self._magnets[magnet_name] = m
 
-        # Set initial current values
+        # create power supply objetcs
         self._power_supplies = dict()
         self._pulsed_power_supplies = dict()
         for psname in ps2magnet.keys():
@@ -638,7 +640,6 @@ class LinacModel(AcceleratorModel):
             'global_coupling': self._global_coupling,
             'init_twiss': self._twiss_at_match}
 
-        self._log('calc', '{}: transport efficiency'.format(self.model_module.lattice_version))
         _dict = {}
         _dict.update(inj_params)
         _dict.update(self._get_vacuum_chamber())
@@ -649,10 +650,11 @@ class LinacModel(AcceleratorModel):
         loss_fraction, self._twiss, self._m66 = \
             injection.calc_charge_loss_fraction_in_line(acc, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
+        self._log('calc', '{}: transport efficiency {:.2f} %'.format(
+            self.model_module.lattice_version, 100*self._transport_efficiency))
 
         if self._twiss is not None:
             self._orbit = self._twiss.co
-            twi = self._twiss[-1]
 
         args_dict = {}
         # picklable object
@@ -810,18 +812,23 @@ class TLineModel(AcceleratorModel):
             self._others_queue['driver'].put(('s', (pv_name, value)))
 
     def _calc_transport_efficiency(self):
-        if self._injection_parameters is None: return
-        self._log('calc', '{}: transport efficiency'.format(self.model_module.lattice_version))
+        if self._injection_parameters is None:
+            return
+
         _dict = {}
 
         _dict.update(self._injection_parameters)
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        for ps in self._pulsed_power_supplies.values(): ps.pwrstate_sel = 1
+        for ps in self._pulsed_power_supplies.values():
+            ps.pwrstate_sel = 1
         loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
-        self._orbit = self._twiss.co
+        self._log('calc', '{}: transport efficiency {:.2f} %'.format(
+            self.model_module.lattice_version, 100*self._transport_efficiency))
+        if self._twiss is not None:
+            self._orbit = self._twiss.co
         for ps in self._pulsed_power_supplies.values():
             ps.pwrstate_sel = 0
 
@@ -1100,11 +1107,6 @@ class BoosterModel(RingModel):
         if self._m66 is None: return
         try:
             self._log('calc', '{}: equilibrium parameters'.format(self.model_module.lattice_version))
-            # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
-            #                              accelerator=self._accelerator,
-            #                              twiss=self._twiss,
-            #                              m1turn=self._m66,
-            #                              closed_orbit=self._orbit)
             self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
         except:
             self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
@@ -1121,11 +1123,10 @@ class BoosterModel(RingModel):
         if self.simulate_only_orbit: return
         if self._injection_parameters is None: return
 
-        self._log('calc', '{}: injection efficiency'.format(self.model_module.lattice_version))
-
         if not hasattr(self, '_pulsed_power_supplies'):
             self._injection_efficiency = None
             self._update_injection_efficiency = True
+            self._log('calc', '{}: injection efficiency'.format(self.model_module.lattice_version))
             return
 
         # turn on injection pulsed magnet
@@ -1138,6 +1139,8 @@ class BoosterModel(RingModel):
         _dict.update(self._get_coordinate_system_parameters())
         tracking_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
         self._injection_efficiency = 1.0 - tracking_loss_fraction
+        self._log('calc', '{}: injection efficiency {:.2f} %'.format(
+            self.model_module.lattice_version, 100*self._injection_efficiency))
 
         # turn off injection pulsed magnet
         for psname, ps in self._pulsed_power_supplies.items():

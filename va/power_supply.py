@@ -154,6 +154,10 @@ class PowerSupply:
             return None
 
         changed_pvs = self._process_update_model_state(pv_name, propty, value)
+
+        # propagate changes to magnets
+        self.process()
+
         return changed_pvs
 
     def initialise(self):
@@ -162,6 +166,37 @@ class PowerSupply:
         self.ctrlloop_sel = _Const.OpenLoop.Closed
         if 'TimestampBoot-Cte' in self.properties:
             self['TimestampBoot-Cte'] = _time.time()
+        self._set_current_from_model()
+
+    def _set_current_from_model(self):
+        PWRSUPPLIES_POSITIVE_INTB = ('TB-Fam:PS-B')
+        values = dict()
+
+        # get all strengths and group them by fam_name
+        for magnet in self._magnets:
+
+            value = magnet.value
+            if self.psname in PWRSUPPLIES_POSITIVE_INTB:
+                # take abs of field integrals for ps of dipoles with opposite deflections
+                value = abs(value)
+
+            if magnet.fam_name in values:
+                values[magnet.fam_name].append(value)
+            else:
+                values[magnet.fam_name] = [value, ]
+
+        # take average within fam_name
+        for fam_name in values:
+            values[fam_name] = sum(values[fam_name])/len(values[fam_name])
+
+        # sum all strengths of fam_names
+        value = sum(values.values())
+
+        # convert to current
+        current = magnet.get_current_from_field(value=value)
+
+        # set power supply current
+        self._process_update_model_state(self.psname + ':Current-SP', 'Current-SP', current)
 
     @property
     def current_mon(self):
@@ -255,9 +290,6 @@ class PowerSupply:
             pvname = SiriusPVName(pv_name)
             if pvname.device_name == self.psname:
                 self[pvname.propty] = value
-
-        # propagate changes to magnets
-        self.process()
 
         return changed_pvs
 
