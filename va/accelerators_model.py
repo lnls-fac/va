@@ -1,5 +1,6 @@
 
 import enum
+import time
 import numpy
 import mathphys
 import pyaccel
@@ -419,7 +420,9 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._accelerator.append(marker)
 
     def _init_magnets_and_power_supplies(self):
-        mod = self.model_module
+        t0 = time.time()
+        utils.log('init',
+            '{}: initialising magnet and power supplies'.format(self.prefix), 'green')
         accelerator = self._accelerator
         magnet_names = self.device_names.get_magnet_names(accelerator)
         family_mapping = self.model_module.family_mapping
@@ -449,10 +452,6 @@ class AcceleratorModel(area_structure.AreaStructure):
                 else:
                     m = magnet.NormalMagnet(
                         accelerator, indices, excitation_curve, polarity)
-                    # print(magnet_name)
-                    # print(m.value)
-                    # print(m.current_mon)
-                    # print()
             elif family_type == 'pulsed_magnet':
                 pulse_curve = pulse_curve_mapping[magnet_name]
                 try:
@@ -526,6 +525,9 @@ class AcceleratorModel(area_structure.AreaStructure):
                         magnets, model=self, psname=psname)
                     ps.pwrstate_sel = _Const.OffOn.On
                     self._power_supplies[psname] = ps
+
+        utils.log('init',
+            '{}: magnet and power supplies initialised ({:.0f} ms)'.format(self.prefix, 1e3*(time.time() - t0)), 'green')
 
     def _get_sorted_pulsed_magnets(self):
         magnets_pos = []

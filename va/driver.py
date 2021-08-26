@@ -66,7 +66,7 @@ class PCASDriver(Driver):
         self._interval = interval
         self._start_event = start_event
         self._internal_queue = queue.Queue()
-        self._my_queue = my_queue
+        self.my_queue = my_queue
         self._stop_event = stop_event
         self._processes = dict()
         self._processes_database = dict()
@@ -76,13 +76,14 @@ class PCASDriver(Driver):
             self._processes[prefix] = p
             self._processes_initialisation[prefix] = False
             self._processes_database[prefix] = \
-                p.area_structure.pv_module.get_database()
+                p.area_structure_cls.pv_module.get_database()
 
     def process(self):
         """Function that run continuously."""
-        statusw = self._process_writes()
-        statusr = self._process_requests()
-        if statusw or statusr:
+        statusw = self._process_writes() > 0
+        statusr = self._process_requests() > 0
+        statusf = self._process_fluctuations() > 0
+        if statusw or statusr or statusf:
             self.updatePVs()  # NOTE: should we update all PVs?
 
     def _process_writes(self):
@@ -90,14 +91,25 @@ class PCASDriver(Driver):
         for _ in range(size):
             process, reason, value = self._internal_queue.get()
             process.my_queue.put(('s', (reason, value)))
-        return size > 0
+        return size
 
     def _process_requests(self):
-        size = self._my_queue.qsize()
+        size = self.my_queue.qsize()
         for _ in range(size):
-            request = self._my_queue.get()
+            request = self.my_queue.get()
             self._process_request(request)
-        return size > 0
+        return size
+
+    def _process_fluctuations(self):
+        size = 0
+        for section in self._processes_database:
+            process = self._processes[section]
+            if process.area_structure_cls.pvs_fluctuation.times_up():
+                pvs_fluctuations = process.area_structure_cls.pvs_fluctuation.values
+                size += len(pvs_fluctuations)
+                for pvname, value in pvs_fluctuations.items():
+                    self.setParam(pvname, value)
+        return size
 
     def _process_request(self, request):
         cmd, data = request
@@ -116,10 +128,11 @@ class PCASDriver(Driver):
     def _set_parameter_in_memory(self, data):
         pv_name, value = data
         try:
+            process = self._get_pv_process(pv_name)
+            value = process.area_structure_cls.pvs_fluctuation.set_pv(pv_name, value)
             self.setParam(pv_name, value)
         except:
-            print('error in setParam: ', pv_name, value)
-            raise
+            print('error in set_parameter_in_memory: ', pv_name, value)
 
     def _set_sp_parameters_in_memory(self, data):
         sp_pv_list = data
@@ -128,6 +141,8 @@ class PCASDriver(Driver):
                 utils.log(
                     'warn', 'Value for {} is None!'.format(pv_name), 'yellow')
             else:
+                process = self._get_pv_process(pv_name)
+                value = process.area_structure_cls.pvs_fluctuation.set_pv(pv_name, value)
                 self.setParam(pv_name, value)
 
     def _initialisation_sign_received(self, data):
@@ -136,7 +151,10 @@ class PCASDriver(Driver):
             return
         self._processes_initialisation[prefix] = True
         # print(self._processes_initialisation)
-        utils.log('init', 'area_structure {} initialised (requests in driver queue: {})'.format(prefix, self._my_queue.qsize()), 'green')
+        nrprocs = 'Requests in queues DRV:{}'.format(self.my_queue.qsize())
+        for section, process in self._processes.items():
+            nrprocs += ' {}:{}'.format(section, process.my_queue.qsize())
+        utils.log('init', 'area_structure {} initialised. {}'.format(prefix, nrprocs), 'green')
         if not self._start_event.is_set():
             if all(self._processes_initialisation.values()):
                 self._start_event.set()
@@ -148,13 +166,13 @@ class PCASDriver(Driver):
 
     def empty_my_queue(self):
         """Empty the driver queue."""
-        while not self._my_queue.empty():
-            self._my_queue.get()
+        while not self.my_queue.empty():
+            self.my_queue.get()
 
     def finalise(self):
         """Finalise properly."""
-        self._my_queue.close()
-        self._my_queue.join_thread()
+        self.my_queue.close()
+        self.my_queue.join_thread()
         utils.log('exit', 'driver ')
 
     def read(self, reason):
@@ -216,5 +234,10 @@ class PCASDriver(Driver):
 
     def _get_pv_process(self, reason):
         prefix = reason[:PREFIX_LEN]
+
+        # TODO: timing devices generate PVs for multiple sections/processes. cleanup this!
+        if prefix not in self._processes:
+            return self._processes['AS']
+
         process = self._processes[prefix]
         return process
