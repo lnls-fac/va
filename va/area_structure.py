@@ -82,6 +82,11 @@ class AreaStructure:
         self._state_changed = False
         self.simulate_only_orbit = SIMUL_ONLY_ORBIT
 
+    @property
+    def log(self):
+        """."""
+        return self._log
+        
     def process(self):
         self._process_requests()
         self._update_state()

@@ -43,6 +43,11 @@ class AcceleratorModel(area_structure.AreaStructure):
         self._init_magnets_and_power_supplies()
         self._init_sp_pv_values()
 
+    @property
+    def accelerator(self):
+        """."""
+        return self._accelerator
+
     # --- methods implementing response of model to get requests
 
     def _get_pv(self, pv_name):
@@ -357,6 +362,14 @@ class AcceleratorModel(area_structure.AreaStructure):
 
     # --- auxiliary methods
 
+    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
+        if message1 or message2:
+            self._log(message1, message2, c=c, a=a)
+        if self._beam_charge:
+            self._beam_charge.dump()
+        self._orbit = None  # means no closed orbit
+        self._twiss = None  # means no optics
+
     def _beam_inject(self, charge=None):
         if charge is None:
             return
@@ -623,11 +636,7 @@ class LinacModel(AcceleratorModel):
         self._single_bunch_mode = 0
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
-        if message1 or message2:
-            self._log(message1, message2, c=c, a=a)
-        if self._beam_charge: self._beam_charge.dump()
-        self._orbit = None
-        self._twiss = None
+        super()._beam_dump(message1, message2, c, a)
         self._injection_efficiency = 1.0
         self._ejection_efficiency  = 1.0
 
@@ -644,11 +653,11 @@ class LinacModel(AcceleratorModel):
         _dict.update(inj_params)
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-
+    
         idx = pyaccel.lattice.find_indices(self._accelerator,'fam_name','twiss_at_match')
-        acc = self._accelerator[idx:]
+        _dict['accelerator'] = self._accelerator[idx:]
         loss_fraction, self._twiss, self._m66 = \
-            injection.calc_charge_loss_fraction_in_line(acc, **_dict)
+            injection.calc_charge_loss_fraction_in_line(self, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._log('calc', '{}: transport efficiency {:.2f} %'.format(
             self.model_module.lattice_version, 100*self._transport_efficiency))
@@ -753,11 +762,7 @@ class TLineModel(AcceleratorModel):
         self._update_state()
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
-        if message1 or message2:
-            self._log(message1, message2, c=c, a=a)
-        if self._beam_charge: self._beam_charge.dump()
-        self._orbit = None
-        self._twiss = None
+        super()._beam_dump(message1, message2, c, a)
         self._injection_parameters = None
         self._transport_efficiency = None
 
@@ -771,7 +776,8 @@ class TLineModel(AcceleratorModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.pwrstate_sel = 0
+        # for ps in self._pulsed_power_supplies.values():
+        #     ps.pwrstate_sel = 0
 
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
@@ -821,16 +827,18 @@ class TLineModel(AcceleratorModel):
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
-        for ps in self._pulsed_power_supplies.values():
-            ps.pwrstate_sel = 1
-        loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self._accelerator, **_dict)
+        # for ps in self._pulsed_power_supplies.values():
+        #     ps.pwrstate_sel = 1
+
+        loss_fraction, self._twiss, self._m66 = injection.calc_charge_loss_fraction_in_line(self, **_dict)
         self._transport_efficiency = 1.0 - loss_fraction
         self._log('calc', '{}: transport efficiency {:.2f} %'.format(
             self.model_module.lattice_version, 100*self._transport_efficiency))
         if self._twiss is not None:
             self._orbit = self._twiss.co
-        for ps in self._pulsed_power_supplies.values():
-            ps.pwrstate_sel = 0
+
+        # for ps in self._pulsed_power_supplies.values():
+        #     ps.pwrstate_sel = 0
 
         args_dict = {}
         args_dict.update(self._injection_parameters)
@@ -846,7 +854,7 @@ class TLineModel(AcceleratorModel):
         self._log(message1='cycle', message2='-- '+self.prefix+' --')
         self._log(
             message1='cycle',
-            message2='beam injection in {0:s}: {1:.5f} nC'.format(
+            message2='beam injection in {:s}: {:.5f} nC'.format(
                 self.prefix, sum(charge)*1e9))
 
         if CALC_TIMING_EFF and not self.simulate_only_orbit:
@@ -855,15 +863,15 @@ class TLineModel(AcceleratorModel):
                 charge, charge_time = magnet.pulsed_magnet_pass(
                     charge, charge_time, kwargs['master_delay'])
             efficiency = (sum(charge)/prev_charge) if prev_charge != 0 else 0
-            self._log(message1='cycle', message2='pulsed magnets in {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
+            self._log(message1='cycle', message2='pulsed magnets in {:s}: {:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
         if CALC_INJECTION_EFF and not self.simulate_only_orbit:
             efficiency = self._transport_efficiency if self._transport_efficiency is not None else 0
             if 'ejection_efficiency' in kwargs: efficiency = efficiency*kwargs['ejection_efficiency']
             charge = [bunch_charge * efficiency for bunch_charge in charge]
-            self._log(message1='cycle', message2='beam transport at {0:s}: {1:.4f}% efficiency'.format(self.prefix, 100*efficiency))
+            self._log(message1='cycle', message2='beam transport at {:s}: {:.4f}% efficiency'.format(self.prefix, 100*efficiency))
 
-        kwargs['charge'] = charge
+        kwargs['charge'] = charge   
         kwargs['charge_time'] = charge_time
         self._send_parameters_to_other_area_structure(
             prefix = self._downstream_accelerator_prefix,
@@ -877,7 +885,71 @@ class RingModel(AcceleratorModel):
         super().__init__(**kwargs)
         self._send_initialisation_sign()
 
+    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
+        super()._beam_dump(message1, message2, c, a)
+        self._m66 = None
+        self._tunes = None
+        self._transfer_matrices = None
+        self._lifetime = None
+        self._injection_efficiency = None
+
+    def _calc_closed_orbit(self):
+        """Calculate closed orbit when there is beam."""
+
+        latver = self.model_module.lattice_version
+
+        try:
+            self._log('calc', '{}: closed orbit'.format(latver))
+            if TRACK6D:
+                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
+            else:
+                self._orbit = numpy.zeros((6, len(self._accelerator)))
+                self._orbit[:4, :] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
+        except pyaccel.tracking.TrackingException:
+            # beam is lost
+            self._beam_dump('panic', '{}: closed orbit does not exist and beam is lost'.format(latver), c='red')
+
+    def _calc_linear_optics(self):
+        """Calculate linear optics when there is beam."""
+
+        latver = self.model_module.lattice_version
+
+        if self._orbit is None:
+            return
+
+        try:
+            self._log('calc', '{}: linear optics'.format(latver))
+            self._twiss, self._m66 = \
+                pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:, 0])
+            self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
+        # Beam is lost
+        except (
+            ValueError,
+            numpy.linalg.linalg.LinAlgError,
+            pyaccel.optics.OpticsException,
+            pyaccel.tracking.TrackingException,
+            ) as err:
+            self._beam_dump('panic',
+                '{}: unstable linear optics and beam is lost ({})'.format(latver, str(err)), c='red')
+
+    def _calc_equilibrium_parameters(self):
+        """Calculate equilibrium parameters."""
+
+        latver = self.model_module.lattice_version
+
+        if self._m66 is None:
+            return
+
+        try:
+            self._log('calc', '{}: equilibrium parameters'.format(latver))
+            self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
+        except Exception as err:
+            self._beam_dump('panic',
+                '{}: unable to calc equilibrium parameters and beam is lost ({})'.format(latver, str(err)), c='red')
+
     def _calc_lifetimes(self):
+        latver = self.model_module.lattice_version
+
         if self._lifetime is None or self._beam_charge is None: return
 
         time_interval = pyaccel.optics.get_revolution_period(self._accelerator)
@@ -892,7 +964,7 @@ class RingModel(AcceleratorModel):
         lt = 1/tlossrate if tlossrate > 0 else float('inf')
         ltot = self._beam_charge.total_lifetime
         strf = '{}: beam lifetimes [h] (e:{:.2f}, i:{:.2f}, q:{:.2f}, t:{:.2f}, tot:{:.2f})'
-        self._log('calc', strf.format(self.model_module.lattice_version, le*s2h, li*s2h, lq*s2h, lt*s2h, ltot*s2h))
+        self._log('calc', strf.format(latver, le*s2h, li*s2h, lq*s2h, lt*s2h, ltot*s2h))
 
 
 class BoosterModel(RingModel):
@@ -997,18 +1069,7 @@ class BoosterModel(RingModel):
         self._update_state()
 
     def _beam_dump(self, message1='panic', message2='', c='white', a=None):
-        if message1 or message2:
-            self._log(message1, message2, c=c, a=a)
-        if self._beam_charge:
-            self._beam_charge.dump()
-        self._orbit = None
-        self._twiss = None
-        self._m66 = None
-        self._tunes = None
-        self._transfer_matrices = None
-        self._lifetime = None
-        # self._received_charge = False
-        self._injection_efficiency = None
+        super()._beam_dump(message1, message2, c, a)
         self._ejection_efficiency  = None
 
     # --- auxiliary methods
@@ -1021,7 +1082,8 @@ class BoosterModel(RingModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.pwrstate_sel = 0
+        # for ps in self._pulsed_power_supplies.values():
+        #     ps.pwrstate_sel = 0
 
         one_turn_time = self._accelerator.length/_light_speed
         ramp_length =  int(self._ramp_interval/one_turn_time)*self._accelerator.length
@@ -1073,44 +1135,6 @@ class BoosterModel(RingModel):
         real_tune = self._tunes[plane].real
         return real_tune
 
-    def _calc_closed_orbit(self):
-        # Calculate closed orbit when there is beam
-        try:
-            self._log('calc', '{}: closed orbit'.format(self.model_module.lattice_version))
-            if TRACK6D:
-                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
-            else:
-                self._orbit = numpy.zeros((6,len(self._accelerator)))
-                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
-        # Beam is lost
-        except pyaccel.tracking.TrackingException:
-            self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
-
-    def _calc_linear_optics(self):
-        # Calculate linear optics when there is beam
-        if self._orbit is None:
-            return
-        try:
-        # Optics
-            self._log('calc', '{}: linear optics'.format(self.model_module.lattice_version))
-            self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-            self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
-        # Beam is lost
-        except numpy.linalg.linalg.LinAlgError:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        except pyaccel.optics.OpticsException:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        except pyaccel.tracking.TrackingException:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-
-    def _calc_equilibrium_parameters(self):
-        if self._m66 is None: return
-        try:
-            self._log('calc', '{}: equilibrium parameters'.format(self.model_module.lattice_version))
-            self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
-        except:
-            self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
-
     def _get_equilibrium_at_maximum_energy(self):
         eq = dict()
         # Fix this function!!!
@@ -1120,8 +1144,10 @@ class BoosterModel(RingModel):
         return eq
 
     def _calc_injection_efficiency(self):
-        if self.simulate_only_orbit: return
-        if self._injection_parameters is None: return
+        if self.simulate_only_orbit:
+            return
+        if self._injection_parameters is None:
+            return
 
         if not hasattr(self, '_pulsed_power_supplies'):
             self._injection_efficiency = None
@@ -1130,24 +1156,27 @@ class BoosterModel(RingModel):
             return
 
         # turn on injection pulsed magnet
-        for psname, ps in self._pulsed_power_supplies.items():
-            if 'InjKckr' in psname and ps.enabled: ps.pwrstate_sel = 1
+        # for psname, ps in self._pulsed_power_supplies.items():
+        #     if 'InjKckr' in psname and ps.enabled:
+        #         ps.pwrstate_sel = 1
 
         # calc tracking efficiency
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
-        tracking_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+        tracking_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self, **_dict)
         self._injection_efficiency = 1.0 - tracking_loss_fraction
         self._log('calc', '{}: injection efficiency {:.2f} %'.format(
             self.model_module.lattice_version, 100*self._injection_efficiency))
 
         # turn off injection pulsed magnet
-        for psname, ps in self._pulsed_power_supplies.items():
-            if 'InjKckr' in psname: ps.pwrstate_sel = 0
+        # for psname, ps in self._pulsed_power_supplies.items():
+        #     if 'InjKckr' in psname:
+        #         ps.pwrstate_sel = 0
 
     def _calc_ejection_efficiency(self):
-        if self.simulate_only_orbit: return
+        if self.simulate_only_orbit:
+            return
         self._log('calc', '{}: ejection efficiency'.format(self.model_module.lattice_version))
 
         if not hasattr(self, '_pulsed_power_supplies'):
@@ -1163,29 +1192,29 @@ class BoosterModel(RingModel):
         self._accelerator.energy = 3e9 # FIX!!
         self.model_module.lattice.set_rf_voltage(self._accelerator, self._accelerator.energy)
 
+        _dict = {}
+
         # turn on extraction pulsed magnet
         indices = []
         for psname, ps in self._pulsed_power_supplies.items():
-            if 'EjeK' in psname: # FIX!!
-                ps.pwrstate_sel = 1
+            if 'EjeKckr' in psname: # FIX!!
+                # ps.pwrstate_sel = 1
                 indices.append(ps.magnet_idx)
         idx = min(indices)
-        accelerator = self._accelerator[idx:self._extraction_point+1]
+        _dict['accelerator'] = self._accelerator[idx:self._extraction_point+1]
 
         # calc tracking efficiency
         ejection_parameters = self._get_equilibrium_at_maximum_energy()
-        _dict = {}
         _dict.update(ejection_parameters)
         _dict.update(self._get_vacuum_chamber(init_idx=idx, final_idx=self._extraction_point+1))
-        tracking_loss_fraction, twiss, *_ = injection.calc_charge_loss_fraction_in_line(accelerator,
-            init_twiss=self._twiss[idx], **_dict)
-
+        tracking_loss_fraction, twiss, *_ = \
+            injection.calc_charge_loss_fraction_in_line(self, init_twiss=self._twiss[idx], **_dict)
         self._ejection_efficiency = 1.0 - tracking_loss_fraction
 
         # turn off injection pulsed magnet
-        for psname, ps in self._pulsed_power_supplies.items():
-            if 'EjeK' in psname:
-                ps.pwrstate_sel = 0
+        # for psname, ps in self._pulsed_power_supplies.items():
+        #     if 'EjeK' in psname:
+        #         ps.pwrstate_sel = 0
 
         # Change energy
         self._accelerator.energy = 0.15e9 # FIX!!
@@ -1316,7 +1345,7 @@ class StorageRingModel(RingModel):
             if not injection_point:
                 self._others_queue['driver'].put(('a', 'injection point label "' + self._injection_point_label + '" not found in ' + self.model_module.lattice_version))
             else:
-                self._accelerator  = pyaccel.lattice.shift(self._accelerator, start = injection_point)
+                self._accelerator  = pyaccel.lattice.shift(self._accelerator, start=injection_point)
 
         # Append marker to accelerator
         self._append_marker()
@@ -1333,19 +1362,6 @@ class StorageRingModel(RingModel):
         self._state_deprecated = True
         self._update_state()
 
-    def _beam_dump(self, message1='panic', message2='', c='white', a=None):
-        if message1 or message2:
-            self._log(message1, message2, c=c, a=a)
-        if self._beam_charge: self._beam_charge.dump()
-        self._orbit = None
-        self._twiss = None
-        self._m66 = None
-        self._tunes = None
-        self._transfer_matrices = None
-        self._lifetime = None
-        self._injection_efficiency = None
-        # self._received_charge = False
-
     # --- auxiliary methods
 
     def _set_pulsed_magnets_parameters(self, **kwargs):
@@ -1356,14 +1372,16 @@ class StorageRingModel(RingModel):
         if 'nominal_delays' in kwargs:
             nominal_delays = kwargs['nominal_delays']
 
-        for ps in self._pulsed_power_supplies.values(): ps.pwrstate_sel = 0
+        # for ps in self._pulsed_power_supplies.values():
+        #     ps.pwrstate_sel = 0
 
         magnets_pos = dict()
         for magnet_name, magnet in self._pulsed_magnets.items():
             magnet_pos = prev_total_length + magnet.length_to_inj_point
             magnet.length_to_egun = magnet_pos
             magnets_pos[magnet_name] = magnet_pos
-            if 'InjNLK' in magnet_name: magnet.enabled = 0
+            if 'InjNLKckr' in magnet_name:
+                magnet.enabled = 0
         sorted_magnets_pos = sorted(magnets_pos.items(), key=lambda x: x[1])
 
         for i in range(len(sorted_magnets_pos)):
@@ -1397,82 +1415,49 @@ class StorageRingModel(RingModel):
         real_tune = self._tunes[plane].real
         return real_tune
 
-    def _calc_closed_orbit(self):
-        # Calculate closed orbit when there is beam
-        try:
-            self._log('calc', '{}: closed orbit'.format(self.model_module.lattice_version))
-            if TRACK6D:
-                self._orbit = pyaccel.tracking.findorbit6(self._accelerator, indices='open')
-            else:
-                self._orbit = numpy.zeros((6,len(self._accelerator)))
-                self._orbit[:4,:] = pyaccel.tracking.findorbit4(self._accelerator, indices='open')
-        # Beam is lost
-        except pyaccel.tracking.TrackingException:
-            self._beam_dump('panic', 'BEAM LOST: closed orbit does not exist', c='red')
-
-    def _calc_linear_optics(self):
-        # Calculate linear optics when there is beam
-        if self._orbit is None: return
-        try:
-        # Optics
-            self._log('calc', '{}: linear optics'.format(self.model_module.lattice_version))
-            self._twiss, self._m66 = pyaccel.optics.calc_twiss(self._accelerator, fixed_point=self._orbit[:,0])
-            self._tunes = pyaccel.optics.get_frac_tunes(m1turn=self._m66)
-        # Beam is lost
-        except numpy.linalg.linalg.LinAlgError:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        except pyaccel.optics.OpticsException:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        except pyaccel.tracking.TrackingException:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-        except ValueError:
-            self._beam_dump('panic', 'BEAM LOST: unstable linear optics', c='red')
-
-    def _calc_equilibrium_parameters(self):
-        if self._m66 is None: return
-        try:
-            self._log('calc', '{}: equilibrium parameters'.format(self.model_module.lattice_version))
-            # self._summary, *_ = pyaccel.optics.get_equilibrium_parameters(\
-            #                              accelerator=self._accelerator,
-            #                              twiss=self._twiss,
-            #                              m66=self._m66,
-            #                              closed_orbit=self._orbit)
-            self._lifetime =  pyaccel.lifetime.Lifetime(self._accelerator)
-        except:
-            self._beam_dump('panic', 'BEAM LOST: unable to calc equilibrium parameters', c='red')
-
     def _calc_injection_efficiency(self):
-        if self._injection_parameters is None: return
+        if self._injection_parameters is None:
+            return
 
         _dict = self._injection_parameters
         _dict.update(self._get_vacuum_chamber())
         _dict.update(self._get_coordinate_system_parameters())
 
         for psname, ps in self._pulsed_power_supplies.items():
-            if 'InjNLK' in psname:
+            if 'InjNLKckr' in psname:
                 nlk_enabled = True if ps.enabled else False
-            if 'InjDpK' in psname:
+            if 'InjDpKckr' in psname:
                 kickinj_enabled = True if ps.enabled else False
 
         if nlk_enabled and not kickinj_enabled:
             # NLK injection efficiency
             self._log('calc', '{}: nlk injection efficiency'.format(self.model_module.lattice_version))
-            for psname, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in psname and ps.enabled: ps.pwrstate_sel = 1
-            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+            
+            # for psname, ps in self._pulsed_power_supplies.items():
+            #     if 'InjNLKckr' in psname and ps.enabled:
+            #         ps.pwrstate_sel = 1
+
+            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
-            for psname, ps in self._pulsed_power_supplies.items():
-                if 'InjNLK' in psname: ps.pwrstate_sel = 0
+            
+            # for psname, ps in self._pulsed_power_supplies.items():
+            #     if 'InjNLKckr' in psname:
+            #         ps.pwrstate_sel = 0
 
         elif kickinj_enabled and not nlk_enabled:
             # On-axis injection efficiency
             self._log('calc', '{}: on axis injection efficiency'.format(self.model_module.lattice_version))
-            for psname, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in psname and ps.enabled: ps.pwrstate_sel = 1
-            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self._accelerator, **_dict)
+            
+            # for psname, ps in self._pulsed_power_supplies.items():
+            #     if 'InjDpKckr' in psname and ps.enabled:
+            #         ps.pwrstate_sel = 1
+            
+            injection_loss_fraction = injection.calc_charge_loss_fraction_in_ring(self, **_dict)
             self._injection_efficiency = 1.0 - injection_loss_fraction
-            for psname, ps in self._pulsed_power_supplies.items():
-                if 'InjDpK' in psname and ps.enabled: ps.pwrstate_sel = 0
+            
+            # for psname, ps in self._pulsed_power_supplies.items():
+            #     if 'InjDpKckr' in psname and ps.enabled:
+            #         ps.pwrstate_sel = 0
 
         else:
             self._injection_efficiency = 0
@@ -1483,7 +1468,7 @@ class StorageRingModel(RingModel):
         new_charge_time = numpy.zeros(harmonic_number)
 
         for magnet_name, magnet in self._pulsed_magnets.items():
-            if 'InjDpK' in magnet_name:
+            if 'InjDpKckr' in magnet_name:
                 flight_time = magnet.partial_flight_time
                 delay = magnet.delay
                 rise_time = magnet.rise_time

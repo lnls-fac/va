@@ -4,7 +4,6 @@ from siriuspy.namesys import SiriusPVName as _PVName
 from siriuspy.namesys import join_name as _join_name
 from siriuspy.pwrsupply import csdev as _pwrsupply_csdev
 
-from .. import utils
 from ..power_supply import PowerSupply as _PowerSupply
 from ..timesys import TimingSimulation
 
@@ -108,31 +107,33 @@ class DeviceNames:
         """
         mapping = dict()
         for mag, power in zip(['ma', 'pm'], ['ps', 'pu']):
-            # create a mapping of index in the lattice and magnet name
-            mag_ind_dict = dict()
+
+            # create a mapping of lattice index and magnet name
+            idx2mag = dict()
             magdevs = self.get_device_names(accelerator, mag)
             for mag_name, mag_prop in magdevs.items():
                 if self.pvnaming_fam in mag_name:
                     continue
                 idx = list(mag_prop.values())[0][0]
                 # there could be more than one magnet per index
-                if mag_ind_dict.get(idx) is None:
-                    mag_ind_dict[idx] = set()
-                mag_ind_dict[idx] |= {mag_name}
+                if idx not in idx2mag:
+                    idx2mag[idx] = {mag_name}
+                else:
+                    idx2mag[idx].add(mag_name)
 
-            # use this mapping to see if the power supply is attached to the
-            # same element
+            # check through lattice indices magnets / power supply links
             psdevs = self.get_device_names(accelerator, power)
             for ps_name, ps_prop in psdevs.items():
-                ps = _PVName(ps_name).dev
+                psdevname = _PVName(ps_name).dev
                 idx = list(ps_prop.values())[0]
                 idx = [idx[0]] if self.pvnaming_fam not in ps_name else \
                     [i[0] for i in idx]  # if Fam then indcs are list of lists
                 for i in idx:
-                    mag_names = mag_ind_dict[i]
+                    mag_names = idx2mag[i]
                     for mag_name in mag_names:
-                        m = _PVName(mag_name).dev
-                        if (m not in ps) and (ps not in m): # and m != 'BC':
+                        magdevname = _PVName(mag_name).dev
+                        if (magdevname not in psdevname) and \
+                           (psdevname not in magdevname):
                             # WARNING: WILL FAIL IF THE POWER SUPPLY DOES NOT
                             # HAVE THE MAGNET NAME ON ITSELF OR VICE VERSA.
                             continue
@@ -338,11 +339,6 @@ class RecordNames:
                 self.di_ro.append(rec)
 
     def _init_ps_record_names(self):
-        utils.log(
-            'NOTE',
-            ('{}: properties being simulated are limited in'
-             ' _init_ps_record_names!').format(self.device_names.section),
-            'cyan')
         _device_names = self.device_names.get_device_names(
             self.family_data, 'PS')
         if 'PU' in self.device_names.disciplines:
@@ -433,9 +429,6 @@ class RecordNames:
         for device_name in _device_names.keys():
             parts = _PVName(device_name)
             if parts.dev == 'Timing':
-                utils.log(
-                    'NOTE', 'implement "Timing" dev in init_ti_record_names!',
-                    'cyan')
                 ioc = TimingSimulation
                 db = ioc.get_database()
                 self.database.update(db)

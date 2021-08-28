@@ -1,10 +1,10 @@
 
-import math
-import numpy
-import pyaccel
+import math as _math
+import numpy as _np
+import pyaccel as _pyaccel
 
 
-def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
+def calc_charge_loss_fraction_in_line(accmodel, **kwargs):
     """Calculate charge loss in a line
 
     Keyword arguments:
@@ -19,32 +19,35 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     vmax              -- [m]
     vmin              -- [m]
     """
-    init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = \
-        _process_loss_fraction_args(accelerator, **kwargs)
+    accelerator, init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = \
+        _process_loss_fraction_args(accmodel, **kwargs)
     coupling = kwargs['global_coupling']
 
     if len(accelerator) == 0:
+        accmodel.log('calc', '{}: charge_loss_fraction_in_line - accelerator length null!'.format(accmodel.prefix), c='red')
         loss_fraction = 0.0
-        return (loss_fraction, pyaccel.optics.TwissArray(init_twiss), None)
+        return (loss_fraction, _pyaccel.optics.TwissArray(init_twiss), None)
+
     try:
-        twiss, m66 = pyaccel.optics.calc_twiss(
+        twiss, m66 = _pyaccel.optics.calc_twiss(
             accelerator, init_twiss=init_twiss, indices='open')
         betax, etax = twiss.betax, twiss.etax
         betay, etay = twiss.betay, twiss.etay
-
-        if math.isnan(betax[-1]):
+        if _np.isnan(betax[-1]):
+            accmodel.log('calc', '{}: charge_loss_fraction_in_line - beta NaN!'.format(accmodel.prefix), c='yellow')
             loss_fraction = 1.0
             return (loss_fraction, None, None)
     except (
-            numpy.linalg.linalg.LinAlgError, pyaccel.optics.OpticsException,
-            pyaccel.tracking.TrackingException):
+            _np.linalg.linalg.LinAlgError, _pyaccel.optics.OpticsException,
+            _pyaccel.tracking.TrackingException):
+        accmodel.log('calc', '{}: charge_loss_fraction_in_line - unstable optics!'.format(accmodel.prefix), c='yellow')
         loss_fraction = 1.0
         return (loss_fraction, None, None)
 
     emitx = emittance * 1 / (1 + coupling)
     emity = emittance * coupling / (1 + coupling)
-    sigmax = numpy.sqrt(betax * emitx + (etax * energy_spread)**2)
-    sigmay = numpy.sqrt(betay * emity + (etay * energy_spread)**2)
+    sigmax = _np.sqrt(betax * emitx + (etax * energy_spread)**2)
+    sigmay = _np.sqrt(betay * emity + (etay * energy_spread)**2)
     hmax[hmax > 1e100] = 1e100
     hmin[hmin < -1e100] = -1e100
     vmax[vmax > 1e100] = 1e100
@@ -63,22 +66,22 @@ def calc_charge_loss_fraction_in_line(accelerator, **kwargs):
     xlim_sup[xlim_sup > h_vc] = 0
     ylim_inf[ylim_inf > v_vc] = 0
     ylim_sup[ylim_sup > v_vc] = 0
-    min_xfrac_inf = numpy.amin(xlim_inf/sigmax)
-    min_xfrac_sup = numpy.amin(xlim_sup/sigmax)
-    min_yfrac_inf = numpy.amin(ylim_inf/sigmay)
-    min_yfrac_sup = numpy.amin(ylim_sup/sigmay)
-    sqrt2 = math.sqrt(2)
+    min_xfrac_inf = _np.amin(xlim_inf/sigmax)
+    min_xfrac_sup = _np.amin(xlim_sup/sigmax)
+    min_yfrac_inf = _np.amin(ylim_inf/sigmay)
+    min_yfrac_sup = _np.amin(ylim_sup/sigmay)
+    sqrt2 = _np.sqrt(2)
 
-    x_surviving_fraction = 0.5*math.erf(min_xfrac_inf/sqrt2)
-    x_surviving_fraction += 0.5*math.erf(min_xfrac_sup/sqrt2)
-    y_surviving_fraction = 0.5*math.erf(min_yfrac_inf/sqrt2)
-    y_surviving_fraction += 0.5*math.erf(min_yfrac_sup/sqrt2)
+    x_surviving_fraction = 0.5*_math.erf(min_xfrac_inf/sqrt2)
+    x_surviving_fraction += 0.5*_math.erf(min_xfrac_sup/sqrt2)
+    y_surviving_fraction = 0.5*_math.erf(min_yfrac_inf/sqrt2)
+    y_surviving_fraction += 0.5*_math.erf(min_yfrac_sup/sqrt2)
     surviving_fraction = x_surviving_fraction * y_surviving_fraction
     loss_fraction = 1.0 - surviving_fraction
     return loss_fraction, twiss, m66
 
 
-def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
+def calc_charge_loss_fraction_in_ring(accmodel, **kwargs):
     """Calculate charge loss in a ring.
 
     Keyword arguments:
@@ -92,8 +95,8 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
     vmax              -- [m]
     vmin              -- [m]
     """
-    init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = \
-        _process_loss_fraction_args(accelerator, **kwargs)
+    accelerator, init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin = \
+        _process_loss_fraction_args(accmodel, **kwargs)
     init_pos = init_twiss.co
 
     if len(hmax) == len(accelerator):
@@ -106,34 +109,37 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
             'vacuum chamber')
 
     try:
-        twiss, *_ = pyaccel.optics.calc_twiss(
+        twiss, *_ = _pyaccel.optics.calc_twiss(
             accelerator, init_twiss=init_twiss, indices=indices)
         betax, etax = twiss.betax, twiss.etax
         betay, etay = twiss.betay, twiss.etay
-        if math.isnan(betax[-1]):
+        if _np.isnan(betax[-1]):
+            accmodel.log('calc', '{}: charge_loss_fraction_in_ring - beta NaN!'.format(accmodel.prefix), c='yellow')
             loss_fraction = 1.0
             return loss_fraction
-    except (numpy.linalg.linalg.LinAlgError, pyaccel.optics.OpticsException,
-            pyaccel.tracking.TrackingException):
+    except (_np.linalg.linalg.LinAlgError, _pyaccel.optics.OpticsException,
+            _pyaccel.tracking.TrackingException) as err:
+        accmodel.log('calc', '{}: charge_loss_fraction_in_ring - unstable optics! ({})'.format(
+            accmodel.prefix, str(err)), c='yellow')
         loss_fraction = 1.0
         return loss_fraction
 
-    de = numpy.linspace(-(3*energy_spread), (3*energy_spread), 21)
-    de_probability = numpy.zeros(len(de))
-    lost_fraction = numpy.zeros(len(de))
+    de = _np.linspace(-(3*energy_spread), (3*energy_spread), 21)
+    de_probability = _np.zeros(len(de))
+    lost_fraction = _np.zeros(len(de))
     total_lost_fraction = 0
 
     for i in range(len(de)):
-        de_probability[i] = math.exp(-(de[i]**2)/(2*(energy_spread**2)))/(math.sqrt(2*math.pi)*energy_spread)
+        de_probability[i] = _np.exp(-(de[i]**2)/(2*(energy_spread**2)))/(_np.sqrt(2*_np.pi)*energy_spread)
         pos = [p for p in init_pos]
         pos[4] += de[i]
-        orbit, *_ = pyaccel.tracking.linepass(accelerator, pos, indices='open')
+        orbit, *_ = _pyaccel.tracking.linepass(accelerator, pos, indices='open')
         if indices == 'closed':
-            orb, *_ = pyaccel.tracking.linepass(
+            orb, *_ = _pyaccel.tracking.linepass(
                 accelerator[-1:], particles=orbit[:, -1])
-            orbit = numpy.append(orbit, orb.transpose(), axis=1)
+            orbit = _np.append(orbit, orb.transpose(), axis=1)
 
-        if math.isnan(orbit[0, -1]):
+        if _np.isnan(orbit[0, -1]):
             lost_fraction[i] = 1.0
             total_lost_fraction += de_probability[i]*lost_fraction[i]
             continue
@@ -153,19 +159,21 @@ def calc_charge_loss_fraction_in_ring(accelerator, **kwargs):
         emit_x_sup[emit_x_sup < 0] = 0.0
         emit_y_inf[emit_y_inf < 0] = 0.0
         emit_y_sup[emit_y_sup < 0] = 0.0
-        min_emit_x = numpy.amin([emit_x_inf, emit_x_sup])
-        min_emit_y = numpy.amin([emit_y_inf, emit_y_sup])
+        min_emit_x = _np.amin([emit_x_inf, emit_x_sup])
+        min_emit_y = _np.amin([emit_y_inf, emit_y_sup])
         min_emit = min_emit_x+min_emit_y if min_emit_x*min_emit_y !=0 else 0.0
-        lf = math.exp(-min_emit/emittance)
+        lf = _np.exp(-min_emit/emittance)
         lost_fraction[i] = lf if lf < 1 else 1.0
         total_lost_fraction += de_probability[i]*lost_fraction[i]
 
-    total_lost_fraction = total_lost_fraction/numpy.sum(de_probability)
+    total_lost_fraction = total_lost_fraction/_np.sum(de_probability)
     loss_fraction = total_lost_fraction if total_lost_fraction < 1.0 else 1.0
     return loss_fraction
 
 
-def _process_loss_fraction_args(accelerator, **kwargs):
+def _process_loss_fraction_args(accmodel, **kwargs):
+    
+    accelerator = kwargs.get('accelerator', accmodel.accelerator)
     energy_spread = kwargs['energy_spread']
     emittance = kwargs['emittance']
 
@@ -174,17 +182,11 @@ def _process_loss_fraction_args(accelerator, **kwargs):
     delta_rx = kwargs.get('delta_rx', 0.0)
     delta_angle = kwargs.get('delta_angle', 0.0)
 
-    # print('init_twiss: ')
-    # print(init_twiss)
-    # print('delta_rx: ', delta_rx)
-    # print('delta_angle: ', delta_angle)
-
-
     if isinstance(init_twiss, dict):
-        init_twiss = pyaccel.optics.Twiss.make_new(init_twiss)
+        init_twiss = _pyaccel.optics.Twiss.make_new(init_twiss)
 
     fixed_point = _transform_to_local_coordinates(
-        init_twiss.co, delta_rx, delta_angle)
+        accmodel, init_twiss.co, delta_rx, delta_angle)
 
     init_twiss.co = fixed_point
 
@@ -192,23 +194,28 @@ def _process_loss_fraction_args(accelerator, **kwargs):
         hmax = kwargs['hmax']
         hmin = kwargs['hmin']
     else:
-        hmax = numpy.array([ele.hmax for ele in accelerator])
-        hmin = numpy.array([ele.hmin for ele in accelerator])
+        hmax = _np.array([ele.hmax for ele in accelerator])
+        hmin = _np.array([ele.hmin for ele in accelerator])
     if 'vmax' in kwargs and 'vmin' in kwargs:
         vmax = kwargs['vmax']
         vmin = kwargs['vmin']
     else:
-        vmax = numpy.array([ele.vmax for ele in accelerator])
-        vmin = numpy.array([ele.vmin for ele in accelerator])
-    return init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin
+        vmax = _np.array([ele.vmax for ele in accelerator])
+        vmin = _np.array([ele.vmin for ele in accelerator])
+    return accelerator, init_twiss, energy_spread, emittance, hmax, hmin, vmax, vmin
 
 
-def _transform_to_local_coordinates(
-        old_pos, delta_rx, delta_angle, delta_dl=0.0):
-    C, S = math.cos(delta_angle), math.sin(delta_angle)
-    old_angle = math.atan(old_pos[1])
-    new_pos = [p for p in old_pos]
-    new_pos[0] = C * old_pos[0] + S * old_pos[5] + delta_rx
-    new_pos[5] = -S * old_pos[0] + C * old_pos[5] + delta_dl
-    new_pos[1] = math.tan(delta_angle + old_angle)
-    return new_pos
+def _transform_to_local_coordinates(accmodel,
+    old_pos, delta_rx, delta_angle, delta_dl=0.0):
+
+    accmodel.log('fix',
+        '{}: fix _get_coordinate_system_parameters!'.format(accmodel.prefix), c='cyan')
+    return old_pos
+
+    # C, S = _np.cos(delta_angle), _np.sin(delta_angle)
+    # old_angle = _np.arctan(old_pos[1])
+    # new_pos = [p for p in old_pos]
+    # new_pos[0] = C * old_pos[0] + S * old_pos[5] + delta_rx
+    # new_pos[5] = -S * old_pos[0] + C * old_pos[5] + delta_dl
+    # new_pos[1] = _np.arctan(delta_angle + old_angle)
+    # return new_pos

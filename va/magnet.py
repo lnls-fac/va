@@ -114,7 +114,6 @@ class Magnet(object):
 
         self.value = [delta_normal_fields, delta_skew_fields]
 
-
     def renormalize_magnet(self):
         """Change strengths of the magnet when accelerator energy is changed"""
         for i in self._indices:
@@ -184,6 +183,7 @@ class Magnet(object):
             n = self._excitation_curve.harmonics[j]
             field[n] = integrated_field[n]
         return field
+
 
 class BoosterDipoleMagnet(Magnet):
 
@@ -273,9 +273,10 @@ class PulsedMagnet(NormalMagnet):
         return self._pulse_curve.rise_time
 
     def pulsed_magnet_pass(self, charge, charge_time, master_delay):
+        
         charge, charge_time = self._check_size(charge, charge_time)
         charge_time = self._add_flight_time_to_charge_time(charge_time)
-
+    
         if not self.enabled:
             return charge, charge_time
         else:
@@ -288,7 +289,7 @@ class PulsedMagnet(NormalMagnet):
         efficiencies = []
         for time in charge_time:
             efficiency = self._pulse_curve.get_pulse_shape(time - self.delay - master_delay)
-            if efficiency < (1-2*self._pulse_curve.flat_top): efficiency = 0
+            # if efficiency < (1-2*self._pulse_curve.flat_top): efficiency = 0
             efficiencies.append(efficiency)
         return efficiencies
 

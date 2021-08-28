@@ -1,4 +1,4 @@
-import numpy as _numpy
+import numpy as _np
 from siriuspy.clientweb import magnets_excitation_data_read
 
 
@@ -8,8 +8,9 @@ _HEADER_CHAR = '#'
 class PulseCurve:
 
     def __init__(self, fname):
-        self._load_pulse_curve_web(fname)
         self._rise_time = 0
+        self._flat_top = 0
+        self._load_pulse_curve_web(fname)
 
     @property
     def rise_time(self):
@@ -20,8 +21,10 @@ class PulseCurve:
         return self._flat_top
 
     def get_pulse_shape(self, time):
-        return _numpy.interp(
-            time, self._pulse_time, self._pulse_shape, left=0, right=0)
+        return _np.interp(
+            time, 
+            self._pulse_time, 
+            self._pulse_shape, left=0, right=0)
 
     def _load_pulse_curve_web(self, filename):
         try:
@@ -66,6 +69,6 @@ class PulseCurve:
         self._flat_top = float(words[1])
 
     def _build_interpolation_tables_from_conversion_data(self, data):
-        data = _numpy.array(data)
+        data = _np.array(data)
         self._pulse_time = data[:, 0]
         self._pulse_shape = data[:, 1]/max(data[:, 1])

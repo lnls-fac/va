@@ -77,7 +77,7 @@ device_names  = DeviceNames(
     _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
-accelerator = model.create_accelerator()   # [150 MeV]
+accelerator = model.create_accelerator(energy=3e9)   # [3 GeV]
 family_data = model.get_family_data(accelerator)
 # build record names
 record_names = RecordNames(device_names, model, family_data)
