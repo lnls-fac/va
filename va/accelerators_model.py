@@ -1039,7 +1039,7 @@ class BoosterModel(RingModel):
         self._beam_dump(message1,message2,c,a)
 
         # Shift accelerator to start in the injection point
-        self._accelerator  = self.model_module.create_accelerator()
+        self._accelerator  = self.model_module.create_accelerator(energy=self.init_energy)
         self._lattice_length = pyaccel.lattice.length(self._accelerator)
         if not hasattr(self, '_injection_point_label'):
             self._others_queue['driver'].put(('a', 'injection point label for ' + self.model_module.lattice_version + ' not defined!'))

@@ -362,8 +362,8 @@ class PowerSupply:
                     changed_pvs[devname + 'Intlk6-Mon'] = 1
                     changed_pvs[devname + 'Intlk7-Mon'] = 1
                 else:
-                    changed_pvs[devname + 'IntlSoft-Mon'] = 0
-                    changed_pvs[devname + 'IntlHard-Mon'] = 0
+                    changed_pvs[devname + 'IntlkSoft-Mon'] = 0
+                    changed_pvs[devname + 'IntlkHard-Mon'] = 0
                     changed_pvs[devname + propty] = self[propty] + 1
             if propty == 'SyncPulse-Cmd':
                 if self.refmonps:

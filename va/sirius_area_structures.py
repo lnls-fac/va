@@ -159,6 +159,8 @@ class BoModel(_accelerators_model.BoosterModel):
             '.*:DI-DCCT:Current-Mon': 0.002,  # [mA]
             })
 
+    init_energy = _pvs_bo.accelerator.energy
+
     # Injection parameters
     nr_bunches = model_module.harmonic_number
     _downstream_accelerator_prefix = 'TS'
