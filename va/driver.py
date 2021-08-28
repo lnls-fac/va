@@ -56,6 +56,7 @@ class DriverThread(threading.Thread):
             self._finalisation.wait()
             self._driver.finalise()
 
+
 class PCASDriver(Driver):
     """Driver Definition."""
 
@@ -150,7 +151,6 @@ class PCASDriver(Driver):
         if self._processes_initialisation[prefix]:
             return
         self._processes_initialisation[prefix] = True
-        # print(self._processes_initialisation)
         nrprocs = 'Requests in queues DRV:{}'.format(self.my_queue.qsize())
         for section, process in self._processes.items():
             nrprocs += ' {}:{}'.format(section, process.my_queue.qsize())

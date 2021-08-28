@@ -1,13 +1,15 @@
 
 import numpy
+
 import mathphys
+import pyaccel
+
 from va.excitation_curve import ExcitationCurve
 from va.pulse_curve import PulseCurve
-import pyaccel
 
 class Magnet(object):
 
-    def __init__(self, accelerator, indices, exc_curve_filename,polarity):
+    def __init__(self, accelerator, indices, exc_curve_filename, polarity):
         """Magnet with power supplies
 
         Reads current from power supplies and sets Accelerator elements fields
@@ -23,6 +25,7 @@ class Magnet(object):
             self._indices = indices
         self._nr_segs = len(self._indices)
 
+        self._fam_name = self._accelerator[self._indices[0]].fam_name
         self._excitation_curve = ExcitationCurve(exc_curve_filename, polarity)
         self._len_fields = max(self._excitation_curve.harmonics) + 1
 
@@ -47,7 +50,7 @@ class Magnet(object):
             self._field_profile_b[i,:] = - self._accelerator[idx].polynom_b*self._accelerator[idx].length
             self._field_profile_a[i,:] = - self._accelerator[idx].polynom_a*self._accelerator[idx].length
             if self._excitation_curve.main_harmonic == 0:
-                self._field_profile_b[i,0] -= self._accelerator[idx].angle
+                self._field_profile_b[i, 0] -= self._accelerator[idx].angle
 
         self._length = total_length
         self._nominal_angle = total_angle
@@ -69,20 +72,40 @@ class Magnet(object):
                 else:
                     self._field_profile_b[:,n] = numpy.array([1/self._nr_segs]*self._nr_segs)
 
-        self.current_mon = self.get_current_from_field()
+        self._current_mon = None
+
+    @property
+    def fam_name(self):
+        """."""
+        return self._fam_name
+
+    @property
+    def current_mon(self):
+        """Return Current-Mon stored of controlling power supply."""
+        return self._current_mon
+
+    @current_mon.setter
+    def current_mon(self, value):
+        """Set stored Current-Mon of controlling power supply."""
+        self._current_mon = value
 
     def add_power_supply(self, power_supply):
         self._power_supplies.add(power_supply)
 
     def process(self):
         """Change strengths of the magnet when the current is changed"""
-        prev_current = self.current_mon
+        prev_current = self._current_mon
+
         prev_normal_fields = self._excitation_curve.get_normal_fields_from_current(prev_current)
         prev_skew_fields   = self._excitation_curve.get_skew_fields_from_current(prev_current)
 
+        # calc power supplies currents average
         current = 0.0
         for ps in self._power_supplies:
             current += ps.current_mon
+        current /= len(self._power_supplies)
+        self._current_mon = current
+
         new_normal_fields = self._excitation_curve.get_normal_fields_from_current(current)
         new_skew_fields   = self._excitation_curve.get_skew_fields_from_current(current)
 
@@ -90,7 +113,6 @@ class Magnet(object):
         delta_skew_fields   = numpy.array(new_skew_fields) - numpy.array(prev_skew_fields)
 
         self.value = [delta_normal_fields, delta_skew_fields]
-        self.current_mon = current
 
     def renormalize_magnet(self):
         """Change strengths of the magnet when accelerator energy is changed"""
@@ -113,8 +135,10 @@ class Magnet(object):
     def indices(self):
         return self._indices
 
-    def get_current_from_field(self):
-        return self._excitation_curve.get_current_from_field(self.value)
+    def get_current_from_field(self, value=None):
+        if value is None:
+            value = self.value
+        return self._excitation_curve.get_current_from_field(value)
 
     def _get_value(self):
         # Get the integrated field correspondent to the main harmonic value
@@ -160,6 +184,7 @@ class Magnet(object):
             field[n] = integrated_field[n]
         return field
 
+
 class BoosterDipoleMagnet(Magnet):
 
     def __init__(self, accelerator, indices, exc_curve_filename, polarity):
@@ -170,13 +195,14 @@ class BoosterDipoleMagnet(Magnet):
         self._electron_rest_energy_ev = e0
 
     def process(self, change_energy = False):
-        prev_current = self.current_mon
+        prev_current = self._current_mon
         prev_normal_fields = self._excitation_curve.get_normal_fields_from_current(prev_current)
         prev_skew_fields   = self._excitation_curve.get_skew_fields_from_current(prev_current)
 
         current = 0.0
         for ps in self._power_supplies:
             current += ps.current_mon/2.0
+
         new_normal_fields = self._excitation_curve.get_normal_fields_from_current(current)
         new_skew_fields   = self._excitation_curve.get_skew_fields_from_current(current)
 
@@ -195,7 +221,7 @@ class BoosterDipoleMagnet(Magnet):
         # Don't change the main harmonic value of polynom_b
         delta_normal_fields[0] = 0.0
         self.value = [delta_normal_fields, delta_skew_fields]
-        self.current_mon = current
+        self._current_mon = current
 
 
 class NormalMagnet(Magnet):
@@ -247,9 +273,10 @@ class PulsedMagnet(NormalMagnet):
         return self._pulse_curve.rise_time
 
     def pulsed_magnet_pass(self, charge, charge_time, master_delay):
+        
         charge, charge_time = self._check_size(charge, charge_time)
         charge_time = self._add_flight_time_to_charge_time(charge_time)
-
+    
         if not self.enabled:
             return charge, charge_time
         else:
@@ -262,7 +289,7 @@ class PulsedMagnet(NormalMagnet):
         efficiencies = []
         for time in charge_time:
             efficiency = self._pulse_curve.get_pulse_shape(time - self.delay - master_delay)
-            if efficiency < (1-2*self._pulse_curve.flat_top): efficiency = 0
+            # if efficiency < (1-2*self._pulse_curve.flat_top): efficiency = 0
             efficiencies.append(efficiency)
         return efficiencies
 

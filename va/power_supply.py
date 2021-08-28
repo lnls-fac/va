@@ -4,8 +4,8 @@ import math as _math
 from siriuspy.namesys.implementation import SiriusPVName
 
 from siriuspy.search import PSSearch as _PSSearch
-from siriuspy.pwrsupply.data import PSData as _PSData
 from siriuspy.pwrsupply.csdev import Const as _Const
+from siriuspy.pwrsupply.csdev import get_ps_propty_database as _get_ps_propty_database
 
 from va import __version__
 
@@ -76,10 +76,11 @@ class BeagleBones:
         return bbbname
 
 
-class PowerSupply(_PSData):
+class PowerSupply:
 
     beaglebones = BeagleBones()
 
+    # NOTE: Only these power supply properties below are simulated
     PROPERTIES = (
         'OpMode-Sel',
         'OpMode-Sts',
@@ -108,15 +109,38 @@ class PowerSupply(_PSData):
         'SOFBMode-Sts',
         'TimestampBoot-Cte',
         'TimestampUpdate-Mon',
+        'Reset-Cmd',
+        'Pulse-Sel',
+        'Pulse-Sts',
+        'Intlk1-Mon',
+        'Intlk2-Mon',
+        'Intlk3-Mon',
+        'Intlk4-Mon',
+        'Intlk5-Mon',
+        'Intlk6-Mon',
+        'Intlk7-Mon',
+        'Intlk1Label-Cte',
+        'Intlk2Label-Cte',
+        'Intlk3Label-Cte',
+        'Intlk4Label-Cte',
+        'Intlk5Label-Cte',
+        'Intlk6Label-Cte',
+        'Intlk7Label-Cte',
         )
 
     def __init__(self, magnets, model, psname):
         """Gets and sets current [A]
         Connected magnets are processed after current is set.
         """
-        super().__init__(psname=psname)
+        self.psname = psname
+        if ':PU' in psname:
+            self.pulsedps = True
+        else:
+            self.pulsedps = False
         self._model = model
         self._magnets = magnets
+        self._psmodel = _PSSearch.conv_psname_2_psmodel(psname)
+        self._pstype = _PSSearch.conv_psname_2_pstype(psname)
         self.properties = self._get_propty_subset_database()
         self.pulsedps = ':PU' in psname
         self.sofbps = 'SOFBMode-Sel' in self.properties
@@ -141,12 +165,19 @@ class PowerSupply(_PSData):
             return self.beagle[propty]
 
     def set_pv(self, pv_name, value, parts):
+        """."""
         propty = parts.propty
         if not propty.endswith(('-SP', '-Sel', '-Cmd')) or \
                 propty not in self.properties:
             return None
 
         changed_pvs = self._process_update_model_state(pv_name, propty, value)
+
+        # propagate changes to magnets
+        if not self.pulsedps:
+            # pulsed power supplies change model only when magnet is pulsing
+            self.process()
+
         return changed_pvs
 
     def initialise(self):
@@ -155,6 +186,7 @@ class PowerSupply(_PSData):
         self.ctrlloop_sel = _Const.OpenLoop.Closed
         if 'TimestampBoot-Cte' in self.properties:
             self['TimestampBoot-Cte'] = _time.time()
+        self._set_current_from_model()
 
     @property
     def current_mon(self):
@@ -248,10 +280,7 @@ class PowerSupply(_PSData):
             pvname = SiriusPVName(pv_name)
             if pvname.device_name == self.psname:
                 self[pvname.propty] = value
-
-        # propagate changes to magnets
-        self.process()
-
+        
         return changed_pvs
 
     def _update_model_state(self, devname, propty, value, changed_pvs):
@@ -318,8 +347,24 @@ class PowerSupply(_PSData):
             changed_pvs[devname + 'WfmUpdateAuto-Sts'] = value
         elif propty == 'CtrlLoop-Sel':
             changed_pvs[devname + 'CtrlLoop-Sts'] = value_
+        elif propty == 'Pulse-Sel':
+            changed_pvs[devname + 'Pulse-Sts'] = value_
         elif propty.endswith('-Cmd'):
-            changed_pvs[devname + propty] = self[propty] + 1
+            if not self.pulsedps:
+                changed_pvs[devname + propty] = self[propty] + 1
+            if propty == 'Reset-Cmd': 
+                if self.pulsedps:
+                    changed_pvs[devname + 'Intlk1-Mon'] = 1
+                    changed_pvs[devname + 'Intlk2-Mon'] = 1
+                    changed_pvs[devname + 'Intlk3-Mon'] = 1
+                    changed_pvs[devname + 'Intlk4-Mon'] = 1
+                    changed_pvs[devname + 'Intlk5-Mon'] = 1
+                    changed_pvs[devname + 'Intlk6-Mon'] = 1
+                    changed_pvs[devname + 'Intlk7-Mon'] = 1
+                else:
+                    changed_pvs[devname + 'IntlSoft-Mon'] = 0
+                    changed_pvs[devname + 'IntlHard-Mon'] = 0
+                    changed_pvs[devname + propty] = self[propty] + 1
             if propty == 'SyncPulse-Cmd':
                 if self.refmonps:
                     changed_pvs[devname + 'CurrentRef-Mon'] = self['Current-RB']
@@ -329,12 +374,14 @@ class PowerSupply(_PSData):
 
     def _get_propty_subset_database(self):
 
+        propty_database = _get_ps_propty_database(self._psmodel, self._pstype)
+
         # filter property subset
         if PowerSupply.PROPERTIES is None:
-            dbset =  self._propty_database
+            dbset =  propty_database
         else:
             dbset = dict()
-            pdbase = self._propty_database
+            pdbase = propty_database
             for propty, dic in pdbase.items():
                 if propty in PowerSupply.PROPERTIES:
                     dbset[propty] = dic
@@ -350,6 +397,41 @@ class PowerSupply(_PSData):
         if 'Version-Cte' in self.properties:
             self['Version-Cte'] = 'VACA_' + __version__
 
+    def _set_current_from_model(self):
+        PWRSUPPLIES_POSITIVE_INTB = ('TB-Fam:PS-B')
+        values = dict()
+
+        # get all strengths and group them by fam_name
+        for magnet in self._magnets:
+
+            value = magnet.value
+            if self.psname in PWRSUPPLIES_POSITIVE_INTB:
+                # take negative of abs of field integrals for ps of dipoles with opposite deflections
+                value = -abs(value)
+
+            if magnet.fam_name in values:
+                values[magnet.fam_name].append(value)
+            else:
+                values[magnet.fam_name] = [value, ]
+
+        # take average within fam_name
+        for fam_name in values:
+            values[fam_name] = sum(values[fam_name])/len(values[fam_name])
+
+        # sum all strengths of fam_names
+        value = sum(values.values())
+
+        # convert to current
+        current = magnet.get_current_from_field(value=value)
+
+        # initialize magnet current_mon
+        for magnet in self._magnets:
+            magnet.current_mon = current
+
+        # set power supply current
+        propty = 'Voltage-SP' if self.pulsedps else 'Current-SP'
+        self._process_update_model_state(self.psname + ':' + propty, propty, current)
+
 
 class FamilyPowerSupply(PowerSupply):
 
@@ -358,11 +440,9 @@ class FamilyPowerSupply(PowerSupply):
         super().__init__(magnets, model=model, psname=psname)
         if (current is None) and (len(magnets) > 0):
             total_current = 0.0
-            n = 0
             for m in magnets:
                 total_current += m.get_current_from_field()
-                n += 1
-            self.current_sp = total_current/n
+            self.current_sp = total_current/len(magnets)
         else:
             self.current_sp = 0.0
 
@@ -371,19 +451,19 @@ class IndividualPowerSupply(PowerSupply):
 
     def __init__(self, magnets, model, psname, current=None):
         super().__init__(magnets, model=model, psname=psname)
-        if len(magnets) > 1:
-            raise Exception('Individual Power Supply')
-        elif (current is None) and (len(magnets) > 0):
-            m = list(magnets)[0]
-            total_current = m.get_current_from_field()
-            power_supplies = m._power_supplies.difference({self})
-            ps_current = 0.0
-            for ps in power_supplies:
-                ps_current += ps.current_mon
-            self.current_sp = (total_current - ps_current) \
-                if _math.fabs((total_current - ps_current)) > 1e-10 else 0.0
-        else:
-            self.current_sp = 0.0
+        # if len(magnets) > 1:
+        #     raise Exception('Individual Power Supply')
+        # elif (current is None) and (len(magnets) > 0):
+        #     m = list(magnets)[0]
+        #     total_current = m.get_current_from_field()
+        #     power_supplies = m._power_supplies.difference({self})
+        #     ps_current = 0.0
+        #     for ps in power_supplies:
+        #         ps_current += ps.current_mon
+        #     self.current_sp = (total_current - ps_current) \
+        #         if _math.fabs((total_current - ps_current)) > 1e-10 else 0.0
+        # else:
+        #     self.current_sp = 0.0
 
 
 class PulsedMagnetPowerSupply(IndividualPowerSupply):

@@ -66,6 +66,8 @@ class ExcitationCurve:
     def _check_value_in_range(self, value, value_range):
         low = value_range[0]
         high = value_range[1]
+        low -= 0.02 * abs(low)
+        high += 0.02 * abs(high)
         if not low <= value <= high:
             print(self._filename)
             msg = 'value %f out of range (%f, %f)' % (value, low, high)
@@ -158,10 +160,10 @@ class ExcitationCurve:
         return x, y
 
     def _is_strictly_increasing(self, array):
-        return _numpy.all(_numpy.diff(array) > 0)
+        return _numpy.all(_numpy.diff(array) >= 0)
 
     def _is_strictly_decreasing(self, array):
-        return _numpy.all(_numpy.diff(array) < 0)
+        return _numpy.all(_numpy.diff(array) <= 0)
 
     def _reverse(self, *args):
         result = [arg[::-1] for arg in args]

@@ -6,23 +6,23 @@ import numpy as _np
 from siriuspy.namesys import SiriusPVName as _PVName
 import pymodels as _pymodels
 
-from .timesys import TimingSimulation
+from .timesys import TimingSimulation as _TimingSimulation
 from .pvs import As as _pvs_As
 from .pvs import li as _pvs_li
 from .pvs import tb as _pvs_tb
 from .pvs import bo as _pvs_bo
 from .pvs import ts as _pvs_ts
 from .pvs import si as _pvs_si
-from . import accelerators_model
-from . import area_structure
-from .fluctuations import PVFluctuation
+from . import accelerators_model as _accelerators_model
+from . import area_structure as _area_structure
+from .fluctuations import PVFluctuation as _PVFluctuation
 
 
 VACA_LAB = _os.environ.get('VACA_LAB', default='sirius')
 VACA_LAB = 'VA-' if VACA_LAB == '' else VACA_LAB
 
 
-class ASModel(area_structure.AreaStructure):
+class ASModel(_area_structure.AreaStructure):
     """Definition of AS area structure."""
 
     _first_accelerator_prefix = 'LI'
@@ -33,7 +33,7 @@ class ASModel(area_structure.AreaStructure):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
-    pvs_fluctuation = PVFluctuation(database, dict())
+    pvs_fluctuation = _PVFluctuation(database, dict())
 
     def __init__(self, **kwargs):
         """Initialize the instance."""
@@ -44,7 +44,7 @@ class ASModel(area_structure.AreaStructure):
         self._send_initialisation_sign()
 
     def _init_timing_devices(self):
-        self._timing = TimingSimulation(
+        self._timing = _TimingSimulation(
             self._rf_frequency, callbacks={self._uuid: self._callback})
         self._timing.add_injection_callback(self._uuid, self._injection_cycle)
 
@@ -92,7 +92,7 @@ class ASModel(area_structure.AreaStructure):
             prefix=self._first_accelerator_prefix, _dict=_dict)
 
 
-class LiModel(accelerators_model.LinacModel):
+class LiModel(_accelerators_model.LinacModel):
     """Definition of LI area structure."""
 
     pv_module = _pvs_li
@@ -101,7 +101,7 @@ class LiModel(accelerators_model.LinacModel):
     prefix = device_names.section.upper()
     database = pv_module.get_database()
     accelerator_data = model_module.accelerator_data
-    pvs_fluctuation = PVFluctuation(
+    pvs_fluctuation = _PVFluctuation(
         database, {
             '.*:PS-.*:Current-Mon': 0.005,  # [A]
             '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
@@ -109,8 +109,7 @@ class LiModel(accelerators_model.LinacModel):
 
     # Injection parameters
     _downstream_accelerator_prefix = 'TB'
-    # _pymodels.coordinate_system.parameters(prefix)
-    _delta_rx, _delta_angle = 0.0, 0.0
+    _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
     _emittance = accelerator_data['emittance']
     _energy_spread = accelerator_data['energy_spread']
     _global_coupling = accelerator_data['global_coupling']
@@ -123,7 +122,7 @@ class LiModel(accelerators_model.LinacModel):
     nr_bunches = int(_frequency*_multi_bunch_pulse_duration/6)
 
 
-class TbModel(accelerators_model.TLineModel):
+class TbModel(_accelerators_model.TLineModel):
     """Definition of TB area structure."""
 
     pv_module = _pvs_tb
@@ -131,9 +130,10 @@ class TbModel(accelerators_model.TLineModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
-    pvs_fluctuation = PVFluctuation(
+    pvs_fluctuation = _PVFluctuation(
         database, {
             '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:PU-.*:Voltage-Mon': 0.1,  # [V]
             '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
@@ -143,7 +143,7 @@ class TbModel(accelerators_model.TLineModel):
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
 
 
-class BoModel(accelerators_model.BoosterModel):
+class BoModel(_accelerators_model.BoosterModel):
     """Definition of BO area structure."""
 
     pv_module = _pvs_bo
@@ -151,10 +151,12 @@ class BoModel(accelerators_model.BoosterModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
-    pvs_fluctuation = PVFluctuation(
+    pvs_fluctuation = _PVFluctuation(
         database, {
             '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:PU-.*:Voltage-Mon': 0.1,  # [V]
             '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            '.*:DI-DCCT:Current-Mon': 0.002,  # [mA]
             })
 
     # Injection parameters
@@ -168,7 +170,7 @@ class BoModel(accelerators_model.BoosterModel):
     _ramp_interval = 0.23
 
 
-class TsModel(accelerators_model.TLineModel):
+class TsModel(_accelerators_model.TLineModel):
     """Definition of TS area structure."""
 
     pv_module = _pvs_ts
@@ -176,9 +178,10 @@ class TsModel(accelerators_model.TLineModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
-    pvs_fluctuation = PVFluctuation(
+    pvs_fluctuation = _PVFluctuation(
         database, {
             '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:PU-.*:Voltage-Mon': 0.1,  # [V]
             '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
             })
 
@@ -188,7 +191,7 @@ class TsModel(accelerators_model.TLineModel):
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
 
 
-class SiModel(accelerators_model.StorageRingModel):
+class SiModel(_accelerators_model.StorageRingModel):
     """Definition of SI area structure."""
 
     pv_module = _pvs_si
@@ -196,10 +199,12 @@ class SiModel(accelerators_model.StorageRingModel):
     device_names = pv_module.device_names
     prefix = device_names.section.upper()
     database = pv_module.get_database()
-    pvs_fluctuation = PVFluctuation(
+    pvs_fluctuation = _PVFluctuation(
         database, {
             '.*:PS-.*:Current-Mon': 0.005,  # [A]
+            '.*:PU-.*:Voltage-Mon': 0.1,  # [V]
             '.*:DI-.*:Pos(X|Y)-Mon': 500,  # [nm]
+            '.*:DI-DCCT:Current-Mon': 0.002,  # [mA]
             })
 
     # Injection parameters
@@ -208,8 +213,3 @@ class SiModel(accelerators_model.StorageRingModel):
     _pressure_profile = model_module.accelerator_data['pressure_profile']
     _delta_rx, _delta_angle = _pymodels.coordinate_system.parameters(prefix)
     _injection_point_label = 'InjSeptF'
-
-    @staticmethod
-    def get_model_independent_fluctuations():
-        randn = 0.005 * 2 * (_np.random.random() - 0.5)
-        return {'SI-Fam:PS-QFA:Current-Mon': randn}
