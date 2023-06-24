@@ -1,16 +1,25 @@
-from pymodels import tb as model
+from .models import lab_models
 from .LocalData import DeviceNames, RecordNames
 
-_section = 'TB'
+
+# PVs not connecting to real machine:
+# ===================================
+# TB-01:DI-BPM-3:PosX-Mon
+# TB-01:DI-BPM-3:PosY-Mon
+# TB-04:TI-InjSept:Enbl-RB
+# TB-04:TI-InjSept:Enbl-SP
+
+
+model = lab_models.tb
 _el_names = { # All these Family names must be defined in family_data dictionary
-    'DI': model.families.families_di(),
+    'DI': ['BPM', ],  # model.families.families_di(),
     'PS': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
            'QD2B','QF3','QD3','QF4','QD4'],
     'MA': ['CH','CV','QD1','QF1','QD2A','QF2A','QF2B',
            'QD2B','QF3','QD3','QF4','QD4','B'],
-    'TI': ['InjS'],
-    'PU': ['InjS'],
-    'PM': ['InjS']
+    'TI': ['InjSept'],
+    'PU': ['InjSept'],
+    'PM': ['InjSept']
 }
 _fam_names = { # All these Family names must be defined in family_data dictionary
     'PS': ['B'],
@@ -25,18 +34,19 @@ _excitation_curves_mapping = (
     (('Q',)            , ('tb-quadrupole.txt',1)),
     (('CH',)           , ('tb-corrector-ch.txt',1)),
     (('CV',)           , ('tb-corrector-cv.txt',1)),
-    (('InjS',)         , ('tb-injseptum.txt',1)),
+    (('InjSept',)      , ('tb-injseptum.txt',1)),
 )
-##### Pulsed Magnets #######
-_pulse_curve_mapping= {
-    'InjS':'tb-septum-injs.txt' # INJECTION SEPTUM
+# #### Pulsed Magnets #######
+_pulse_curve_mapping = {
+    'InjSept': 'tb-septum-injs.txt'  # INJECTION SEPTUM
 }
 
-device_names  = DeviceNames(_section, _el_names, _fam_names, _glob_names, _inj_names,
-            _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
+device_names = DeviceNames(
+    model.section, _el_names, _fam_names, _glob_names, _inj_names,
+    _excitation_curves_mapping, _pulse_curve_mapping, model.get_family_data)
 
 
-accelerator,_ = model.create_accelerator()
+accelerator, *_ = model.create_accelerator()
 family_data = model.get_family_data(accelerator)
 
 # build record names

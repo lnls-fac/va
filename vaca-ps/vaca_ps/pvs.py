@@ -4,9 +4,9 @@ import os as _os
 from siriuspy import envars as _envars
 from siriuspy.search import PSSearch as _PSSearch
 import siriuspy.util as _util
-from siriuspy.pwrsupply.controller import ControllerSim as _ControllerSim
-from siriuspy.pwrsupply.controller import PUControllerSim as _PUControllerSim
-from siriuspy.pwrsupply.model import PowerSupply as _PowerSupply
+from siriuspy.pwrsupply.simul.controller import ControllerSim as _ControllerSim
+from siriuspy.pwrsupply.simul.controller import PUControllerSim as _PUControllerSim
+from siriuspy.pwrsupply.simul.model import PowerSupply as _PowerSupply
 
 
 _PREFIX = _envars.vaca_prefix

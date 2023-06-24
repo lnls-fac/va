@@ -1,31 +1,25 @@
 
 import numpy as _numpy
-from siriuspy.envars import folder_lnls_sirius_csconstants
-from siriuspy.servweb import magnets_excitation_data_read
+from siriuspy.clientweb import magnets_excitation_data_read
 import os as _os
 
 
 class ExcitationCurve:
 
-    def __init__(self, fname, polarity=1, method='filename'): # generalise: pass label name
+    def __init__(self, fname, polarity=1): # generalise: pass label name
         """Conversion between current and field
 
         Keyword argument:
         fname -- magnet excitation curve file name
         """
-
-        if method == 'filename':
-            _excitation_curves_dir = _os.path.join(folder_lnls_sirius_csconstants, 'magnets', 'excitation-data')
-            filename = _os.path.join(_excitation_curves_dir, fname)
-            with open(filename, encoding='latin-1') as f:
-                lines = f.readlines()
-            self._load_excitation_curve(lines,polarity)
-
-        elif method == 'filename_web':
-            self._filename = fname
+        self._filename = fname
+        try:
             text = magnets_excitation_data_read(fname)
-            lines = text.split('\n')
-            self._load_excitation_curve(lines,polarity)
+        except:
+            print('Error trying to read excdata {}'.format(fname))
+            raise
+        lines = text.split('\n')
+        self._load_excitation_curve(lines, polarity)
 
 
     @property
@@ -72,6 +66,8 @@ class ExcitationCurve:
     def _check_value_in_range(self, value, value_range):
         low = value_range[0]
         high = value_range[1]
+        low -= 0.02 * abs(low)
+        high += 0.02 * abs(high)
         if not low <= value <= high:
             print(self._filename)
             msg = 'value %f out of range (%f, %f)' % (value, low, high)
@@ -158,16 +154,16 @@ class ExcitationCurve:
         elif self._is_strictly_decreasing(x_array):
             x, y = self._reverse(x_array, y_array)
         else:
-            msg = 'x array must be strictly increasing or decreasing'
+            msg = '{}: x array must be strictly increasing or decreasing'.format(self._filename)
             raise ValueError(msg)
 
         return x, y
 
     def _is_strictly_increasing(self, array):
-        return _numpy.all(_numpy.diff(array) > 0)
+        return _numpy.all(_numpy.diff(array) >= 0)
 
     def _is_strictly_decreasing(self, array):
-        return _numpy.all(_numpy.diff(array) < 0)
+        return _numpy.all(_numpy.diff(array) <= 0)
 
     def _reverse(self, *args):
         result = [arg[::-1] for arg in args]

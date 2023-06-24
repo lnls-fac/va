@@ -1,6 +1,5 @@
 import uuid as _uuid
 import multiprocessing
-import time
 from va import utils
 import traceback
 import sys
@@ -10,7 +9,7 @@ SIMUL_ONLY_ORBIT = False
 
 class AreaStructureProcess(multiprocessing.Process):
 
-    def __init__(self, area_structure, interval, stop_event, finalisation):
+    def __init__(self, area_structure_cls, interval, stop_event, finalisation):
         """Initialize, start and manage area_structure and area_structure processing.
 
         Keyword arguments: see start_and_run_area_structure
@@ -18,13 +17,13 @@ class AreaStructureProcess(multiprocessing.Process):
         my_queue = multiprocessing.Queue()
         self.others_queue = dict()
         self.my_queue = my_queue
-        self.area_structure = area_structure
-        self.area_structure_prefix = area_structure.prefix
+        self.area_structure_cls = area_structure_cls
+        self.area_structure_prefix = area_structure_cls.prefix
 
         super().__init__(
             target=self.start_and_run_area_structure,
             kwargs={
-                'area_structure': area_structure,
+                'area_structure_cls': area_structure_cls,
                 'interval': interval,
                 'stop_event': stop_event,
                 # Queues are supposed to be exchanged
@@ -32,45 +31,45 @@ class AreaStructureProcess(multiprocessing.Process):
                 'my_queue': my_queue,
                 'finalisation': finalisation,
                 },
-            name = 'Thread-' + area_structure.prefix
+            name = 'Thread-' + area_structure_cls.prefix
             )
 
-    def set_others_queue(self,queues):
-        for pr, q in queues.items():
-            if pr == self.area_structure_prefix: continue
-            self.others_queue[pr] = q
+    def set_others_queue(self, queues):
+        for prefix, queue in queues.items():
+            if prefix == self.area_structure_prefix:
+                continue
+            self.others_queue[prefix] = queue
 
-
-    def start_and_run_area_structure(self,area_structure, interval, stop_event, finalisation, **kwargs):
+    def start_and_run_area_structure(self, area_structure_cls, interval, stop_event, finalisation, **kwargs):
         """Start periodic processing of area_structure
 
         Keyword arguments:
-        area_structure -- area_structure class
+        area_structure_cls -- area_structure class
         interval -- processing interval [s]
         stop_event -- event to stop processing
         finalization -- barrier to wait before finalization
         **kwargs -- extra arguments to area_structure __init__
         """
-        As = area_structure(**kwargs)
+        area_structure = area_structure_cls(**kwargs)
         # prctl.set_name(self.name) # For debug
 
         try:
             while not stop_event.is_set():
-                utils.process_and_wait_interval(As.process, interval)
+                utils.process_and_wait_interval(area_structure.process, interval)
         except Exception as ex:
             exc_info = sys.exc_info()
             print('--- traceback ---')
             traceback.print_exception(*exc_info)
             del exc_info
             print('-----------------')
-            utils.log('error', str(ex), 'red')
+            utils.log('error2', str(ex), 'red')
             stop_event.set()
         finally:
-            As.close_others_queues()
+            area_structure.close_others_queues()
             finalisation.wait()
-            As.empty_my_queue()
+            area_structure.empty_my_queue()
             finalisation.wait()
-            As.finalise()
+            area_structure.finalise()
 
 
 class AreaStructure:
@@ -83,6 +82,11 @@ class AreaStructure:
         self._state_changed = False
         self.simulate_only_orbit = SIMUL_ONLY_ORBIT
 
+    @property
+    def log(self):
+        """."""
+        return self._log
+        
     def process(self):
         self._process_requests()
         self._update_state()
@@ -112,11 +116,19 @@ class AreaStructure:
 
     def _update_pvs(self):
         pvs = []
+
+        # update dynamical PVs (if not simulating only orbit)
         if not self.simulate_only_orbit:
             pvs = pvs + self.pv_module.get_dynamical_pvs()
+
+        # if model changes, also update all read-only PVs
+        # NOTE: this can be improved. instead of sending all read_only_pvs to drive
+        # one can keep a list of changed PVs.
         pvs = pvs + (self.pv_module.get_read_only_pvs() if self._state_changed else [])
         for pv in pvs:
             self._others_queue['driver'].put(('s', (pv, self._get_pv(pv))))
+
+        # signal that model state change has already been propagated to epics driver
         self._state_changed = False
 
     def close_others_queues(self):
@@ -133,11 +145,15 @@ class AreaStructure:
         utils.log('exit', 'area_structure ' + self.prefix)
 
     def _send_parameters_to_other_area_structure(self, prefix, _dict):
-        self._others_queue[prefix].put(('p', _dict))
+        if prefix in self._others_queue:
+            # print('{} sending to {}: '.format(self.prefix, prefix), _dict)
+            self._others_queue[prefix].put(('p', _dict))
 
     def _get_parameters_from_other_area_structure(self, _dict):
+        # print('{} receiving: '.format(self.prefix), _dict)
         if 'pulsed_magnet_parameters' in _dict.keys():
-            self._set_pulsed_magnets_parameters(**_dict['pulsed_magnet_parameters'])
+            self._set_pulsed_magnets_parameters(
+                **_dict['pulsed_magnet_parameters'])
         elif 'update_delays' in _dict.keys():
             self._update_pulsed_magnets_delays(_dict['update_delays'])
         elif 'injection_parameters' in _dict.keys():
@@ -150,9 +166,14 @@ class AreaStructure:
             # self._received_charge = False
 
     def _init_sp_pv_values(self):
-        utils.log('init', 'epics sp memory for %s pvs'%self.prefix)
+        utils.log('epics', '{}: setting database for setpoint pvs'.format(
+            self.prefix))
         sp_pv_list = []
         for pv in self.pv_module.get_read_write_pvs() + self.pv_module.get_constant_pvs():
             value = self._get_pv(pv)
-            sp_pv_list.append((pv,value))
-        self._others_queue['driver'].put(('sp', sp_pv_list ))
+            sp_pv_list.append((pv, value))
+        self._others_queue['driver'].put(('sp', sp_pv_list))
+
+    def _send_initialisation_sign(self):
+        self.process()
+        self._others_queue['driver'].put(('i', self.prefix))
